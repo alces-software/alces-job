@@ -25,11 +25,9 @@ module AlcesJob
 
           return puts pastel.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
 
-          puts
-
           # Check config file
           spinner = TTY::Spinner.new(
-            '[:spinner] checking for config ...',
+            "\n[:spinner] checking for config ...",
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )

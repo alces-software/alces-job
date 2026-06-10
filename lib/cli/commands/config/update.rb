@@ -38,11 +38,9 @@ module AlcesJob
             return
           end
 
-          puts
-
           # Load and parse config.yaml
           spinner = TTY::Spinner.new(
-            '[:spinner] loading config ...',
+            "\n[:spinner] loading config ...",
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )
