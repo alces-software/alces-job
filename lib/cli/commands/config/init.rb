@@ -4,6 +4,7 @@ require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
 require 'yaml'
+require 'fileutils'
 
 require_relative '../../../services/sysinfo/sysinfo'
 
@@ -66,6 +67,7 @@ module AlcesJob
           )
 
           spinner.auto_spin
+          FileUtils.mkdir_p(File.dirname(@config_path))
           File.write(@config_path, @system_data.to_yaml)
           spinner.success('(successful)')
 
