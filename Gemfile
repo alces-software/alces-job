@@ -2,12 +2,16 @@
 
 source 'https://rubygems.org'
 
-# gem "rails"
-
 gem 'dry-cli', '~> 1.4'
 
 gem 'pastel', '~> 0.8.0'
 
 gem 'rubocop', '~> 1.87'
 
-gem "tty-prompt", "~> 0.23.1"
+gem 'tty-prompt', '~> 0.23.1'
+
+gem 'rspec', '~> 3.13'
+
+gem 'config', '~> 5.6'
+
+gem 'rake', '~> 13.4'
