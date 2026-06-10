@@ -18,17 +18,18 @@ module AlcesJob
         option :partition, type: :boolean, default: false, desc: 'Update partitions info', aliases: ['-p']
         option :package, type: :boolean, default: false, desc: 'Update packages info', aliases: ['-k']
         option :gpu, type: :boolean, default: false, desc: 'Update GPU count', aliases: ['-g']
+        option :all, type: :boolean, default: false, desc: 'Update all the system information', aliases: ['-a']
 
         def initialize
-          # @config_path = '/etc/alces-job/config.yaml'
-          @config_path = './config.yaml'
+          config = YAML.load_file('./config.yaml')
+          @config_path = config['admin_config_file']
           @system_data = nil
         end
 
         def call(**options)
           pastel = Pastel.new
 
-          return puts pastel.bold.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
+          return puts pastel.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
 
           filtered_options = options.select { |_key, value| value }
 
@@ -72,18 +73,23 @@ module AlcesJob
           )
 
           spinner.auto_spin
-          filtered_options.each_pair do |key, _value|
-            case key
-            when :node
-              @system_data[:nodes] = SysInfo.new.getNodeInfo
-            when :partition
-              @system_data[:partitions] = SysInfo.new.getPartitionInfo
-            when :package
-              @system_data[:packages] = SysInfo.new.getPackageInfo
-            when :gpu
-              @system_data[:gpu_total] = SysInfo.new.getGpuInfo
+          if filtered_options[:all].nil?
+            filtered_options.each_pair do |key, _value|
+              case key
+              when :node
+                @system_data[:nodes] = SysInfo.getNodeInfo
+              when :partition
+                @system_data[:partitions] = SysInfo.getPartitionInfo
+              when :package
+                @system_data[:packages] = SysInfo.getPackageInfo
+              when :gpu
+                @system_data[:gpu_total] = SysInfo.getGpuInfo
+              end
             end
+          else
+            @system_data = SysInfo.getAllInfo
           end
+
           spinner.success('(successful)')
 
           # New data to file
@@ -97,7 +103,7 @@ module AlcesJob
           File.write(@config_path, @system_data.to_yaml)
           spinner.success('(successful)')
 
-          puts "\nThe config file at #{@config_path} has been updated\n\n"
+          puts pastel.green("\nThe config file at #{@config_path} has been updated\n")
         end
       end
     end

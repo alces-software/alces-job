@@ -1,22 +1,17 @@
 # frozen_string_literal: true
 
 module AlcesJob
-  class SysInfo
-    def getAllInfo
-      node = getNodeInfo
-      partition = getPartitionInfo
-      package = getPackageInfo
-      gpu = getGpuInfo
-
+  module SysInfo
+    def self.getAllInfo
       {
-        nodes: node,
-        partitions: partition,
-        packages: package,
-        gpu_total: gpu
+        nodes: getNodeInfo,
+        partitions: getPartitionInfo,
+        packages: getPackageInfo,
+        gpu_total: getGpuInfo
       }
     end
 
-    def getNodeInfo
+    def self.getNodeInfo
       # `sinfo -N -h -o "%N %c %m"`
       "node01 32 385024
       node02 32 385024
@@ -41,7 +36,7 @@ module AlcesJob
         end
     end
 
-    def getPartitionInfo
+    def self.getPartitionInfo
       # `sinfo -o "%P %l" -h`
       "gpu-l40s 7-00:00:00
       gpu-h100 7-00:00:00"
@@ -52,18 +47,19 @@ module AlcesJob
         end
     end
 
-    def getPackageInfo
+    def self.getPackageInfo
       # `module avail 2>&1 | sed 's#/[^ ]*##g'`
       "test
       test2
       test3
       test4
-      test5"
+      test5
+      test6"
         .lines
         .map(&:strip)
     end
 
-    def getGpuInfo
+    def self.getGpuInfo
       # `scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc`.strip.to_i
       '48'.strip.to_i
     end

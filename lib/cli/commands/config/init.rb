@@ -15,15 +15,15 @@ module AlcesJob
         desc 'This command generates the initial system info config and saves it'
 
         def initialize
-          # @config_path = '/etc/alces-job/config.yaml'
-          @config_path = './config.yaml'
+          config = YAML.load_file('./config.yaml')
+          @config_path = config['admin_config_file']
           @system_data = nil
         end
 
         def call(*)
           pastel = Pastel.new
 
-          return puts pastel.bold.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
+          return puts pastel.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
 
           puts
 
@@ -39,7 +39,7 @@ module AlcesJob
 
             unless data.nil?
               spinner.error('(config exists)')
-              puts pastel.bold.green("\nA config already exists\n")
+              puts pastel.green("\nA config already exists\n")
               return
             end
 
@@ -56,7 +56,7 @@ module AlcesJob
           )
 
           spinner.auto_spin
-          collect_system_info
+          @system_data = SysInfo.getAllInfo
           spinner.success('(successful)')
 
           # Writing to config file
@@ -67,20 +67,10 @@ module AlcesJob
           )
 
           spinner.auto_spin
-          write_config_file
+          File.write(@config_path, @system_data.to_yaml)
           spinner.success('(successful)')
 
-          puts "\nThe config file has been written to #{@config_path}\n\n"
-        end
-
-        private
-
-        def collect_system_info
-          @system_data = SysInfo.new.getAllInfo
-        end
-
-        def write_config_file
-          File.write(@config_path, @system_data.to_yaml)
+          puts pastel.green("\nThe config file has been written to #{@config_path}\n\n")
         end
       end
     end
