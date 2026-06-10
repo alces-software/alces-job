@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+root = File.expand_path('..', __dir__)
+require "#{root}/lib/cli/cli"
+
+Dry::CLI.new(AlcesJob::CLI).call

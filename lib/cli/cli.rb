@@ -13,5 +13,3 @@ end
 # Load commands (only used to load top level commands sub commands are loaded within the commands)
 require_relative 'commands/version'
 require_relative 'commands/command'
-
-Dry::CLI.new(AlcesJob::CLI).call
