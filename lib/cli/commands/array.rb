@@ -3,7 +3,6 @@
 require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
-require 'open3'
 
 require_relative '../../services/generator'
 
@@ -68,7 +67,8 @@ module AlcesJob
           )
 
           spinner.auto_spin
-          stdout, _, status = Open3.capture3("sbatch #{file_path}")
+
+          stdout, status = generator.submit(file_path)
 
           unless status.success?
             spinner.error('(error)')
