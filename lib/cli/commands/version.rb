@@ -12,15 +12,20 @@ module AlcesJob
 
         def call(*)
           pastel = Pastel.new
-          puts pastel.bright_blue.bold("
-  'o`
- 'ooo`
- `oooo`
-  `oooo`         'o` #{pastel.white("v#{AlcesJob::VERSION}")}
-    `ooooo`  `ooooo
-       `oooo:oooo`
-          `v  -[ #{pastel.white('alces software')} ]-
-                        ")
+          art = <<~ART
+
+             'o`
+            'ooo`
+            `oooo`
+             `oooo`         'o` #{pastel.white("v#{AlcesJob::VERSION}")}
+               `ooooo`  `ooooo
+                  `oooo:oooo`
+                     `v  -[ #{pastel.white('Alces Software')} ]-
+
+            #{AlcesJob::GITHUB_URL}
+          ART
+
+          puts pastel.decorate(art, :bright_blue, :bold)
         end
       end
     end
