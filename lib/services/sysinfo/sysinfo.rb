@@ -29,7 +29,7 @@ module AlcesJob
     end
 
     def self.partition_info
-      stdout, _, status = Open3.capture3('sinfo -o -h "%P %l"')
+      stdout, _, status = Open3.capture3('sinfo -o "%P %l" -h')
 
       return nil unless status.success?
 
@@ -37,7 +37,7 @@ module AlcesJob
         .lines
         .map do |line|
           part, time = line.strip.split
-          { partition: part, time_limit: time }
+          { partition: part.delete('*'), time_limit: time }
         end
     rescue Errno::ENOENT
       nil
