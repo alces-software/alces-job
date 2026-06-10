@@ -1,0 +1,22 @@
+# frozen_string_literal: true
+
+require 'dry/cli'
+
+# Import subcommands like this
+require_relative 'command/subcommand'
+require_relative '../../services/interactive_wizard'
+
+module AlcesJob
+  module CLI
+    module Commands
+      class Wizard < Dry::CLI::Command
+        AlcesJob::CLI.register '', self
+        desc 'This runs the interactive wizard'
+
+        def call(*)
+          AlcesJob::Services::InteractiveWizard.new.call
+        end
+      end
+    end
+  end
+end
