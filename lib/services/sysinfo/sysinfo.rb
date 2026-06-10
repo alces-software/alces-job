@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'open3'
+
 module AlcesJob
   module SysInfo
     def self.getAllInfo
@@ -12,56 +14,55 @@ module AlcesJob
     end
 
     def self.getNodeInfo
-      # `sinfo -N -h -o "%N %c %m"`
-      "node01 32 385024
-      node02 32 385024
-      node03 32 385024
-      node04 32 385024
-      node05 32 385024
-      node06 32 385024
-      node07 32 385024
-      node08 32 385024
-      node09 32 385024
-      node10 32 385024
-      node11 32 385024
-      node12 32 385024
-      node13 32 385024
-      node14 32 385024
-      node15 32 385024
-      node16 32 385024"
+      stdout, _, status = Open3.capture3('sinfo -N -h -o "%N %c %m"')
+
+      return nil unless status.success?
+
+      stdout
         .lines
         .map do |line|
           node, cpus, mem = line.strip.split
           { node: node, cpus: cpus.to_i, memory: mem.to_i }
         end
+    rescue Errno::ENOENT
+      nil
     end
 
     def self.getPartitionInfo
-      # `sinfo -o "%P %l" -h`
-      "gpu-l40s 7-00:00:00
-      gpu-h100 7-00:00:00"
+      stdout, _, status = Open3.capture3('sinfo -o -h "%P %l"')
+
+      return nil unless status.success?
+
+      stdout
         .lines
         .map do |line|
           part, time = line.strip.split
           { partition: part, time_limit: time }
         end
+    rescue Errno::ENOENT
+      nil
     end
 
     def self.getPackageInfo
-      # `module avail 2>&1 | sed 's#/[^ ]*##g'`
-      "test
-      test2
-      test3
-      test4
-      test5
-      test6"
-        .lines
-        .map(&:strip)
+      stdout, _, status = Open3.capture3('module avail')
+
+      return nil unless status.success?
+
+      stdout.lines.map do |line|
+        line.gsub(%r{/[^ ]*}, '').strip
+      end
+    rescue Errno::ENOENT
+      nil
     end
 
     def self.getGpuInfo
-      # `scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc`.strip.to_i
-      '48'.strip.to_i
+      stdout, _, status = Open3.capture3("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc`")
+
+      return 0 unless status.success?
+
+      stdout.strip.to_i
+    rescue Errno::ENOENT
+      0
     end
   end
 end

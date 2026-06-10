@@ -70,7 +70,7 @@ module AlcesJob
           File.write(@config_path, @system_data.to_yaml)
           spinner.success('(successful)')
 
-          puts pastel.green("\nThe config file has been written to #{@config_path}\n\n")
+          puts pastel.green("\nThe config file has been written to #{@config_path}\n")
         end
       end
     end
