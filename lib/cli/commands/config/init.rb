@@ -32,6 +32,7 @@ module AlcesJob
             error_mark: pastel.red('✖')
           )
 
+          spinner.auto_spin
           if File.exist?(@config_path)
             data = YAML.load_file(@config_path)
 

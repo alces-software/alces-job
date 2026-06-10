@@ -22,6 +22,8 @@ module AlcesJob
         path = File.join(Dir.pwd, file_name)
 
         File.write(path, script)
+
+        path
       end
 
       private
