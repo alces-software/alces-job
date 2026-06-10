@@ -6,6 +6,7 @@ module AlcesJob
     class Generator
       def initialize(options)
         @context = OpenStruct.new(options)
+        @template = @context.template || 'default'
       end
 
       def generate
@@ -24,7 +25,7 @@ module AlcesJob
       private
 
       def template
-        File.read(File.join(__dir__, '../../templates', 'default.erb'))
+        File.read(File.join(__dir__, '../../templates', "#{@template}.erb"))
       end
     end
   end
