@@ -7,7 +7,7 @@ module AlcesJob
     def self.all_info
       {
         nodes: node_info,
-        partitions: package_info,
+        partitions: partition_info,
         packages: package_info,
         gpu_total: gpu_info
       }
@@ -33,12 +33,14 @@ module AlcesJob
 
       return nil unless status.success?
 
-      stdout
-        .lines
-        .map do |line|
-          part, time = line.strip.split
-          { partition: part.delete('*'), time_limit: time }
-        end
+      stdout.lines.map do |line|
+        partition, time_limit = line.strip.split(/\s+/, 2)
+
+        {
+          partition: partition.delete('*'),
+          time_limit: time_limit == 'infinite' ? '00:00:00' : time_limit
+        }
+      end
     rescue Errno::ENOENT
       nil
     end
