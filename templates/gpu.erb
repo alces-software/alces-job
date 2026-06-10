@@ -1,0 +1,41 @@
+#!/bin/bash
+#SBATCH --job-name=<%= @context.job_name %>
+#SBATCH --gres=<%= @context.gres || "gpu:1" %>
+<% if @context.nodes -%>
+#SBATCH --nodes=<%= @context.nodes %>
+<% else -%>
+#SBATCH --nodes=1
+<% end -%>
+<% if @context.ntasks -%>
+#SBATCH --ntasks=<%= @context.ntasks %>
+<% else -%>
+#SBATCH --ntasks=1
+<% end -%>
+<% if @context.cpus_per_task -%>
+#SBATCH --cpus-per-task=<%= @context.cpus_per_task %>
+<% else -%>
+#SBATCH --cpus-per-task=4
+<% end -%>
+<% if @context.mem -%>
+#SBATCH --mem=<%= @context.mem %>
+<% end -%>
+<% if @context.time -%>
+#SBATCH --time=<%= @context.time %>
+<% else -%>
+#SBATCH --time=04:00:00
+<% end -%>
+<% if @context.partition -%>
+#SBATCH --partition=<%= @context.partition %>
+<% end -%>
+
+module load cuda
+<% Array(@context.modules).each do |mod| -%>
+module load <%= mod %>
+<% end -%>
+<% if @context.workdir -%>
+cd <%= @context.workdir %>
+<% end -%>
+
+nvidia-smi
+
+<%= @context.command %>

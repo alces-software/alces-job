@@ -56,3 +56,6 @@ build-iPhoneSimulator/
 # .rubocop-https?--*
 */.DS_store
 *.lock
+
+# Prevent any accidental commiting of generated sbatch files
+*.sbatch

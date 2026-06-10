@@ -1,0 +1,29 @@
+#!/bin/bash
+#SBATCH --job-name=<%= @context.job_name %>
+#SBATCH --nodes=<%= @context.nodes || 2 %>
+#SBATCH --ntasks=<%= @context.ntasks || 32 %>
+#SBATCH --cpus-per-task=<%= @context.cpus_per_task || 1 %>
+<% if @context.partition -%>
+#SBATCH --partition=<%= @context.partition %>
+<% end -%>
+<% if @context.time -%>
+#SBATCH --time=<%= @context.time %>
+<% else -%>
+#SBATCH --time=02:00:00
+<% end -%>
+<% if @context.mem -%>
+#SBATCH --mem=<%= @context.mem %>
+<% end -%>
+
+module load openmpi
+<% Array(@context.modules).each do |mod| -%>
+module load <%= mod %>
+<% end -%>
+<% if @context.workdir -%>
+
+cd <%= @context.workdir %>
+
+<% end -%>
+echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"
+
+srun <%= @context.command %>
