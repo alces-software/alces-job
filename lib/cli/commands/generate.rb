@@ -39,7 +39,6 @@ module AlcesJob
 
         def call(*args, **options)
           generator = AlcesJob::Services::Generator.new(options)
-          generator.generate
           generator.save
         end
       end

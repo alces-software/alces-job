@@ -29,7 +29,6 @@ module AlcesJob
         def call(**options)
           options[:template] = 'mpi'
           generator = AlcesJob::Services::Generator.new(options)
-          generator.generate
           generator.save
         end
       end

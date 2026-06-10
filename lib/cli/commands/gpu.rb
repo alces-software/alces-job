@@ -30,7 +30,6 @@ module AlcesJob
         def call(**options)
           options[:template] = 'gpu'
           generator = AlcesJob::Services::Generator.new(options)
-          generator.generate
           generator.save
         end
       end

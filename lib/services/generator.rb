@@ -10,16 +10,16 @@ module AlcesJob
       end
 
       def generate
-        @script = ERB.new(template, trim_mode: '-').result(binding)
+        ERB.new(template, trim_mode: '-').result(binding)
       end
 
-      def save
+      def save(script = generate)
         file_name = 'job.sbatch'
 
         file_name = @context.output_file unless @context.output_file.nil?
         path = File.join(Dir.pwd, file_name)
 
-        File.write(path, @script)
+        File.write(path, script)
       end
 
       private

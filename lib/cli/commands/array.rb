@@ -34,7 +34,6 @@ module AlcesJob
           options[:template] = 'array'
 
           generator = AlcesJob::Services::Generator.new(options)
-          generator.generate
           generator.save
         end
       end
