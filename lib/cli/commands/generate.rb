@@ -7,7 +7,7 @@ require_relative '../../services/generator'
 module AlcesJob
   module CLI
     module Commands
-      class Default < Dry::CLI::Command
+      class Serial < Dry::CLI::Command
         option :job_name, type: :string
         option :nodes, type: :integer
         option :ntasks, type: :integer
@@ -34,7 +34,7 @@ module AlcesJob
 
         option :output_file, type: :string
 
-        AlcesJob::CLI.register 'default', self
+        AlcesJob::CLI.register 'serial', self
         desc 'tmp'
 
         def call(*args, **options)
