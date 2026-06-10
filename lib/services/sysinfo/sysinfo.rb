@@ -6,10 +6,10 @@ module AlcesJob
   module SysInfo
     def self.all_info
       {
-        nodes: getNodeInfo,
-        partitions: getPartitionInfo,
-        packages: getPackageInfo,
-        gpu_total: getGpuInfo
+        nodes: node_info,
+        partitions: package_info,
+        packages: package_info,
+        gpu_total: gpu_info
       }
     end
 
