@@ -1,0 +1,66 @@
+# frozen_string_literal: true
+
+require 'dry/cli'
+require 'pastel'
+require 'tty-spinner'
+require 'yaml'
+
+require_relative '../../../services/sysinfo/sysinfo'
+
+module AlcesJob
+  module CLI
+    module Commands
+      class ConfigInit < Dry::CLI::Command
+        AlcesJob::CLI.register 'config init', self
+        desc 'This command generates the initial system info config and saves it'
+
+        def initialize
+          @config_path = '/etc/alces-job/config.yaml'
+          @system_data = nil
+        end
+
+        def call(*)
+          pastel = Pastel.new
+
+          return puts pastel.bold.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
+
+          return puts pastel.bold.green("\nA config already exists\n") if File.exist?(@config_path)
+
+          puts
+
+          spinner = TTY::Spinner.new(
+            '[:spinner] collecting system info ...',
+            success_mark: pastel.green('✔'),
+            error_mark: pastel.red('✖')
+          )
+
+          spinner.auto_spin
+          collect_system_info
+          spinner.success('(successful)')
+
+          spinner = TTY::Spinner.new(
+            '[:spinner] writing config file ...',
+            success_mark: pastel.green('✔'),
+            error_mark: pastel.red('✖')
+          )
+
+          spinner.auto_spin
+          write_config_file
+          spinner.success('(successful)')
+
+          puts "\nThe config file has been written to #{@config_path}\n\n"
+        end
+
+        private
+
+        def collect_system_info
+          @system_data = SysInfo.new.getAllInfo
+        end
+
+        def write_config_file
+          File.write(@config_path, @system_data.to_yaml)
+        end
+      end
+    end
+  end
+end
