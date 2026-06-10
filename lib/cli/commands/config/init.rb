@@ -25,11 +25,9 @@ module AlcesJob
 
           return puts pastel.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
 
-          puts
-
           # Check config file
           spinner = TTY::Spinner.new(
-            '[:spinner] checking for config ...',
+            "\n[:spinner] checking for config ...",
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )
@@ -70,7 +68,7 @@ module AlcesJob
           File.write(@config_path, @system_data.to_yaml)
           spinner.success('(successful)')
 
-          puts pastel.green("\nThe config file has been written to #{@config_path}\n\n")
+          puts pastel.green("\nThe config file has been written to #{@config_path}\n")
         end
       end
     end

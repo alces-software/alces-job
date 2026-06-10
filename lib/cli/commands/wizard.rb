@@ -3,7 +3,6 @@
 require 'dry/cli'
 
 # Import subcommands like this
-require_relative 'command/subcommand'
 require_relative '../../services/interactive_wizard'
 require_relative '../../services/sysinfo/sysinfo'
 
@@ -11,7 +10,7 @@ module AlcesJob
   module CLI
     module Commands
       class Wizard < Dry::CLI::Command
-        AlcesJob::CLI.register '', self
+        AlcesJob::CLI.register 'wizard', self
         desc 'This runs the interactive wizard'
 
         def call(*)

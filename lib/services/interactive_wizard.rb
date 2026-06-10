@@ -3,6 +3,8 @@
 require 'tty-prompt'
 require 'terminal-table'
 require 'pastel'
+require 'yaml'
+require 'erb'
 
 require_relative 'sysinfo/sysinfo'
 
@@ -10,7 +12,7 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def get_system_info
-        @info = AlcesJob::SysInfo.getAllInfo
+        @info = YAML.load_file('test_data.yaml')
       end
 
       def valid_slurm_time?(time_string, max_days = 7)
@@ -311,6 +313,36 @@ module AlcesJob
 
         puts "You enetered #{questions}"
         puts "Result is #{result}"
+
+        loop do
+          generator = AlcesJob::Services::Generator.new(
+            result.merge(template: job_type)
+          )
+
+          script = generator.generate
+
+          puts script
+
+          break unless prompt.yes?('Would you like to edit any of your inputs?')
+
+          field = prompt.select(
+            'Which input would you like to edit?',
+            result.keys
+          )
+
+          result[field] = prompt.ask(
+            "Enter new value for #{field}:"
+          )
+        end
+
+        generator = AlcesJob::Services::Generator.new(
+          result.merge(template: job_type)
+        )
+
+        return unless prompt.yes?('Write script to file?')
+
+        generator.save
+        puts 'Script written successfully.'
       end
     end
   end
