@@ -3,13 +3,16 @@ require_relative "converters/time_converter"
 require_relative "validators/integer_directive_validator"
 require_relative "validators/sbatch_directive_validator"
 
+require_relative "sys_limits/system_limits"
+
 class SlurmScriptValidator
   attr_reader :errors, :warnings
 
-  def initialize(file_path)
+  def initialize(file_path, system_info: nil)
     @file_path = file_path
     @errors = []
     @warnings = []
+    @system_info = system_info
   end
 
   def validate
@@ -66,7 +69,7 @@ class SlurmScriptValidator
     if mem_line
       mem_value = mem_line.split("--mem=").last.strip
       requested_memory_mb = MemoryConverter.to_mb(mem_value)
-      max_memory_mb = 5000                                      # temporary hardcoded limit
+      max_memory_mb = AlcesJob::Services::SystemLimits.max_memory_mb(@system_info)                      # goes to hardcoded value if system info is missing and assumes each node has same memory.
 
       if requested_memory_mb.nil?
         errors << "Invalid memory format: #{mem_value}. Expected formats like 4G, 500M, etc."
@@ -80,7 +83,7 @@ class SlurmScriptValidator
 
   def validate_time(sbatch_lines)
     time_line = sbatch_lines.find { |line| line.include?("--time=") }
-    max_time_seconds = 86_400                                   # temporary hardcoded limit
+    max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(@system_info)                      # goes to hardcoded value if system info is missing or incomplete
 
     if time_line
       time_value = time_line.split("--time=").last.strip

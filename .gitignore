@@ -57,5 +57,8 @@ build-iPhoneSimulator/
 */.DS_store
 *.lock
 
-scratch/ 
+scratch/
+
+# Prevent any accidental commiting of generated sbatch files
+*.sbatch
 
