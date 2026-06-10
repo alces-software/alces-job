@@ -2,6 +2,10 @@ name: CI
 
 on:
   pull_request:
+      paths:
+      - "**.rb"
+      - "Gemfile.lock"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 jobs:
