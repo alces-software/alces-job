@@ -4,7 +4,7 @@ require 'open3'
 
 module AlcesJob
   module SysInfo
-    def self.getAllInfo
+    def self.all_info
       {
         nodes: getNodeInfo,
         partitions: getPartitionInfo,
@@ -13,7 +13,7 @@ module AlcesJob
       }
     end
 
-    def self.getNodeInfo
+    def self.node_info
       stdout, _, status = Open3.capture3('sinfo -N -h -o "%N %c %m"')
 
       return nil unless status.success?
@@ -28,7 +28,7 @@ module AlcesJob
       nil
     end
 
-    def self.getPartitionInfo
+    def self.partition_info
       stdout, _, status = Open3.capture3('sinfo -o -h "%P %l"')
 
       return nil unless status.success?
@@ -43,7 +43,7 @@ module AlcesJob
       nil
     end
 
-    def self.getPackageInfo
+    def self.package_info
       stdout, _, status = Open3.capture3('module avail')
 
       return nil unless status.success?
@@ -55,7 +55,7 @@ module AlcesJob
       nil
     end
 
-    def self.getGpuInfo
+    def self.gpu_info
       stdout, _, status = Open3.capture3("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc`")
 
       return 0 unless status.success?

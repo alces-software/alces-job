@@ -28,9 +28,50 @@ module AlcesJob
         desc 'Creates a GPU sbatch script'
 
         def call(**options)
+          pastel = Pastel.new
+
+          # Generate sbatch file
+          spinner = TTY::Spinner.new(
+            "\n[:spinner] generating SBATCH script ...",
+            success_mark: pastel.green('✔'),
+            error_mark: pastel.red('✖')
+          )
+
+          spinner.auto_spin
+
           options[:template] = 'gpu'
+
           generator = AlcesJob::Services::Generator.new(options)
-          generator.save
+          file_path = generator.save
+
+          spinner.success('(successful)')
+
+          puts pastel.green("The SBTACH script has been generated and saved to #{file_path}\n")
+
+          # Submit the sbatch file to sbatch if user adds flag
+          return unless options[:submit]
+
+          spinner = TTY::Spinner.new(
+            '[:spinner] submitting script ...',
+            success_mark: pastel.green('✔'),
+            error_mark: pastel.red('✖')
+          )
+
+          spinner.auto_spin
+          stdout, _, status = Open3.capture3("sbatch #{file_path}")
+
+          unless status.success?
+            spinner.error('(error)')
+            puts pastel.red("An error occurred\n")
+            return
+          end
+
+          spinner.success('(submitted)')
+
+          puts "#{stdout}\n"
+        rescue Errno::ENOENT
+          spinner.error('(error)')
+          puts pastel.red("An error occurred\n")
         end
       end
     end

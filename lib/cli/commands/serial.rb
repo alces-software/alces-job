@@ -82,7 +82,7 @@ module AlcesJob
 
           spinner.success('(submitted)')
 
-          puts stdout
+          puts "#{stdout}\n"
         rescue Errno::ENOENT
           spinner.error('(error)')
           puts pastel.red("An error occurred\n")

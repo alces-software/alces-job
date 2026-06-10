@@ -55,7 +55,7 @@ module AlcesJob
           )
 
           spinner.auto_spin
-          @system_data = SysInfo.getAllInfo
+          @system_data = SysInfo.all_info
           spinner.success('(successful)')
 
           # Writing to config file
