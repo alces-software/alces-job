@@ -4,9 +4,15 @@ require 'tty-prompt'
 require 'terminal-table'
 require 'pastel'
 
+require_relative 'sysinfo/sysinfo'
+
 module AlcesJob
   module Services
     class InteractiveWizard
+      def get_system_info
+        @info = AlcesJob::SysInfo.getAllInfo
+      end
+
       def valid_slurm_time?(time_string, max_days = 7)
         return false if time_string.nil?
         return false if time_string.strip.empty?
@@ -51,35 +57,48 @@ module AlcesJob
         parts.join(', ')
       end
 
-      def valid_memory?(input, max_memory)
-        requested_gb = memory_to_gb(input)
-        max_gb = memory_to_gb(max_memory)
+      def slurm_time_to_seconds(time_string)
+        days, time = time_string.split('-')
+        hours, minutes, seconds = time.split(':')
 
-        return false if requested_gb.nil?
-        return false if max_gb.nil?
-
-        requested_gb <= max_gb
+        days.to_i * 86_400 +
+          hours.to_i * 3600 +
+          minutes.to_i * 60 +
+          seconds.to_i
       end
 
-      def memory_to_gb(memory)
-        match = memory.to_s.strip.match(/\A(\d+(?:\.\d+)?)\s*(G|GB|T|TB|P|PB)\z/i)
+      # def valid_memory?(input, max_memory)
+      #   requested_gb = memory_to_gb(input)
+      #   max_gb = memory_to_gb(max_memory)
 
-        return nil unless match
+      #   return false if requested_gb.nil?
+      #   return false if max_gb.nil?
 
-        amount = match[1].to_f
-        unit = match[2].upcase
+      #   requested_gb <= max_gb
+      # end
 
-        case unit
-        when 'G', 'GB'
-          amount
-        when 'T', 'TB'
-          amount * 1024
-        when 'P', 'PB'
-          amount * 1024 * 1024
-        end
-      end
+      # def memory_to_gb(memory)
+      #   match = memory.to_s.strip.match(/\A(\d+(?:\.\d+)?)\s*(G|GB|T|TB|P|PB)\z/i)
+
+      #   return nil unless match
+
+      #   amount = match[1].to_f
+      #   unit = match[2].upcase
+
+      #   case unit
+      #   when 'G', 'GB'
+      #     amount
+      #   when 'T', 'TB'
+      #     amount * 1024
+      #   when 'P', 'PB'
+      #     amount * 1024 * 1024
+      #   end
+      # end
 
       def call
+        get_system_info
+        puts @info
+
         puts 'Welcome to the interactive mode!'
 
         rows = [
@@ -97,49 +116,64 @@ module AlcesJob
 
         puts table
 
-        typesOfJob = ['serial (default)', 'mpi', 'gpu', 'array']
+        partitionTypes = @info[:partitions]
 
-        ############ PARTITIONS SECTION ###############
-        #
-        partitionTypes = %w[gpu101 gpu800 gpu999]
+        maxRunTime = nil
 
-        partition_rows = [
-          ['gpu101', 'Idle', 4, 64, '1 TB', '7 days'],
-          ['gpu800', 'Mixed', 8, 128, '2 TB', '2 days'],
-          ['gpu999', 'Alloc', 2, 64, '512 GB', '12 hours']
-        ]
+        partition_list = []
 
-        partition_table = Terminal::Table.new do |t|
-          t.title = 'Available GPU Partitions'
-          t.headings = [
-            'Partition',
-            'State',
-            'Nodes',
-            'CPUs/Node',
-            'Memory/Node',
-            'Max Runtime'
-          ]
-          t.rows = partition_rows
+        partitionTypes.each do |partition|
+          # puts "#{partition[:partition]}'s time limit is #{partition[:time_limit]}"
+          partition_list.append(partition[:partition])
+
+          if maxRunTime.nil? ||
+             slurm_time_to_seconds(partition[:time_limit]) > slurm_time_to_seconds(maxRunTime)
+            maxRunTime = partition[:time_limit]
+          end
         end
 
-        maxRunTime = '7-00:00:00'
+        puts "Max time: #{maxRunTime}"
+
+        nodes = @info[:nodes]
+
+        maxMemory = 0
+        maxCpuCores = 0
+
+        nodes.each do |node|
+          maxMemory = node[:memory] if node[:memory] > maxMemory
+          maxCpuCores = node[:cpus] if node[:cpus] > maxCpuCores
+        end
+
+        # partition_rows = [
+        #   ['serial', 'Single-node CPU job'],
+        #   ['mpi',    'Distributed job using MPI across nodes'],
+        #   ['gpu',    'GPU-accelerated workload'],
+        #   ['array',  'Many similar jobs run as a job array']
+        # ]
+
+        # partition_table = Terminal::Table.new do |t|
+        #   t.title = 'Available Job Types'
+        #   t.headings = %w[Type Description]
+        #   t.rows = rows
+        # end
+
+        # puts table
 
         human_readable_max_time = human_readable_time(maxRunTime)
 
-        availCpuCores = 64
-
-        availMemory = '1 TB'
-
         prompt = TTY::Prompt.new
 
+        typesOfJob = ['serial (default)', 'mpi', 'gpu', 'array']
+
         job_type = prompt.select('What type of job would you like to run?', typesOfJob)
+
+        # To add in later?  nodes: 'How many nodes would you like to request?',   array: 'What array range would you like to use (e.g. 1-100)?', max_concurrent_tasks: 'What is the maximum number of array tasks that may run simultaneously?',    gres: 'How many GPUs would you like to request?',     ntasks: 'How many MPI tasks would you like per node?',
 
         question_bank = {
           serial: {
             job_name: 'What is your job name? (e.g. my slurm job)',
             partition: 'Which partition would you like to use?',
             time: 'How long would you like your job to run for?',
-            nodes: 'How many nodes would you like to request?',
             cpus_per_task: 'How many CPU cores would you like to request?',
             mem: 'How much memory will your job use?',
             command: 'What command would you like to run?'
@@ -149,8 +183,6 @@ module AlcesJob
             job_name: 'What is your job name? (e.g. my slurm job)',
             partition: 'Which partition would you like to use?',
             time: 'How long would you like your job to run for?',
-            nodes: 'How many nodes would you like to request?',
-            ntasks: 'How many MPI tasks would you like per node?',
             cpus_per_task: 'How many CPU cores would each MPI task require?',
             mem: 'How much memory will your job use?',
             command: 'What MPI command would you like to run?'
@@ -160,7 +192,6 @@ module AlcesJob
             job_name: 'What is your job name? (e.g. my slurm job)',
             partition: 'Which partition would you like to use?',
             time: 'How long would you like your job to run for?',
-            gres: 'How many GPUs would you like to request?',
             cpus_per_task: 'How many CPU cores would you like to request?',
             mem: 'How much memory will your job use?',
             command: 'What command would you like to run?'
@@ -170,8 +201,7 @@ module AlcesJob
             job_name: 'What is your job name? (e.g. my slurm job)',
             partition: 'Which partition would you like to use?',
             time: 'How long would you like your job to run for?',
-            array: 'What array range would you like to use (e.g. 1-100)?',
-            max_concurrent_tasks: 'What is the maximum number of array tasks that may run simultaneously?',
+
             mem: 'How much memory would you like per array task?',
             command: 'What command would you like to run?'
           }
@@ -186,8 +216,9 @@ module AlcesJob
         result = prompt.collect do
           questions.each do |item, question|
             if item == :partition
-              puts partition_table
-              key(item).select(question, partitionTypes)
+              # puts partition_table
+              #
+              key(item).select(question, partition_list)
 
             # elsif item == :time
             #   puts "The max runtime for a job is: #{maxRunTime} i.e. #{human_readable_max_time}"
@@ -203,58 +234,69 @@ module AlcesJob
                 q.messages[:valid?] = 'Time must be in format D-HH:MM:SS and not exceed 7 days'
               end
 
-            elsif item == :nodes
-              puts 'Available nodes on this partition: 8'
-              key(item).ask(question) do |q|
-                q.validate(/\A\d+\z/)
-                q.messages[:valid?] = 'Please enter a whole number'
-                q.convert :int
-              end
+            # elsif item == :nodes
+            #   puts 'Available nodes on this partition: 8'
+            #   key(item).ask(question) do |q|
+            #     q.validate(/\A\d+\z/)
+            #     q.messages[:valid?] = 'Please enter a whole number'
+            #     q.convert :int
+            #   end
 
-            elsif item == :tasks_per_node
-              puts "Available CPU cores per node: #{availCpuCores}"
-              puts 'For pure MPI, this is usually the number of MPI processes per node.'
-              key(item).ask(question) do |q|
-                q.validate(/\A\d+\z/)
-                q.messages[:valid?] = 'Please enter a whole number'
-                q.convert :int
-              end
+            # elsif item == :tasks_per_node
+            #   puts "Available CPU cores per node: #{maxCpuCores}"
+            #   key(item).ask(question) do |q|
+            #     q.validate(/\A\d+\z/)
+            #     q.messages[:valid?] = 'Please enter a whole number'
+            #     q.convert :int
+            #   end
 
             elsif item == :cpus_per_task
-              puts "Available CPUs on this partition: #{availCpuCores}"
+              puts "Max cpu cores: #{maxCpuCores}"
 
               key(item).ask(question) do |q|
                 q.validate(/\A\d+\z/)
                 q.messages[:valid?] = 'Please enter a whole number'
+                q.validate do |input|
+                  input.to_i <= maxCpuCores
+                end
+
+                q.messages[:valid?] = 'Value cannot be greater than maximum cpu cores.'
                 q.convert :int
               end
 
             elsif item == :mem
-              puts "Available memory on this node is: #{availMemory}"
-              key(item).ask(question) do |q|
-                q.validate ->(input) { wizard.valid_memory?(input, availMemory) }
-                q.messages[:valid?] = "Enter memory up to #{availMemory} (e.g. 500G, 1TB)"
-              end
-
-            elsif item == :gpus
-              puts 'Available GPUs per node: 4'
+              puts "Max memory: #{maxMemory} MB"
               key(item).ask(question) do |q|
                 q.validate(/\A\d+\z/)
                 q.messages[:valid?] = 'Please enter a whole number'
+                q.validate do |input|
+                  input.to_i <= maxMemory
+                end
+
+                q.messages[:valid?] = 'Value cannot be greater than maximum memory.'
+
                 q.convert :int
               end
 
-            elsif item == :array_range
-              puts 'Examples: 1-10, 1-100, 1-1000'
-              key(item).ask(question)
+            # elsif item == :gpus
+            #   puts 'Available GPUs per node: 4'
+            #   key(item).ask(question) do |q|
+            #     q.validate(/\A\d+\z/)
+            #     q.messages[:valid?] = 'Please enter a whole number'
+            #     q.convert :int
+            #   end
 
-            elsif item == :max_concurrent_tasks
-              puts 'Example: if your array range is 1-100 and you enter 10, only 10 tasks run at once.'
-              key(item).ask(question) do |q|
-                q.validate(/\A\d+\z/)
-                q.messages[:valid?] = 'Please enter a whole number'
-                q.convert :int
-              end
+            # elsif item == :array_range
+            #   puts 'Examples: 1-10, 1-100, 1-1000'
+            #   key(item).ask(question)
+
+            # elsif item == :max_concurrent_tasks
+            #   puts 'Example: if your array range is 1-100 and you enter 10, only 10 tasks run at once.'
+            #   key(item).ask(question) do |q|
+            #     q.validate(/\A\d+\z/)
+            #     q.messages[:valid?] = 'Please enter a whole number'
+            #     q.convert :int
+            #   end
 
             elsif item == :command
               puts 'Examples: python script.py, Rscript analysis.R, ./my_program, mpirun ./my_program'

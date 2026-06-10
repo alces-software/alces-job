@@ -17,3 +17,5 @@ gem 'rspec', '~> 3.13'
 gem 'config', '~> 5.6'
 
 gem 'rake', '~> 13.4'
+
+gem 'tty-spinner', '~> 0.9.3'
