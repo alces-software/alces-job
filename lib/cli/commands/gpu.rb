@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
+require 'pastel'
+require 'tty-spinner'
+require 'open3'
+
 require_relative '../../services/generator'
 
 module AlcesJob
@@ -23,6 +27,9 @@ module AlcesJob
         option :command, type: :string
 
         option :output_file, type: :string
+
+        option :submit, type: :boolean, default: false,
+                        desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
         AlcesJob::CLI.register 'gpu', self
         desc 'Creates a GPU sbatch script'

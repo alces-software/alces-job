@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
+require 'pastel'
+require 'tty-spinner'
+require 'open3'
+
 require_relative '../../services/generator'
 
 module AlcesJob
