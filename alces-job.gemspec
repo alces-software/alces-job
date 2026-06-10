@@ -9,10 +9,15 @@ Gem::Specification.new do |spec|
   spec.summary       = 'Generate Slurm job scripts from templates'
   spec.description   = spec.summary
   spec.homepage      = AlcesJob::GITHUB_URL
-  spec.executables   = ['alcesjob']
+  spec.executables   = ['alces-job']
   spec.bindir        = 'bin'
-  spec.authors       = %w[Oscar Alex Calum Arun]
-  spec.email         = ['you@example.com']
+  spec.authors       = ['Oscar Thomson', 'Alex Wood', 'Calum Murphy', 'Arun Bhatti']
+  spec.email         = [
+    'oscar.thomson@alces-software.com',
+    'alexander.wood@alces-software.com',
+    'calum.murphy@alces-software.com',
+    'arun.bhatti@alces-software.com'
+  ]
 
   spec.files = Dir.chdir(__dir__) do
     Dir[
@@ -26,8 +31,5 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = '>= 3.3'
 
-  spec.add_development_dependency 'bundler', '~> 2.0'
-  spec.add_development_dependency 'rake'
-  spec.add_development_dependency 'rspec'
   spec.metadata['rubygems_mfa_required'] = 'true'
 end
