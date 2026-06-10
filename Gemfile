@@ -20,4 +20,4 @@ end
 
 gem 'tty-spinner', '~> 0.9.3'
 
-gem "open3", "~> 0.2.1"
+gem 'open3', '~> 0.2.1'
