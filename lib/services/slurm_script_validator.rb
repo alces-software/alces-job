@@ -1,112 +1,98 @@
 require_relative "converters/memory_converter"
-
 require_relative "converters/time_converter"
-
 require_relative "validators/integer_directive_validator"
-
 require_relative "validators/sbatch_directive_validator"
 
-errors = []
+class SlurmScriptValidator
+  attr_reader :errors, :warnings
 
+  def initialize(file_path)
+    @file_path = file_path
+    @errors = []
+    @warnings = []
+  end
 
-maxmem = 10
+  def validate
+    lines = File.readlines(@file_path, chomp: true)
 
-lines = File.readlines("/Users/ab/Documents/alces-job/scratch/valid_basic.slurm", chomp: true)
+    validate_shebang(lines)
 
-puts "File contents:"
+    sbatch_lines = lines.select { |line| line.start_with?("#SBATCH") }
 
-puts lines
+    validate_sbatch_lines_exist(sbatch_lines)
+    validate_duplicate_directives(sbatch_lines)
 
-if lines[0] != "#!/bin/bash"    #Checking shebang
+    SbatchDirectiveValidator.validate_directives(sbatch_lines, errors)
+    IntegerDirectiveValidator.validate(sbatch_lines, errors)
 
-  errors << "Missing shebang, spelt incorrectly, or unsupported. Expected: #!/bin/bash."
+    validate_memory(sbatch_lines)
+    validate_time(sbatch_lines)
 
-end
+    errors.empty?
+  end
 
-sbatch_lines = lines.select { |line| line.start_with?("#SBATCH") }
+  private
 
-if sbatch_lines.empty?
+  def validate_shebang(lines)
+    return if lines[0] == "#!/bin/bash"
 
-  errors << "No #SBATCH directives found."
+    errors << "Missing shebang, spelt incorrectly, or unsupported. Expected: #!/bin/bash."
+  end
 
-end
+  def validate_sbatch_lines_exist(sbatch_lines)
+    return unless sbatch_lines.empty?
 
-directive_names = sbatch_lines.map do |line|    #Extracting directive names for duplicate checking
-    line.split[1]&.split("=")&.first
-end
-duplicate = directive_names
-    .compact
-    .select {|name| directive_names.count(name) > 1 }
-    .uniq
+    errors << "No #SBATCH directives found."
+  end
 
-duplicate.each do |duplicate|
-    errors << "Duplicate directive found: #{duplicate}."
-end
+  def validate_duplicate_directives(sbatch_lines)
+    directive_names = sbatch_lines.map do |line|
+      line.split[1]&.split("=")&.first
+    end
 
-SbatchDirectiveValidator.validate_directives(sbatch_lines, errors)    #Validating directives against the list of valid directives
-IntegerDirectiveValidator.validate(sbatch_lines, errors)    #Validating integer directives
+    duplicates = directive_names
+                 .compact
+                 .select { |name| directive_names.count(name) > 1 }
+                 .uniq
 
+    duplicates.each do |duplicate|
+      errors << "Duplicate directive found: #{duplicate}."
+    end
+  end
 
+  def validate_memory(sbatch_lines)
+    mem_line = sbatch_lines.find { |line| line.include?("--mem=") }
 
+    if mem_line
+      mem_value = mem_line.split("--mem=").last.strip
+      requested_memory_mb = MemoryConverter.to_mb(mem_value)
+      max_memory_mb = 5000                                      # temporary hardcoded limit
 
-
-if sbatch_lines.any? { |line| line.include?("--mem=") }    #Checking memory directive
-
-
-end
-
-mem_line = sbatch_lines.find { |line| line.include?("--mem=") } #Finding the memory directive line
-if mem_line #Checking the logic of my memory line 
-
-    mem_value = mem_line.split("--mem=").last.strip
-    requested_memory_mb = MemoryConverter.to_mb(mem_value)
-    max_memory_mb = 5000    #dummy max memory value for validation
-
-    if requested_memory_mb.nil?
-
+      if requested_memory_mb.nil?
         errors << "Invalid memory format: #{mem_value}. Expected formats like 4G, 500M, etc."
-
-    elsif requested_memory_mb > max_memory_mb
-
+      elsif requested_memory_mb > max_memory_mb
         errors << "Requested memory (#{requested_memory_mb} MB) exceeds the maximum allowed (#{max_memory_mb} MB)."
-
+      end
+    else
+      warnings << "No --mem directive found."
     end
+  end
 
-else
+  def validate_time(sbatch_lines)
+    time_line = sbatch_lines.find { |line| line.include?("--time=") }
+    max_time_seconds = 86_400                                   # temporary hardcoded limit
 
-    warning << "No --mem directive found."
+    if time_line
+      time_value = time_line.split("--time=").last.strip
+      requested_time_seconds = TimeConverter.to_seconds(time_value)
 
-end
-
-
-
-time_line = sbatch_lines.find { |line| line.include?("--time=") } #Finding the time directive line
-max_time_seconds = 86400    #dummy max time which is one day in seconds
-
-if time_line #Checking the logic of time line
-
-    time_value = time_line.split("--time=").last.strip
-    requested_time_seconds = TimeConverter.to_seconds(time_value)
-
-    if requested_time_seconds.nil?
+      if requested_time_seconds.nil?
         errors << "Invalid time format. Expected HH:MM:SS or D-HH:MM:SS."
-        elsif requested_time_seconds > max_time_seconds
+      elsif requested_time_seconds > max_time_seconds
         errors << "Requested time (#{requested_time_seconds} seconds) exceeds the maximum allowed (#{max_time_seconds} seconds)."
+      end
+    else
+      warnings << "No --time directive found."
     end
-else
-    
-    warning << "No --time directive found."
-
-end
-
-if errors.empty?
-
-  puts "Validation passed."
-
-else
-
-  puts "Validation failed:"
-
-  errors.each { |error| puts "- #{error}" }
-
+  end
 end
