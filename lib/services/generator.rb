@@ -27,7 +27,7 @@ module AlcesJob
         path
       end
 
-      def submit(_path)
+      def submit(file_path)
         stdout, _, status = Open3.capture3("sbatch #{file_path}")
 
         [stdout, status]
