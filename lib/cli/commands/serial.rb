@@ -37,7 +37,7 @@ module AlcesJob
         AlcesJob::CLI.register 'serial', self
         desc 'tmp'
 
-        def call(*args, **options)
+        def call(*_args, **options)
           generator = AlcesJob::Services::Generator.new(options)
           generator.save
         end
