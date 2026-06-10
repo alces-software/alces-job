@@ -14,5 +14,6 @@ end
 require_relative 'commands/version'
 require_relative 'commands/command'
 require_relative 'commands/config/init'
+require_relative 'commands/config/update'
 
 Dry::CLI.new(AlcesJob::CLI).call
