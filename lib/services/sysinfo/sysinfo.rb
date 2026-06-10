@@ -4,16 +4,16 @@ require 'open3'
 
 module AlcesJob
   module SysInfo
-    def self.getAllInfo
+    def self.all_info
       {
-        nodes: getNodeInfo,
-        partitions: getPartitionInfo,
-        packages: getPackageInfo,
-        gpu_total: getGpuInfo
+        nodes: node_info,
+        partitions: partition_info,
+        packages: package_info,
+        gpu_total: gpu_info
       }
     end
 
-    def self.getNodeInfo
+    def self.node_info
       stdout, _, status = Open3.capture3('sinfo -N -h -o "%N %c %m"')
 
       return nil unless status.success?
@@ -28,22 +28,24 @@ module AlcesJob
       nil
     end
 
-    def self.getPartitionInfo
-      stdout, _, status = Open3.capture3('sinfo -o -h "%P %l"')
+    def self.partition_info
+      stdout, _, status = Open3.capture3('sinfo -o "%P %l" -h')
 
       return nil unless status.success?
 
-      stdout
-        .lines
-        .map do |line|
-          part, time = line.strip.split
-          { partition: part, time_limit: time }
-        end
+      stdout.lines.map do |line|
+        partition, time_limit = line.strip.split(/\s+/, 2)
+
+        {
+          partition: partition.delete('*'),
+          time_limit: time_limit == 'infinite' ? '00:00:00' : time_limit
+        }
+      end
     rescue Errno::ENOENT
       nil
     end
 
-    def self.getPackageInfo
+    def self.package_info
       stdout, _, status = Open3.capture3('module avail')
 
       return nil unless status.success?
@@ -55,7 +57,7 @@ module AlcesJob
       nil
     end
 
-    def self.getGpuInfo
+    def self.gpu_info
       stdout, _, status = Open3.capture3("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc`")
 
       return 0 unless status.success?
