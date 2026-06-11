@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../converters/time_converter'
 require_relative '../converters/memory_converter'
 
