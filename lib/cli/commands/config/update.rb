@@ -5,7 +5,7 @@ require 'pastel'
 require 'tty-spinner'
 require 'yaml'
 
-require_relative '../../../services/sysinfo/sysinfo'
+require_relative '../../../services/sysinfo'
 
 module AlcesJob
   module CLI

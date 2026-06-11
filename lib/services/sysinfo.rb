@@ -43,9 +43,19 @@ module AlcesJob
         stdout.lines.map do |line|
           partition, time_limit = line.strip.split(/\s+/, 2)
 
+          normalized_time_limit =
+            case time_limit
+            when 'infinite'
+              '0-00:00:00'
+            when /\A\d{2}:\d{2}:\d{2}\z/
+              "0-#{time_limit}"
+            else
+              time_limit
+            end
+
           {
             partition: partition.delete('*'),
-            time_limit: time_limit == 'infinite' ? '00:00:00' : time_limit,
+            time_limit: normalized_time_limit,
             default: partition.include?('*')
           }
         end

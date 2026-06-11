@@ -39,8 +39,8 @@ module AlcesJob
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
-        AlcesJob::CLI.register 'base', self
-        desc 'tmp'
+        AlcesJob::CLI.register 'serial', self
+        desc 'Creates a serial sbatch script'
 
         def call(*_args, **options)
           pastel = Pastel.new
