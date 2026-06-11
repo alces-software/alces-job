@@ -17,7 +17,7 @@ class SlurmScriptValidator
     @system_info = system_info
   end
 
-  def validate
+  def validate?
     lines = File.readlines(@file_path, chomp: true)
 
     validate_shebang(lines)
@@ -71,7 +71,8 @@ class SlurmScriptValidator
     if mem_line
       mem_value = mem_line.split('--mem=').last.strip
       requested_memory_mb = MemoryConverter.to_mb(mem_value)
-      max_memory_mb = AlcesJob::Services::SystemLimits.max_memory_mb(@system_info) # goes to hardcoded value if system info is missing and assumes each node has same memory.
+      # goes to hardcoded value if system info is missing and assumes each node has same memory.
+      max_memory_mb = AlcesJob::Services::SystemLimits.max_memory_mb(@system_info)
 
       if requested_memory_mb.nil?
         errors << "Invalid memory format: #{mem_value}. Expected formats like 4G, 500M, etc."
@@ -85,7 +86,8 @@ class SlurmScriptValidator
 
   def validate_time(sbatch_lines)
     time_line = sbatch_lines.find { |line| line.include?('--time=') }
-    max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(@system_info) # goes to hardcoded value if system info is missing or incomplete
+    # goes to hardcoded value if system info is missing or incomplete
+    max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(@system_info)
 
     if time_line
       time_value = time_line.split('--time=').last.strip

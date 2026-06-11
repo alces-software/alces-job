@@ -9,9 +9,7 @@ module IntegerDirectiveValidator
 
       value = line.split(directive).last.strip
 
-      unless value.match?(/\A[1-9]\d*\z/)
-        errors << "Invalid format for #{directive.chomp('=')}: #{value}. Expected a positive integer value."
-      end
+      errors << "Invalid format for #{directive.chomp('=')}: #{value}. Expected a positive integer value." unless value.match?(/\A[1-9]\d*\z/)
     end
   end
 end

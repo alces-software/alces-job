@@ -1,0 +1,29 @@
+name: Build Gem on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.3
+          bundler-cache: true
+
+      - name: Build gem
+        run: gem build alces-job.gemspec
+
+      - name: Upload gem to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.gem"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

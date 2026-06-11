@@ -6,12 +6,13 @@ require 'pastel'
 require 'yaml'
 require 'erb'
 
-require_relative 'sysinfo/sysinfo'
-
 module AlcesJob
   module Services
     class InteractiveWizard
-      def get_system_info
+      def system_info
+        # config = YAML.load_file('./config.yaml')
+        # @info = YAML.load_file(config['admin_config_file'])
+        #
         @info = YAML.load_file('test_data.yaml')
       end
 
@@ -35,12 +36,14 @@ module AlcesJob
         return false if seconds > 59
 
         total_seconds =
-          days * 86_400 +
-          hours * 3600 +
-          minutes * 60 +
+          (days * 86_400) +
+          (hours * 3600) +
+          (minutes * 60) +
           seconds
 
         max_seconds = slurm_time_to_seconds(max_time)
+
+        return true if max_seconds.zero?
 
         total_seconds <= max_seconds
       end
@@ -63,9 +66,9 @@ module AlcesJob
         days, time = time_string.split('-')
         hours, minutes, seconds = time.split(':')
 
-        days.to_i * 86_400 +
-          hours.to_i * 3600 +
-          minutes.to_i * 60 +
+        (days.to_i * 86_400) +
+          (hours.to_i * 3600) +
+          (minutes.to_i * 60) +
           seconds.to_i
       end
 
@@ -80,7 +83,9 @@ module AlcesJob
           minutes = remainder / 60
           seconds = remainder % 60
 
-          return format('%d-%02d:%02d:%02d', days, hours, minutes, seconds)
+          return format(
+            '%<days>d-%<hours>02d:%<minutes>02d:%<seconds>02d', days: days, hours: hours, minutes: minutes, seconds: seconds
+          )
         end
 
         time_string = time_value.to_s
@@ -92,8 +97,10 @@ module AlcesJob
         time_string
       end
 
+      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+
       def call
-        get_system_info
+        system_info
 
         puts 'Welcome to the interactive mode!'
 
@@ -146,7 +153,11 @@ module AlcesJob
 
         job_type = prompt.select('What type of job would you like to run?', types_of_job)
 
-        # To add in later?  nodes: 'How many nodes would you like to request?',   array: 'What array range would you like to use (e.g. 1-100)?', max_concurrent_tasks: 'What is the maximum number of array tasks that may run simultaneously?',    gres: 'How many GPUs would you like to request?',     ntasks: 'How many MPI tasks would you like per node?',
+        # To add in later?  nodes: 'How many nodes would you like to request?',
+        # array: 'What array range would you like to use (e.g. 1-100)?',
+        # max_concurrent_tasks: 'What is the maximum number of array tasks that may run simultaneously?',
+        # gres: 'How many GPUs would you like to request?',
+        # ntasks: 'How many MPI tasks would you like per node?',
 
         question_bank = {
           serial: {
@@ -203,8 +214,8 @@ module AlcesJob
 
         questions = question_bank[job_type.to_sym]
 
-        result = prompt.collect do
-          questions.each do |item, question|
+        result = prompt.collect do # rubocop:disable Metrics/BlockLength
+          questions.each do |item, question| # rubocop:disable Metrics/BlockLength
             case item
             when :partition
 
@@ -240,7 +251,8 @@ module AlcesJob
                   wizard.valid_slurm_time?(input, max_run_time)
                 end
 
-                q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
+                q.messages[:valid?] =
+                  "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
               end
 
             when :mem
@@ -309,7 +321,7 @@ module AlcesJob
         # end
         #
 
-        loop do
+        loop do # rubocop:disable Metrics/BlockLength
           job_type = 'default' if job_type == 'serial'
 
           generator = AlcesJob::Services::Generator.new(
@@ -465,9 +477,19 @@ module AlcesJob
 
         return unless prompt.yes?('Write script to file?')
 
-        generator.save
-        puts 'Script written successfully.'
+        file_path = generator.save
+
+        puts "Script has been saved to #{file_path}"
+
+        return unless prompt.yes?('Would you like to submit the job to SBATCH?', default: false)
+
+        stdout, status = generator.submit(file_path)
+
+        return puts 'An error occurred' unless status.success?
+
+        puts stdout
       end
     end
+    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
   end
 end

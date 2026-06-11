@@ -5,7 +5,7 @@ require 'pastel'
 require 'tty-spinner'
 require 'yaml'
 
-require_relative '../../../services/sysinfo/sysinfo'
+require_relative '../../../services/sysinfo'
 
 module AlcesJob
   module CLI
@@ -15,10 +15,13 @@ module AlcesJob
         desc 'This command is used to update the system config.yaml'
 
         option :node, type: :boolean, default: false, desc: 'Update nodes info', aliases: ['-n']
-        option :partition, type: :boolean, default: false, desc: 'Update partitions info', aliases: ['-p']
-        option :package, type: :boolean, default: false, desc: 'Update packages info', aliases: ['-k']
+        option :partition, type: :boolean, default: false, desc: 'Update partitions info',
+                           aliases: ['-p']
+        option :package, type: :boolean, default: false, desc: 'Update packages info',
+                         aliases: ['-k']
         option :gpu, type: :boolean, default: false, desc: 'Update GPU count', aliases: ['-g']
-        option :all, type: :boolean, default: false, desc: 'Update all the system information', aliases: ['-a']
+        option :all, type: :boolean, default: false, desc: 'Update all the system information',
+                     aliases: ['-a']
 
         def initialize
           config = YAML.load_file('./config.yaml')

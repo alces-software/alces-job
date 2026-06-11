@@ -12,9 +12,9 @@ end
 
 # Load commands (only used to load top level commands sub commands are loaded within the commands)
 require_relative 'commands/version'
-require_relative 'commands/serial'
+require_relative 'commands/base'
 require_relative 'commands/gpu'
 require_relative 'commands/mpi'
 require_relative 'commands/array'
 require_relative 'commands/config'
-require_relative 'commands/wizard'
+require_relative 'commands/interactive'
