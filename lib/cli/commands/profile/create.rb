@@ -13,7 +13,7 @@ module AlcesJob
         AlcesJob::CLI.register 'profile create', self
         desc 'This command creates a profile bases on the flags passed in'
 
-        option :profile_name, type: :string
+        option :profile_name, type: :string, desc: 'What the profile will be called'
 
         option :job_name, type: :string
         option :nodes, type: :integer
