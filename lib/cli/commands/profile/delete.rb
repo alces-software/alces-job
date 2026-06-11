@@ -9,9 +9,9 @@ require 'tty-prompt'
 module AlcesJob
   module CLI
     module Commands
-      class ProfileCreate < Dry::CLI::Command
-        AlcesJob::CLI.register 'profile create', self
-        desc 'This command creates a profile bases on the flags passed in'
+      class ProfileDelete < Dry::CLI::Command
+        AlcesJob::CLI.register 'profile delete', self
+        desc 'Deletes a saved profile'
 
         option :profile, type: :string, desc: 'The name of the profile'
 

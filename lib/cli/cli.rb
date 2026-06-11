@@ -19,6 +19,9 @@ require_relative 'commands/config'
 # Loads all profile commands
 require_relative 'commands/profile'
 
+# Loads all template commands
+require_relative 'commands/template'
+
 # Loads interactive command
 require_relative 'commands/interactive'
 
