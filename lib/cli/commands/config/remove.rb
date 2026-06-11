@@ -13,8 +13,8 @@ module AlcesJob
         AlcesJob::CLI.register 'config remove', self
         desc 'Used to remove items from the the admin config file e.g. partitions, nodes'
 
-        options :nodes, type: :string, desc: 'The nodes you want to remove from the system config'
-        options :partitions, type: :string, desc: 'The partitions you want to remove from the system config'
+        option :nodes, type: :string, desc: 'The nodes you want to remove from the system config'
+        option :partitions, type: :string, desc: 'The partitions you want to remove from the system config'
 
         def initialize
           config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
@@ -22,7 +22,7 @@ module AlcesJob
           @system_data = nil
         end
 
-        def call(**_options)
+        def call(**options)
           pastel = Pastel.new
 
           if Process.uid != 0
