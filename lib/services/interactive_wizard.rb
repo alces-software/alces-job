@@ -69,6 +69,29 @@ module AlcesJob
           seconds.to_i
       end
 
+      def normalize_slurm_time(time_value)
+        if time_value.is_a?(Integer)
+          days = time_value / 86_400
+          remainder = time_value % 86_400
+
+          hours = remainder / 3600
+          remainder %= 3600
+
+          minutes = remainder / 60
+          seconds = remainder % 60
+
+          return format('%d-%02d:%02d:%02d', days, hours, minutes, seconds)
+        end
+
+        time_string = time_value.to_s
+
+        return time_string if time_string.match?(/^\d+-\d{2}:\d{2}:\d{2}$/)
+
+        return "0-#{time_string}" if time_string.match?(/^\d{2}:\d{2}:\d{2}$/)
+
+        time_string
+      end
+
       def call
         get_system_info
 
@@ -95,8 +118,12 @@ module AlcesJob
 
         partition_list = []
 
+        puts partition_types
+
         partition_types.each do |partition|
           partition_list.append(partition[:partition])
+
+          partition[:time_limit] = normalize_slurm_time(partition[:time_limit]) if partition[:time_limit].is_a?(Integer)
         end
 
         nodes = @info[:nodes]
@@ -112,6 +139,8 @@ module AlcesJob
         human_readable_max_time = nil
 
         prompt = TTY::Prompt.new
+
+        puts partition_types
 
         types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
