@@ -9,7 +9,7 @@ require 'erb'
 module AlcesJob
   module Services
     class InteractiveWizard
-      def get_system_info
+      def system_info
         config = YAML.load_file('./config.yaml')
         @info = YAML.load_file(config['admin_config_file'])
       end
@@ -71,7 +71,7 @@ module AlcesJob
       end
 
       def call # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength
-        get_system_info
+        system_info
 
         puts 'Welcome to the interactive mode!'
 
