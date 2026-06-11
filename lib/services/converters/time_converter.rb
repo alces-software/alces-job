@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module TimeConverter
   def self.to_seconds(time_value)
     match = time_value.strip.match(/\A(?:(\d+)-)?(\d{1,2}):([0-5]\d):([0-5]\d)\z/)
@@ -11,6 +13,6 @@ module TimeConverter
 
     return nil if hours > 23
 
-    total_seconds = seconds + (minutes * 60) + (hours * 3600) + (days * 86_400)
+    seconds + (minutes * 60) + (hours * 3600) + (days * 86_400)
   end
 end

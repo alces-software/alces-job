@@ -1,9 +1,11 @@
-require_relative "converters/memory_converter"
-require_relative "converters/time_converter"
-require_relative "validators/integer_directive_validator"
-require_relative "validators/sbatch_directive_validator"
+# frozen_string_literal: true
 
-require_relative "sys_limits/system_limits"
+require_relative 'converters/memory_converter'
+require_relative 'converters/time_converter'
+require_relative 'validators/integer_directive_validator'
+require_relative 'validators/sbatch_directive_validator'
+
+require_relative 'sys_limits/system_limits'
 
 class SlurmScriptValidator
   attr_reader :errors, :warnings
@@ -20,7 +22,7 @@ class SlurmScriptValidator
 
     validate_shebang(lines)
 
-    sbatch_lines = lines.select { |line| line.start_with?("#SBATCH") }
+    sbatch_lines = lines.select { |line| line.start_with?('#SBATCH') }
 
     validate_sbatch_lines_exist(sbatch_lines)
     validate_duplicate_directives(sbatch_lines)
@@ -37,20 +39,20 @@ class SlurmScriptValidator
   private
 
   def validate_shebang(lines)
-    return if lines[0] == "#!/bin/bash"
+    return if lines[0] == '#!/bin/bash'
 
-    errors << "Missing shebang, spelt incorrectly, or unsupported. Expected: #!/bin/bash."
+    errors << 'Missing shebang, spelt incorrectly, or unsupported. Expected: #!/bin/bash.'
   end
 
   def validate_sbatch_lines_exist(sbatch_lines)
     return unless sbatch_lines.empty?
 
-    errors << "No #SBATCH directives found."
+    errors << 'No #SBATCH directives found.'
   end
 
   def validate_duplicate_directives(sbatch_lines)
     directive_names = sbatch_lines.map do |line|
-      line.split[1]&.split("=")&.first
+      line.split[1]&.split('=')&.first
     end
 
     duplicates = directive_names
@@ -64,12 +66,12 @@ class SlurmScriptValidator
   end
 
   def validate_memory(sbatch_lines)
-    mem_line = sbatch_lines.find { |line| line.include?("--mem=") }
+    mem_line = sbatch_lines.find { |line| line.include?('--mem=') }
 
     if mem_line
-      mem_value = mem_line.split("--mem=").last.strip
+      mem_value = mem_line.split('--mem=').last.strip
       requested_memory_mb = MemoryConverter.to_mb(mem_value)
-      max_memory_mb = AlcesJob::Services::SystemLimits.max_memory_mb(@system_info)                      # goes to hardcoded value if system info is missing and assumes each node has same memory.
+      max_memory_mb = AlcesJob::Services::SystemLimits.max_memory_mb(@system_info) # goes to hardcoded value if system info is missing and assumes each node has same memory.
 
       if requested_memory_mb.nil?
         errors << "Invalid memory format: #{mem_value}. Expected formats like 4G, 500M, etc."
@@ -77,25 +79,25 @@ class SlurmScriptValidator
         errors << "Requested memory (#{requested_memory_mb} MB) exceeds the maximum allowed (#{max_memory_mb} MB)."
       end
     else
-      warnings << "No --mem directive found."
+      warnings << 'No --mem directive found.'
     end
   end
 
   def validate_time(sbatch_lines)
-    time_line = sbatch_lines.find { |line| line.include?("--time=") }
-    max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(@system_info)                      # goes to hardcoded value if system info is missing or incomplete
+    time_line = sbatch_lines.find { |line| line.include?('--time=') }
+    max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(@system_info) # goes to hardcoded value if system info is missing or incomplete
 
     if time_line
-      time_value = time_line.split("--time=").last.strip
+      time_value = time_line.split('--time=').last.strip
       requested_time_seconds = TimeConverter.to_seconds(time_value)
 
       if requested_time_seconds.nil?
-        errors << "Invalid time format. Expected HH:MM:SS or D-HH:MM:SS."
+        errors << 'Invalid time format. Expected HH:MM:SS or D-HH:MM:SS.'
       elsif requested_time_seconds > max_time_seconds
         errors << "Requested time (#{requested_time_seconds} seconds) exceeds the maximum allowed (#{max_time_seconds} seconds)."
       end
     else
-      warnings << "No --time directive found."
+      warnings << 'No --time directive found.'
     end
   end
 end

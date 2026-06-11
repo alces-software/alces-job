@@ -51,10 +51,10 @@ module AlcesJob
 
         parts = []
 
-        parts << "#{days.to_i} days" if days.to_i > 0
-        parts << "#{hours.to_i} hours" if hours.to_i > 0
-        parts << "#{minutes.to_i} minutes" if minutes.to_i > 0
-        parts << "#{seconds.to_i} seconds" if seconds.to_i > 0
+        parts << "#{days.to_i} days" if days.to_i.positive?
+        parts << "#{hours.to_i} hours" if hours.to_i.positive?
+        parts << "#{minutes.to_i} minutes" if minutes.to_i.positive?
+        parts << "#{seconds.to_i} seconds" if seconds.to_i.positive?
 
         parts.join(', ')
       end
@@ -205,7 +205,8 @@ module AlcesJob
 
         result = prompt.collect do
           questions.each do |item, question|
-            if item == :partition
+            case item
+            when :partition
 
               partition_rows = partition_types.map do |partition|
                 [
@@ -224,7 +225,7 @@ module AlcesJob
               # key(item).select(question, partition_list)
               selected_partition = key(item).select(question, partition_list)
 
-            elsif item == :time
+            when :time
               selected_partition_info = partition_types.find do |partition|
                 partition[:partition] == selected_partition
               end
@@ -242,7 +243,7 @@ module AlcesJob
                 q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
               end
 
-            elsif item == :mem
+            when :mem
               puts "Max memory: #{max_memory} MB"
               key(item).ask(question, default: defaults[item]) do |q|
                 q.validate(/\A\d+\z/)
@@ -256,7 +257,7 @@ module AlcesJob
                 q.convert :int
               end
 
-            elsif item == :cpus_per_task
+            when :cpus_per_task
               puts "Max cpu cores: #{max_cpu_cores}"
 
               key(item).ask(question, default: defaults[item]) do |q|
@@ -270,11 +271,11 @@ module AlcesJob
                 q.convert :int
               end
 
-            elsif item == :command
+            when :command
               puts 'Examples: python script.py, Rscript analysis.R, ./my_program, mpirun ./my_program'
               key(item).ask(question, default: defaults[item])
 
-            elsif item == :job_name
+            when :job_name
               key(item).ask(question, default: defaults[item])
 
             else
@@ -328,7 +329,8 @@ module AlcesJob
 
           system('clear')
 
-          if field == :partition
+          case field
+          when :partition
             partition_rows = partition_types.map do |partition|
               [
                 partition[:partition],
@@ -374,7 +376,7 @@ module AlcesJob
               end
             end
 
-          elsif field == :time
+          when :time
             selected_partition_info = partition_types.find do |partition|
               partition[:partition] == result[:partition]
             end
@@ -395,7 +397,7 @@ module AlcesJob
               q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
             end
 
-          elsif field == :mem
+          when :mem
             puts "Max memory: #{max_memory} MB"
 
             result[:mem] = prompt.ask(
@@ -413,7 +415,7 @@ module AlcesJob
               q.convert :int
             end
 
-          elsif field == :cpus_per_task
+          when :cpus_per_task
             puts "Max cpu cores: #{max_cpu_cores}"
 
             result[:cpus_per_task] = prompt.ask(
@@ -431,7 +433,7 @@ module AlcesJob
               q.convert :int
             end
 
-          elsif field == :command
+          when :command
             puts 'Examples: python script.py, Rscript analysis.R, ./my_program, mpirun ./my_program'
 
             result[:command] = prompt.ask(
@@ -439,7 +441,7 @@ module AlcesJob
               default: result[:command]
             )
 
-          elsif field == :job_name
+          when :job_name
             result[:job_name] = prompt.ask(
               questions[:job_name],
               default: result[:job_name]
