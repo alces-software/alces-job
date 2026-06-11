@@ -29,7 +29,7 @@ module AlcesJob
           end
 
           profile_name = options[:profile].strip
-          profile_path = "#{@profile_dir}/#{profile_name}.yaml"
+          profile_path = "#{@profile_dir}#{profile_name}.yaml"
 
           unless File.exist?(profile_path)
             puts pastel.red("\nThe profile you're trying to delete doesn't exist\n")

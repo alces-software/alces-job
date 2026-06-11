@@ -56,7 +56,7 @@ module AlcesJob
           end
 
           profile_name = options[:profile_name].strip
-          profile_path = "#{@profile_dir}/#{profile_name}.yaml"
+          profile_path = "#{@profile_dir}#{profile_name}.yaml"
           options.delete(:profile_name)
 
           if options.empty?
