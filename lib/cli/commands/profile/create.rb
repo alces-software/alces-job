@@ -5,6 +5,7 @@ require 'yaml'
 require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
+require 'fileutils'
 
 module AlcesJob
   module CLI
@@ -43,7 +44,7 @@ module AlcesJob
 
         def initialize
           config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
-          @profile_dir = config['user_profile_dir']
+          @profile_dir = File.expand_path(config['user_profile_dir'])
         end
 
         def call(**options)

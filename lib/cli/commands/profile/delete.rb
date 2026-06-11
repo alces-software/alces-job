@@ -9,9 +9,9 @@ require 'tty-prompt'
 module AlcesJob
   module CLI
     module Commands
-      class ProfileCreate < Dry::CLI::Command
-        AlcesJob::CLI.register 'profile create', self
-        desc 'This command creates a profile bases on the flags passed in'
+      class ProfileDelete < Dry::CLI::Command
+        AlcesJob::CLI.register 'profile delete', self
+        desc 'Deletes a saved profile'
 
         option :profile, type: :string, desc: 'The name of the profile'
 
@@ -24,7 +24,7 @@ module AlcesJob
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 
-          return puts pastel.red("\nNo profile name was provided\n") unless options[:profile].nil?
+          return puts pastel.red("\nNo profile name was provided\n") if options[:profile].nil?
 
           profile_name = options[:profile].strip
           profile_path = "#{@profile_dir}/#{profile_name}.yaml"
