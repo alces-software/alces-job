@@ -1,0 +1,58 @@
+---
+:nodes:
+- :node: node01
+  :cpus: 32
+  :memory: 385024
+- :node: node02
+  :cpus: 32
+  :memory: 385024
+- :node: node03
+  :cpus: 32
+  :memory: 385024
+- :node: node04
+  :cpus: 32
+  :memory: 385024
+- :node: node05
+  :cpus: 32
+  :memory: 385024
+- :node: node06
+  :cpus: 32
+  :memory: 385024
+- :node: node07
+  :cpus: 32
+  :memory: 385024
+- :node: node08
+  :cpus: 32
+  :memory: 385024
+- :node: node09
+  :cpus: 32
+  :memory: 385024
+- :node: node10
+  :cpus: 32
+  :memory: 385024
+- :node: node11
+  :cpus: 32
+  :memory: 385024
+- :node: node12
+  :cpus: 32
+  :memory: 385024
+- :node: node13
+  :cpus: 32
+  :memory: 385024
+- :node: node14
+  :cpus: 32
+  :memory: 385024
+- :node: node15
+  :cpus: 32
+  :memory: 385024
+- :node: node16
+  :cpus: 32
+  :memory: 385024
+:partitions:
+- :partition: gpu-l40s
+  :time_limit: 7-00:00:00
+- :partition: gpu-h100
+  :time_limit: 6-00:00:00
+:packages:
+- 'sh: module: command not found'
+:gpu_total: 48

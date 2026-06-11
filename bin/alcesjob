@@ -5,4 +5,5 @@ root = File.expand_path('..', __dir__)
 require "#{root}/lib/cli/cli"
 
 ARGV.unshift('serial') if ARGV.empty? || ARGV.first.start_with?('-')
+
 Dry::CLI.new(AlcesJob::CLI).call
