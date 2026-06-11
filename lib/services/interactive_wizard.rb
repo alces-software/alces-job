@@ -277,7 +277,11 @@ module AlcesJob
         #     "Enter new value for #{field}:"
         #   )
         # end
+        #
+
         loop do
+          job_type = 'default' if job_type == 'serial'
+
           generator = AlcesJob::Services::Generator.new(
             result.merge(template: job_type)
           )
@@ -421,6 +425,8 @@ module AlcesJob
 
           system('clear')
         end
+
+        job_type = 'default' if job_type == 'serial'
 
         generator = AlcesJob::Services::Generator.new(
           result.merge(template: job_type)
