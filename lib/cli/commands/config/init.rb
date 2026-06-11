@@ -56,7 +56,7 @@ module AlcesJob
           )
 
           spinner.auto_spin
-          @system_data = SysInfo.all_info
+          @system_data = Services::SysInfo.all_info
           spinner.success('(successful)')
 
           # Writing to config file

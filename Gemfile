@@ -10,6 +10,8 @@ gem 'rubocop', '~> 1.87'
 
 gem 'tty-prompt', '~> 0.23.1'
 
+gem 'terminal-table', '~> 4.0'
+
 gem 'config', '~> 5.6'
 
 gem 'rake', '~> 13.4'
