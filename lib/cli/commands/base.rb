@@ -58,11 +58,22 @@ module AlcesJob
         option :submit, type: :boolean, default: false,
                         desc: 'Submits the generated script to Slurm automatically'
 
-        AlcesJob::CLI.register 'base', self
-        desc 'Creates a serial sbatch script'
+        option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
 
-        def call(*_args, **options)
+        AlcesJob::CLI.register 'base', self
+        desc 'Creates a universal sbatch script'
+
+        def call(**options)
           pastel = Pastel.new
+
+          unless options[:profile].nil?
+            config = YAML.load_file(File.expand_path('../../../config.yaml', __dir__))
+            profile = YAML.load_file("#{config['user_profile_dir']}/#{options[:profile]}.yaml")
+
+            options.delete(:profile)
+
+            options = profile.merge(options)
+          end
 
           # Generate sbatch file bases on user inputs
           spinner = TTY::Spinner.new(

@@ -80,7 +80,7 @@ module AlcesJob
       # Gets the gpu information and returns a count of how many there are
       # @return [Integer]
       def self.gpu_info
-        stdout, _, status = Open3.capture3("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc`")
+        stdout, _, status = Open3.capture3("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc")
 
         return 0 unless status.success?
 
