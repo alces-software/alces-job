@@ -15,10 +15,6 @@ module AlcesJob
 
         option :profile, type: :string, desc: 'The name of the profile'
 
-        def initialize
-          @config_path = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))['admin_config_file']
-        end
-
         def call(**options)
           pastel = Pastel.new
           prompt = TTY::Prompt.new

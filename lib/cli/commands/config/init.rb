@@ -16,7 +16,7 @@ module AlcesJob
         desc 'This command generates the initial system info config and saves it'
 
         def initialize
-          @config_path = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))['admin_config_file']
+          @config_path = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['admin_config_file']
           @system_data = nil
         end
 
