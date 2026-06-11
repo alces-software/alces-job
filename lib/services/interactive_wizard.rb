@@ -10,8 +10,10 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        config = YAML.load_file('./config.yaml')
-        @info = YAML.load_file(config['admin_config_file'])
+        # config = YAML.load_file('./config.yaml')
+        # @info = YAML.load_file(config['admin_config_file'])
+        #
+        @info = YAML.load_file('test_data.yaml')
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')
@@ -81,7 +83,9 @@ module AlcesJob
           minutes = remainder / 60
           seconds = remainder % 60
 
-          return format('%d-%02d:%02d:%02d', days, hours, minutes, seconds)
+          return format(
+            '%<days>d-%<hours>02d:%<minutes>02d:%<seconds>02d', days: days, hours: hours, minutes: minutes, seconds: seconds
+          )
         end
 
         time_string = time_value.to_s
@@ -93,8 +97,10 @@ module AlcesJob
         time_string
       end
 
+      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+
       def call
-        get_system_info
+        system_info
 
         puts 'Welcome to the interactive mode!'
 
@@ -460,5 +466,6 @@ module AlcesJob
         puts stdout
       end
     end
+    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
   end
 end

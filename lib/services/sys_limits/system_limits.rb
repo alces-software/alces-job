@@ -3,7 +3,7 @@
 require_relative '../converters/time_converter'
 require_relative '../converters/memory_converter'
 
-require_relative '../sysinfo/sysinfo'
+require_relative '../sys_limits/system_limits'
 
 module AlcesJob
   module Services
