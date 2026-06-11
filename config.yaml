@@ -1,2 +1,3 @@
 admin_config_file: /etc/alces-job/config.yaml
+admin_templates_folder: /etc/alces-job/templates/
 user_profile_dir: ~/.alces-job/profiles/

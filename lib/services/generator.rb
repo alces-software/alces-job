@@ -3,6 +3,7 @@
 require 'erb'
 require 'ostruct'
 require 'open3'
+require 'yaml'
 
 module AlcesJob
   module Services
@@ -35,8 +36,26 @@ module AlcesJob
 
       private
 
+      def admin_path
+        config = YAML.load_file(File.join(Dir.pwd, 'config.yaml'))
+
+        config['admin_templates_folder']
+      end
+
       def template
-        File.read(File.join(__dir__, '../../templates', "#{@template}.erb"))
+        built_in_path = File.join(__dir__, '../../templates', "#{@template}.erb")
+        user_path = File.join(File.expand_path('~/.alces-job/templates'), "#{@template}.erb")
+        admin_file = File.join(File.expand_path(admin_path), "#{@template}.erb")
+
+        if File.exist?(user_path)
+          File.read(user_path)
+        elsif File.exist?(admin_file)
+          File.read(admin_file)
+        elsif File.exist?(built_in_path)
+          File.read(built_in_path)
+        else
+          raise "Template #{@template} not found in built-in or user templates"
+        end
       end
     end
   end

@@ -31,3 +31,8 @@ Metrics/PerceivedComplexity:
 
 Lint/MissingSuper:
   Enabled: false
+
+Metrics/BlockLength:
+  Exclude:
+    - "alces-job.gemspec"
+    - "spec/**/*"
