@@ -9,7 +9,7 @@ require_relative '../../services/generator'
 module AlcesJob
   module CLI
     module Commands
-      class Serial < Dry::CLI::Command
+      class Base < Dry::CLI::Command
         option :job_name, type: :string
         option :nodes, type: :integer
         option :ntasks, type: :integer
