@@ -61,4 +61,4 @@ scratch/
 
 # Prevent any accidental commiting of generated sbatch files
 *.sbatch
-
+.DS_Store

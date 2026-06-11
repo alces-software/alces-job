@@ -1,0 +1,442 @@
+# frozen_string_literal: true
+
+require 'tty-prompt'
+require 'terminal-table'
+require 'pastel'
+require 'yaml'
+require 'erb'
+
+require_relative 'sysinfo/sysinfo'
+
+module AlcesJob
+  module Services
+    class InteractiveWizard
+      def get_system_info
+        @info = YAML.load_file('test_data.yaml')
+      end
+
+      def valid_slurm_time?(time_string, max_time = '7-00:00:00')
+        return false if time_string.nil?
+        return false if time_string.strip.empty?
+
+        match = time_string.match(/^(\d+)-(\d{2}):(\d{2}):(\d{2})$/)
+
+        return false unless match
+
+        return false unless match
+
+        days = match[1].to_i
+        hours = match[2].to_i
+        minutes = match[3].to_i
+        seconds = match[4].to_i
+
+        return false if hours > 23
+        return false if minutes > 59
+        return false if seconds > 59
+
+        total_seconds =
+          days * 86_400 +
+          hours * 3600 +
+          minutes * 60 +
+          seconds
+
+        max_seconds = slurm_time_to_seconds(max_time)
+
+        total_seconds <= max_seconds
+      end
+
+      def human_readable_time(max_time)
+        days, time = max_time.split('-')
+        hours, minutes, seconds = time.split(':')
+
+        parts = []
+
+        parts << "#{days.to_i} days" if days.to_i > 0
+        parts << "#{hours.to_i} hours" if hours.to_i > 0
+        parts << "#{minutes.to_i} minutes" if minutes.to_i > 0
+        parts << "#{seconds.to_i} seconds" if seconds.to_i > 0
+
+        parts.join(', ')
+      end
+
+      def slurm_time_to_seconds(time_string)
+        days, time = time_string.split('-')
+        hours, minutes, seconds = time.split(':')
+
+        days.to_i * 86_400 +
+          hours.to_i * 3600 +
+          minutes.to_i * 60 +
+          seconds.to_i
+      end
+
+      def call
+        get_system_info
+
+        puts 'Welcome to the interactive mode!'
+
+        rows = [
+          ['serial', 'Single-node CPU job'],
+          ['mpi',    'Distributed job using MPI across nodes'],
+          ['gpu',    'GPU-accelerated workload'],
+          ['array',  'Many similar jobs run as a job array']
+        ]
+
+        table = Terminal::Table.new do |t|
+          t.title = 'Available Job Types'
+          t.headings = %w[Type Description]
+          t.rows = rows
+        end
+
+        puts table
+
+        partition_types = @info[:partitions]
+
+        max_run_time = nil
+
+        partition_list = []
+
+        partition_types.each do |partition|
+          partition_list.append(partition[:partition])
+        end
+
+        nodes = @info[:nodes]
+
+        max_memory = 0
+        max_cpu_cores = 0
+
+        nodes.each do |node|
+          max_memory = node[:memory] if node[:memory] > max_memory
+          max_cpu_cores = node[:cpus] if node[:cpus] > max_cpu_cores
+        end
+
+        human_readable_max_time = nil
+
+        prompt = TTY::Prompt.new
+
+        types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
+
+        job_type = prompt.select('What type of job would you like to run?', types_of_job)
+
+        # To add in later?  nodes: 'How many nodes would you like to request?',   array: 'What array range would you like to use (e.g. 1-100)?', max_concurrent_tasks: 'What is the maximum number of array tasks that may run simultaneously?',    gres: 'How many GPUs would you like to request?',     ntasks: 'How many MPI tasks would you like per node?',
+
+        question_bank = {
+          serial: {
+            job_name: 'What is your job name?',
+            partition: 'Which partition would you like to use?',
+            time: 'How long would you like your job to run for?',
+            cpus_per_task: 'How many CPU cores would you like to request?',
+            mem: 'How much memory will your job use? (MB)',
+            command: 'What command would you like to run?'
+          },
+
+          mpi: {
+            job_name: 'What is your job name?',
+            partition: 'Which partition would you like to use?',
+            time: 'How long would you like your job to run for?',
+            cpus_per_task: 'How many CPU cores would each MPI task require?',
+            mem: 'How much memory will your job use? (MB)',
+            command: 'What MPI command would you like to run?'
+          },
+
+          gpu: {
+            job_name: 'What is your job name?',
+            partition: 'Which partition would you like to use?',
+            time: 'How long would you like your job to run for?',
+            cpus_per_task: 'How many CPU cores would you like to request?',
+            mem: 'How much memory will your job use? (MB)',
+            command: 'What command would you like to run?'
+          },
+
+          array: {
+            job_name: 'What is your job name?',
+            partition: 'Which partition would you like to use?',
+            time: 'How long would you like your job to run for?',
+
+            mem: 'How much memory would you like per array task? (MB)',
+            command: 'What command would you like to run?'
+          }
+        }
+
+        defaults = {
+          job_name: 'my_slurm_job',
+          time: '00-01:00:00',
+          cpus_per_task: '1',
+          mem: '1024',
+          command: '#YOUR_COMMAND_HERE'
+        }
+
+        job_type = job_type.split[0] if job_type.split.length > 1
+
+        selected_partition = nil
+
+        system('clear')
+        wizard = self
+
+        questions = question_bank[job_type.to_sym]
+
+        result = prompt.collect do
+          questions.each do |item, question|
+            if item == :partition
+
+              partition_rows = partition_types.map do |partition|
+                [
+                  partition[:partition],
+                  partition[:time_limit],
+                  wizard.human_readable_time(partition[:time_limit])
+                ]
+              end
+
+              puts Terminal::Table.new(
+                title: 'Available Partitions',
+                headings: ['Partition', 'Time Limit', 'Readable'],
+                rows: partition_rows
+              )
+
+              # key(item).select(question, partition_list)
+              selected_partition = key(item).select(question, partition_list)
+
+            elsif item == :time
+              selected_partition_info = partition_types.find do |partition|
+                partition[:partition] == selected_partition
+              end
+
+              max_run_time = selected_partition_info[:time_limit]
+              human_readable_max_time = wizard.human_readable_time(max_run_time)
+
+              puts "The max runtime for #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
+
+              key(item).ask(question, default: defaults[item]) do |q|
+                q.validate do |input|
+                  wizard.valid_slurm_time?(input, max_run_time)
+                end
+
+                q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
+              end
+
+            elsif item == :mem
+              puts "Max memory: #{max_memory} MB"
+              key(item).ask(question, default: defaults[item]) do |q|
+                q.validate(/\A\d+\z/)
+                q.messages[:valid?] = 'Please enter a whole number'
+                q.validate do |input|
+                  input.to_i <= max_memory
+                end
+
+                q.messages[:valid?] = 'Value cannot be greater than maximum memory.'
+
+                q.convert :int
+              end
+
+            elsif item == :cpus_per_task
+              puts "Max cpu cores: #{max_cpu_cores}"
+
+              key(item).ask(question, default: defaults[item]) do |q|
+                q.validate(/\A\d+\z/)
+                q.messages[:valid?] = 'Please enter a whole number'
+                q.validate do |input|
+                  input.to_i <= max_cpu_cores
+                end
+
+                q.messages[:valid?] = 'Value cannot be greater than maximum cpu cores.'
+                q.convert :int
+              end
+
+            elsif item == :command
+              puts 'Examples: python script.py, Rscript analysis.R, ./my_program, mpirun ./my_program'
+              key(item).ask(question, default: defaults[item])
+
+            elsif item == :job_name
+              key(item).ask(question, default: defaults[item])
+
+            else
+              key(item).ask(question)
+            end
+            system('clear')
+          end
+        end
+
+        # loop do
+        #   generator = AlcesJob::Services::Generator.new(
+        #     result.merge(template: job_type)
+        #   )
+
+        #   script = generator.generate
+
+        #   puts script
+
+        #   break unless prompt.yes?('Would you like to edit any of your inputs?')
+
+        #   field = prompt.select(
+        #     'Which input would you like to edit?',
+        #     result.keys
+        #   )
+
+        #   # Add logic that was in prompt.collect for better UX
+
+        #   result[field] = prompt.ask(
+        #     "Enter new value for #{field}:"
+        #   )
+        # end
+        #
+
+        loop do
+          job_type = 'default' if job_type == 'serial'
+
+          generator = AlcesJob::Services::Generator.new(
+            result.merge(template: job_type)
+          )
+
+          script = generator.generate
+
+          puts script
+
+          break unless prompt.yes?('Would you like to edit any of your inputs?')
+
+          field = prompt.select(
+            'Which input would you like to edit?',
+            result.keys
+          )
+
+          system('clear')
+
+          if field == :partition
+            partition_rows = partition_types.map do |partition|
+              [
+                partition[:partition],
+                partition[:time_limit],
+                wizard.human_readable_time(partition[:time_limit])
+              ]
+            end
+
+            puts Terminal::Table.new(
+              title: 'Available Partitions',
+              headings: ['Partition', 'Time Limit', 'Readable'],
+              rows: partition_rows
+            )
+
+            selected_partition = prompt.select(
+              questions[:partition],
+              partition_list
+            )
+
+            result[:partition] = selected_partition
+
+            selected_partition_info = partition_types.find do |partition|
+              partition[:partition] == selected_partition
+            end
+
+            max_run_time = selected_partition_info[:time_limit]
+            human_readable_max_time = wizard.human_readable_time(max_run_time)
+
+            puts "The max runtime for #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
+
+            unless wizard.valid_slurm_time?(result[:time], max_run_time)
+              puts "Your current time value #{result[:time]} is too high for #{selected_partition}."
+
+              result[:time] = prompt.ask(
+                questions[:time],
+                default: defaults[:time]
+              ) do |q|
+                q.validate do |input|
+                  wizard.valid_slurm_time?(input, max_run_time)
+                end
+
+                q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
+              end
+            end
+
+          elsif field == :time
+            selected_partition_info = partition_types.find do |partition|
+              partition[:partition] == result[:partition]
+            end
+
+            max_run_time = selected_partition_info[:time_limit]
+            human_readable_max_time = wizard.human_readable_time(max_run_time)
+
+            puts "The max runtime for #{result[:partition]} is #{max_run_time}, i.e. #{human_readable_max_time}"
+
+            result[:time] = prompt.ask(
+              questions[:time],
+              default: result[:time]
+            ) do |q|
+              q.validate do |input|
+                wizard.valid_slurm_time?(input, max_run_time)
+              end
+
+              q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
+            end
+
+          elsif field == :mem
+            puts "Max memory: #{max_memory} MB"
+
+            result[:mem] = prompt.ask(
+              questions[:mem],
+              default: result[:mem].to_s
+            ) do |q|
+              q.validate do |input|
+                input.match?(/\A\d+\z/) &&
+                  input.to_i >= 1 &&
+                  input.to_i <= max_memory
+              end
+
+              q.messages[:valid?] = "Please enter a whole number between 1 and #{max_memory} MB"
+
+              q.convert :int
+            end
+
+          elsif field == :cpus_per_task
+            puts "Max cpu cores: #{max_cpu_cores}"
+
+            result[:cpus_per_task] = prompt.ask(
+              questions[:cpus_per_task],
+              default: result[:cpus_per_task].to_s
+            ) do |q|
+              q.validate do |input|
+                input.match?(/\A\d+\z/) &&
+                  input.to_i >= 1 &&
+                  input.to_i <= max_cpu_cores
+              end
+
+              q.messages[:valid?] = "Please enter a whole number between 1 and #{max_cpu_cores}"
+
+              q.convert :int
+            end
+
+          elsif field == :command
+            puts 'Examples: python script.py, Rscript analysis.R, ./my_program, mpirun ./my_program'
+
+            result[:command] = prompt.ask(
+              questions[:command],
+              default: result[:command]
+            )
+
+          elsif field == :job_name
+            result[:job_name] = prompt.ask(
+              questions[:job_name],
+              default: result[:job_name]
+            )
+
+          else
+            result[field] = prompt.ask(
+              "Enter new value for #{field}:",
+              default: result[field].to_s
+            )
+          end
+
+          system('clear')
+        end
+
+        job_type = 'default' if job_type == 'serial'
+
+        generator = AlcesJob::Services::Generator.new(
+          result.merge(template: job_type)
+        )
+
+        return unless prompt.yes?('Write script to file?')
+
+        generator.save
+        puts 'Script written successfully.'
+      end
+    end
+  end
+end

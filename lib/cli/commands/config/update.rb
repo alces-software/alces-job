@@ -75,17 +75,17 @@ module AlcesJob
             filtered_options.each_pair do |key, _value|
               case key
               when :node
-                @system_data[:nodes] = SysInfo.getNodeInfo
+                @system_data[:nodes] = Services::SysInfo.node_info
               when :partition
-                @system_data[:partitions] = SysInfo.getPartitionInfo
+                @system_data[:partitions] = Services::SysInfo.partition_info
               when :package
-                @system_data[:packages] = SysInfo.getPackageInfo
+                @system_data[:packages] = Services::SysInfo.package_info
               when :gpu
-                @system_data[:gpu_total] = SysInfo.getGpuInfo
+                @system_data[:gpu_total] = Services::SysInfo.gpu_info
               end
             end
           else
-            @system_data = SysInfo.getAllInfo
+            @system_data = Services::SysInfo.all_info
           end
 
           spinner.success('(successful)')
