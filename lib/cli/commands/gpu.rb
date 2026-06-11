@@ -30,11 +30,22 @@ module AlcesJob
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
+        option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
+
         AlcesJob::CLI.register 'gpu', self
         desc 'Creates a GPU sbatch script'
 
         def call(**options)
           pastel = Pastel.new
+
+          unless options[:profile].nil?
+            config = YAML.load_file(File.expand_path('../../../config.yaml', __dir__))
+            profile = YAML.load_file("#{config['user_profile_dir']}/#{options[:profile]}.yaml")
+
+            options.delete(:profile)
+
+            options = profile.merge(options)
+          end
 
           # Generate sbatch file bases on user inputs
           spinner = TTY::Spinner.new(

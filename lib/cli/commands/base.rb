@@ -47,6 +47,15 @@ module AlcesJob
         def call(**options)
           pastel = Pastel.new
 
+          unless options[:profile].nil?
+            config = YAML.load_file(File.expand_path('../../../config.yaml', __dir__))
+            profile = YAML.load_file("#{config['user_profile_dir']}/#{options[:profile]}.yaml")
+
+            options.delete(:profile)
+
+            options = profile.merge(options)
+          end
+
           # Generate sbatch file bases on user inputs
           spinner = TTY::Spinner.new(
             "\n[:spinner] generating SBATCH script ...",

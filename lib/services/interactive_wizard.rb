@@ -186,17 +186,17 @@ module AlcesJob
                 [
                   partition[:partition],
                   partition[:time_limit],
-                  wizard.human_readable_time(partition[:time_limit])
+                  wizard.human_readable_time(partition[:time_limit]),
+                  partition[:default] ? 'True' : 'False'
                 ]
               end
 
               puts Terminal::Table.new(
                 title: 'Available Partitions',
-                headings: ['Partition', 'Time Limit', 'Readable'],
+                headings: ['Partition', 'Time Limit', 'Readable', 'Default'],
                 rows: partition_rows
               )
 
-              # key(item).select(question, partition_list)
               selected_partition = key(item).select(question, partition_list)
 
             when :time
@@ -259,30 +259,6 @@ module AlcesJob
             system('clear')
           end
         end
-
-        # loop do
-        #   generator = AlcesJob::Services::Generator.new(
-        #     result.merge(template: job_type)
-        #   )
-
-        #   script = generator.generate
-
-        #   puts script
-
-        #   break unless prompt.yes?('Would you like to edit any of your inputs?')
-
-        #   field = prompt.select(
-        #     'Which input would you like to edit?',
-        #     result.keys
-        #   )
-
-        #   # Add logic that was in prompt.collect for better UX
-
-        #   result[field] = prompt.ask(
-        #     "Enter new value for #{field}:"
-        #   )
-        # end
-        #
 
         loop do # rubocop:disable Metrics/BlockLength
           job_type = 'default' if job_type == 'serial'

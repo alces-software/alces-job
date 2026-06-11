@@ -23,9 +23,15 @@ module AlcesJob
 
         option :time, type: :string
         option :partition, type: :string
+        option :account, type: :string
+
+        option :mail_user, type: :string
+        option :mail_type, type: :string
+
+        option :workdir, type: :string
 
         def initialize
-          config = YAML.load_file('./config.yaml')
+          config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
           @profile_dir = config['user_profile_dir']
         end
 
