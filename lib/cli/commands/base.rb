@@ -9,7 +9,7 @@ require_relative '../../services/generator'
 module AlcesJob
   module CLI
     module Commands
-      class Serial < Dry::CLI::Command
+      class Base < Dry::CLI::Command
         option :job_name, type: :string
         option :nodes, type: :integer
         option :ntasks, type: :integer
@@ -40,7 +40,7 @@ module AlcesJob
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
         AlcesJob::CLI.register 'serial', self
-        desc 'tmp'
+        desc 'Creates a serial sbatch script'
 
         def call(*_args, **options)
           pastel = Pastel.new
