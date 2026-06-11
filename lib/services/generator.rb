@@ -26,9 +26,20 @@ module AlcesJob
 
       private
 
-      def template
-        File.read(File.join(__dir__, '../../templates', "#{@template}.erb"))
-      end
+      def template 
+        built_in_path = File.join(__dir__, '../../templates', "#{@template}.erb")
+        user_path = File.join(File.expand_path('~/.alces-job/templates'), "#{@template}.erb")
+
+        if File.exist?(built_in_path)
+          File.read(built_in_path)
+        elsif File.exist?(user_path)
+          File.read(user_path)
+        else
+          raise "Template #{@template} not found in built-in or user templates"
+        end
     end
   end
 end
+
+end
+

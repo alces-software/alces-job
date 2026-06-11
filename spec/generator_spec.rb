@@ -6,7 +6,7 @@ require 'fileutils'
 #Added the line below for testing 
 require_relative '../lib/services/generator'
 
-RSpec.describe AlcesJob::Services::Generator do
+RSpec.describe AlcesJob::Services::Generator do 
   let(:pwd) { Dir.pwd }
 
   after do
