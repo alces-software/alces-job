@@ -39,10 +39,12 @@ module AlcesJob
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
-        AlcesJob::CLI.register 'serial', self
-        desc 'Creates a serial sbatch script'
+        option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
 
-        def call(*_args, **options)
+        AlcesJob::CLI.register 'base', self
+        desc 'Creates a universal sbatch script'
+
+        def call(**options)
           pastel = Pastel.new
 
           # Generate sbatch file bases on user inputs
