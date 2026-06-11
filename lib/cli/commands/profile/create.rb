@@ -5,6 +5,7 @@ require 'yaml'
 require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
+require 'fileutils'
 
 module AlcesJob
   module CLI
@@ -42,21 +43,26 @@ module AlcesJob
                          desc: 'Changes to the specified working directory in the job script'
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
-          @profile_dir = config['user_profile_dir']
+          @config_path = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))['admin_config_file']
         end
 
         def call(**options)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 
-          return puts pastel.red("\nNo profile name was provided\n") if options[:profile_name].nil?
+          if options[:profile_name].nil?
+            puts pastel.red("\nNo profile name was provided\n")
+            exit(1)
+          end
 
           profile_name = options[:profile_name].strip
           profile_path = "#{@profile_dir}/#{profile_name}.yaml"
           options.delete(:profile_name)
 
-          return puts pastel.red("\nNo flags were provided that could be saved to a profile\n") if options.empty?
+          if options.empty?
+            puts pastel.red("\nNo flags were provided that could be saved to a profile\n")
+            exit(1)
+          end
 
           puts
           spinner = TTY::Spinner.new(
@@ -69,19 +75,26 @@ module AlcesJob
 
           if File.exist?(profile_path)
             spinner.error('(profile exists)')
-            return unless prompt.yes?("\nA profile with that name was found do you want to overwrite it?", default: false)
+
+            exit(0) unless prompt.yes?("\nA profile with that name was found do you want to overwrite it?", default: false)
 
             puts
             spinner.update(title: 'overwriting profile')
             spinner.auto_spin
           end
 
-          FileUtils.mkdir_p(File.dirname(@profile_dir))
-          File.write(profile_path, options.to_yaml)
+          begin
+            FileUtils.mkdir_p(File.dirname(@profile_dir))
+            File.write(profile_path, options.to_yaml)
+            spinner.success('(successful)')
 
-          spinner.success('(successful)')
-
-          puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
+            puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
+            exit(0)
+          rescue StandardError => e
+            spinner.error('(writing error)')
+            puts pastel.green("\nFailed to create your profile: #{e.message}\n")
+            exit(1)
+          end
         end
       end
     end

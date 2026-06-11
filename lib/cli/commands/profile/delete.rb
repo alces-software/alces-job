@@ -16,22 +16,27 @@ module AlcesJob
         option :profile, type: :string, desc: 'The name of the profile'
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
-          @profile_dir = config['user_profile_dir']
+          @config_path = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))['admin_config_file']
         end
 
         def call(**options)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 
-          return puts pastel.red("\nNo profile name was provided\n") unless options[:profile].nil?
+          unless options[:profile].nil?
+            puts pastel.red("\nNo profile name was provided\n")
+            exit(1)
+          end
 
           profile_name = options[:profile].strip
           profile_path = "#{@profile_dir}/#{profile_name}.yaml"
 
-          return puts pastel.red("\nThe profile you're trying to delete doesn't exist\n") unless File.exist?(profile_path)
+          unless File.exist?(profile_path)
+            puts pastel.red("\nThe profile you're trying to delete doesn't exist\n")
+            exit(1)
+          end
 
-          return if prompt.yes?("\nAre you sure you want to delete your #{profile_name} profile?", default: false)
+          exit(0) if prompt.yes?("\nAre you sure you want to delete your #{profile_name} profile?", default: false)
 
           spinner = TTY::Spinner.new(
             "\n[:spinner] deleting profile ...",
@@ -41,12 +46,16 @@ module AlcesJob
 
           spinner.auto_spin
 
-          if File.unlink(profile_path) == 1
+          begin
+            File.unlink(profile_path)
             spinner.success('(deleted)')
+
             puts pastel.green("\nSuccessfully deleted the profile\n")
-          else
+            exit(0)
+          rescue StandardError => e
             spinner.error('(failed)')
-            puts pastel.red("\nFailed to delete the profile\n")
+            puts pastel.red("\nFailed to delete the profile: #{e.message}\n")
+            exit(1)
           end
         end
       end
