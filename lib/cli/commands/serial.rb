@@ -40,7 +40,7 @@ module AlcesJob
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
         AlcesJob::CLI.register 'serial', self
-        desc 'tmp'
+        desc 'Creates a serial sbatch script'
 
         def call(*_args, **options)
           pastel = Pastel.new

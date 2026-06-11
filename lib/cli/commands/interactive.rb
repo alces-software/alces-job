@@ -4,7 +4,6 @@ require 'dry/cli'
 
 # Import subcommands like this
 require_relative '../../services/interactive_wizard'
-require_relative '../../services/sysinfo/sysinfo'
 
 module AlcesJob
   module CLI

@@ -6,13 +6,12 @@ require 'pastel'
 require 'yaml'
 require 'erb'
 
-require_relative 'sysinfo/sysinfo'
-
 module AlcesJob
   module Services
-    class InteractiveWizard # rubocop:disable Metrics/ClassLength
-      def system_info
-        @info = YAML.load_file('test_data.yaml')
+    class InteractiveWizard
+      def get_system_info
+        config = YAML.load_file('./config.yaml')
+        @info = YAML.load_file(config['admin_config_file'])
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')
@@ -41,6 +40,8 @@ module AlcesJob
           seconds
 
         max_seconds = slurm_time_to_seconds(max_time)
+
+        return true if max_seconds.zero?
 
         total_seconds <= max_seconds
       end
@@ -439,8 +440,17 @@ module AlcesJob
 
         return unless prompt.yes?('Write script to file?')
 
-        generator.save
-        puts 'Script written successfully.'
+        file_path = generator.save
+
+        puts "Script has been saved to #{file_path}"
+
+        return unless prompt.yes?('Would you like to submit the job to SBATCH?', default: false)
+
+        stdout, status = generator.submit(file_path)
+
+        return puts 'An error occurred' unless status.success?
+
+        puts stdout
       end
     end
   end
