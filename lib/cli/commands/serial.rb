@@ -33,12 +33,14 @@ module AlcesJob
           pastel = Pastel.new
 
           # Generate sbatch file bases on user flags
+          puts
           spinner = TTY::Spinner.new(
-            "\n[:spinner] generating SBATCH script ...",
+            '[:spinner] :title ...',
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )
 
+          spinner.update(title: 'generating SBATCH script')
           spinner.auto_spin
 
           options[:template] = 'serial'
@@ -48,24 +50,19 @@ module AlcesJob
 
           spinner.success('(successful)')
 
-          puts pastel.green("The SBTACH script has been generated and saved to #{file_path}\n")
+          puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
 
           # Submit the sbatch file to sbatch if user adds submit flag
           return unless options[:submit]
 
-          spinner = TTY::Spinner.new(
-            '[:spinner] submitting script ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
-          )
-
+          spinner.update(title: 'submitting script')
           spinner.auto_spin
 
           stdout, status = generator.submit(file_path)
 
           unless status.success?
             spinner.error('(error)')
-            puts pastel.red("An error occurred\n")
+            puts pastel.red("\nAn error occurred\n")
             return
           end
 
@@ -74,7 +71,7 @@ module AlcesJob
           puts "#{stdout}\n"
         rescue Errno::ENOENT
           spinner.error('(error)')
-          puts pastel.red("An error occurred\n")
+          puts pastel.red("\nAn error occurred\n")
         end
       end
     end
