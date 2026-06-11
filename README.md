@@ -69,7 +69,7 @@ $ alces-job version
 The basic utility of the command can be run with
 
 ```sh
-$ alces-job [OPTIONS]
+$ alces-job base [OPTIONS]
 ```
 
 This will generate an output file, by default called `job.sbatch`, with any SBATCH options provided.
@@ -128,3 +128,13 @@ The tool has an interactive wizard that can be accessed by using the `-i` or `--
 ```sh
 $ alces-job --interactive
 ```
+
+### Templates
+
+The generated Slurm script is produced from an ERB template in the `templates/` directory.
+
+By default the base command renders `templates/default.erb`, and the CLI passes the command options into the template as `@context` values. For example, `--job-name`, `--nodes`, `--command`, and other flags are available inside the template as `<%= @context.job_name %>`, `<%= @context.nodes %>`, and `<%= @context.command %>`.
+
+Specialized commands such as `mpi`, `gpu`, and `array` select a different template by name before rendering, so they can generate job scripts with the right SBATCH boilerplate for that workload.
+
+If you want to customize output, add a new ERB file to `~/.alces-job/templates` and render it by passing the matching template name into the command via the template command
