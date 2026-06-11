@@ -9,7 +9,7 @@ require_relative '../../services/generator'
 module AlcesJob
   module CLI
     module Commands
-      class MPI < Dry::CLI::Command
+      class Serial < Dry::CLI::Command
         option :job_name, type: :string
         option :nodes, type: :integer
         option :ntasks, type: :integer
@@ -18,21 +18,31 @@ module AlcesJob
 
         option :time, type: :string
         option :partition, type: :string
+        option :account, type: :string
+        option :gres, type: :string
+
+        option :output, type: :string
+        option :error, type: :string
+
+        option :mail_user, type: :string
+        option :mail_type, type: :string
 
         option :module, type: :array, default: []
 
         option :workdir, type: :string
         option :command, type: :string
+        option :array, type: :string
+        option :dependency, type: :string
 
         option :output_file, type: :string
 
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
-        AlcesJob::CLI.register 'mpi', self
-        desc 'Creates a MPI sbatch script'
+        AlcesJob::CLI.register 'serial', self
+        desc 'tmp'
 
-        def call(**options)
+        def call(*_args, **options)
           pastel = Pastel.new
 
           # Generate sbatch file
@@ -43,8 +53,6 @@ module AlcesJob
           )
 
           spinner.auto_spin
-
-          options[:template] = 'mpi'
 
           generator = AlcesJob::Services::Generator.new(options)
           file_path = generator.save
