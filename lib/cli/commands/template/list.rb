@@ -39,7 +39,7 @@ module AlcesJob
         def scan_templates(folder, source, templates)
           return unless File.directory?(folder)
 
-          Dir.glob(File.join(folder, '*.erb')).sort.each do |path|
+          Dir.glob(File.join(folder, '*.erb')).each do |path|
             name = File.basename(path, '.erb')
             templates[name] ||= source
           end

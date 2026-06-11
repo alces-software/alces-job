@@ -42,6 +42,10 @@ module AlcesJob
         option :workdir, type: :string,
                          desc: 'Changes to the specified working directory in the job script'
 
+        def initialize
+          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
+        end
+
         def call(**options)
           pastel = Pastel.new
           prompt = TTY::Prompt.new

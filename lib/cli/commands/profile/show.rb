@@ -13,8 +13,7 @@ module AlcesJob
         option :profile, type: :string, desc: 'The name of the profile to display'
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
-          @profile_dir = File.expand_path(config['user_profile_dir'])
+          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
         end
 
         def call(**options)
