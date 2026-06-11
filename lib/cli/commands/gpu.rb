@@ -36,7 +36,7 @@ module AlcesJob
         def call(**options)
           pastel = Pastel.new
 
-          # Generate sbatch file
+          # Generate sbatch file bases on user inputs
           spinner = TTY::Spinner.new(
             "\n[:spinner] generating SBATCH script ...",
             success_mark: pastel.green('✔'),
@@ -54,7 +54,7 @@ module AlcesJob
 
           puts pastel.green("The SBTACH script has been generated and saved to #{file_path}\n")
 
-          # Submit the sbatch file to sbatch if user adds flag
+          # Submit the sbatch file to sbatch if user adds submit flag
           return unless options[:submit]
 
           spinner = TTY::Spinner.new(
