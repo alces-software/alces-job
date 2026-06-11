@@ -25,4 +25,4 @@ cd <%= @context.workdir %>
 <% end -%>
 echo "Running serial job: <%= @context.job_name %>"
 
-srun <%= @context.command %>
+<%= @context.command || "echo 'No command provided'" %>
