@@ -11,6 +11,8 @@ module TimeConverter
     minutes = match[3].to_i
     seconds = match[4].to_i
 
-    seconds + (minutes * 60) + (hours * 3600) + (days * 86_400)
+    return nil if hours > 23
+
+    total_seconds = seconds + (minutes * 60) + (hours * 3600) + (days * 86_400)
   end
 end
