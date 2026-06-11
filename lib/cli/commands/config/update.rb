@@ -24,8 +24,7 @@ module AlcesJob
                      aliases: ['-a']
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
-          @config_path = config['admin_config_file']
+          @config_path = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))['admin_config_file']
           @system_data = nil
         end
 

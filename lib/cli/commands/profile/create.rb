@@ -43,8 +43,7 @@ module AlcesJob
                          desc: 'Changes to the specified working directory in the job script'
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
-          @profile_dir = config['user_profile_dir']
+          @config_path = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))['admin_config_file']
         end
 
         def call(**options)

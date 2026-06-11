@@ -10,10 +10,7 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        # config = YAML.load_file('./config.yaml')
-        # @info = YAML.load_file(config['admin_config_file'])
-        #
-        @info = YAML.load_file('test_data.yaml')
+        @info = YAML.load_file(File.expand_path('../../../config.yaml', __dir__))['admin_config_file']
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')
@@ -97,7 +94,7 @@ module AlcesJob
         time_string
       end
 
-      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
       def call
         system_info
@@ -470,6 +467,6 @@ module AlcesJob
         exit(0)
       end
     end
-    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   end
 end
