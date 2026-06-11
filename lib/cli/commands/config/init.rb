@@ -30,12 +30,14 @@ module AlcesJob
           end
 
           # Check config file
+          puts
           spinner = TTY::Spinner.new(
-            "\n[:spinner] checking for config ...",
+            '[:spinner] :title ...',
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )
 
+          spinner.update(title: 'checking for config')
           spinner.auto_spin
           if File.exist?(@config_path)
             data = YAML.load_file(@config_path)
@@ -52,30 +54,26 @@ module AlcesJob
           end
 
           # Collecting system information
-          spinner = TTY::Spinner.new(
-            '[:spinner] collecting system info ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
-          )
-
+          spinner.update(title: 'collecting system info')
           spinner.auto_spin
           @system_data = Services::SysInfo.all_info
           spinner.success('(successful)')
 
           # Writing to config file
-          spinner = TTY::Spinner.new(
-            '[:spinner] writing config file ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
-          )
-
+          spinner.update(title: 'writing config file')
           spinner.auto_spin
-          FileUtils.mkdir_p(File.dirname(@config_path))
-          File.write(@config_path, @system_data.to_yaml)
-          spinner.success('(successful)')
+          begin
+            FileUtils.mkdir_p(File.dirname(@config_path))
+            File.write(@config_path, @system_data.to_yaml)
+            spinner.success('(successful)')
 
-          puts pastel.green("\nThe config file has been written to #{@config_path}\n")
-          exit(0)
+            puts pastel.green("\nThe config file has been written to #{@config_path}\n")
+            exit(0)
+          rescue StandardError => e
+            spinner.error('(writing error)')
+            puts pastel.green("\nFailed to write config file: #{e.message}\n")
+            exit(1)
+          end
         end
       end
     end

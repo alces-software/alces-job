@@ -35,6 +35,7 @@ module AlcesJob
             exit(1)
           end
 
+          puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✔'),
@@ -49,16 +50,16 @@ module AlcesJob
           if options[:nodes]
             nodes_to_delete = options[:nodes].split(',').map(&:strip)
 
-            @system_data['nodes'] = @system_data['nodes'].reject do |node|
-              nodes_to_delete.include?(node['node'])
+            @system_data[:nodes] = @system_data[:nodes].reject do |node|
+              nodes_to_delete.include?(node[:node])
             end
           end
 
           if options[:partitions]
             partitions_to_delete = options[:partitions].split(',').map(&:strip)
 
-            @system_data['partitions'] = @system_data['partitions'].reject do |partition|
-              partitions_to_delete.include?(partition['partition'])
+            @system_data[:partitions] = @system_data[:partitions].reject do |partition|
+              partitions_to_delete.include?(partition[:partition])
             end
           end
 
@@ -66,12 +67,17 @@ module AlcesJob
           spinner.update(title: 'updating config file')
           spinner.auto_spin
 
-          File.write(@config_path, @system_data)
+          begin
+            File.write(@config_path, @system_data.to_yaml)
+            spinner.success('(successful)')
 
-          spinner.success('(successful)')
-
-          puts pastel.green("\nSuccessfully remove the items from the config\n")
-          exit(0)
+            puts pastel.green("\nSuccessfully remove the items from the config\n")
+            exit(0)
+          rescue StandardError => e
+            spinner.error('(writing error)')
+            puts pastel.green("\nFailed to remove the items from the config: #{e.message}\n")
+            exit(1)
+          end
         end
       end
     end

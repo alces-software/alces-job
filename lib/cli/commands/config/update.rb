@@ -45,12 +45,14 @@ module AlcesJob
           end
 
           # Load and parse config.yaml
+          puts
           spinner = TTY::Spinner.new(
-            "\n[:spinner] loading config ...",
+            '[:spinner] :title ...',
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )
 
+          spinner.update(title: 'loading config')
           spinner.auto_spin
 
           unless File.exist?(@config_path)
@@ -70,13 +72,9 @@ module AlcesJob
           spinner.success('(successful)')
 
           # Get system information
-          spinner = TTY::Spinner.new(
-            '[:spinner] collecting system info ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
-          )
-
+          spinner.update(title: 'collecting system info')
           spinner.auto_spin
+
           if filtered_options[:all].nil?
             filtered_options.each_pair do |key, _value|
               case key
@@ -97,18 +95,20 @@ module AlcesJob
           spinner.success('(successful)')
 
           # New data to file
-          spinner = TTY::Spinner.new(
-            '[:spinner] writing config file ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
-          )
-
+          spinner.update(title: 'writing config file')
           spinner.auto_spin
-          File.write(@config_path, @system_data.to_yaml)
-          spinner.success('(successful)')
 
-          puts pastel.green("\nThe config file at #{@config_path} has been updated\n")
-          exit(0)
+          begin
+            File.write(@config_path, @system_data.to_yaml)
+            spinner.success('(successful)')
+
+            puts pastel.green("\nThe config file at #{@config_path} has been updated\n")
+            exit(0)
+          rescue StandardError => e
+            spinner.error('(writing error)')
+            puts pastel.green("\nFailed to update config file: #{e.message}\n")
+            exit(1)
+          end
         end
       end
     end

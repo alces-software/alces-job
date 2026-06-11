@@ -47,13 +47,15 @@ module AlcesJob
 
           spinner.auto_spin
 
-          if File.unlink(profile_path) == 1
+          begin
+            File.unlink(profile_path)
             spinner.success('(deleted)')
+
             puts pastel.green("\nSuccessfully deleted the profile\n")
             exit(0)
-          else
+          rescue StandardError => e
             spinner.error('(failed)')
-            puts pastel.red("\nFailed to delete the profile\n")
+            puts pastel.red("\nFailed to delete the profile: #{e.message}\n")
             exit(1)
           end
         end

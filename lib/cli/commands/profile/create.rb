@@ -84,13 +84,18 @@ module AlcesJob
             spinner.auto_spin
           end
 
-          FileUtils.mkdir_p(File.dirname(@profile_dir))
-          File.write(profile_path, options.to_yaml)
+          begin
+            FileUtils.mkdir_p(File.dirname(@profile_dir))
+            File.write(profile_path, options.to_yaml)
+            spinner.success('(successful)')
 
-          spinner.success('(successful)')
-
-          puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
-          exit(0)
+            puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
+            exit(0)
+          rescue StandardError => e
+            spinner.error('(writing error)')
+            puts pastel.green("\nFailed to create your profile: #{e.message}\n")
+            exit(1)
+          end
         end
       end
     end

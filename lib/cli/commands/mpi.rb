@@ -59,11 +59,12 @@ module AlcesJob
 
           # Generate sbatch file bases on user flags
           spinner = TTY::Spinner.new(
-            "\n[:spinner] generating SBATCH script ...",
+            "\n[:spinner] :title ...",
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )
 
+          spinner.update(title: 'generating SBATCH script')
           spinner.auto_spin
 
           options[:template] = 'mpi'
@@ -78,12 +79,7 @@ module AlcesJob
           # Submit the sbatch file to sbatch if user adds submit flag
           exit(0) unless options[:submit]
 
-          spinner = TTY::Spinner.new(
-            '[:spinner] submitting script ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
-          )
-
+          spinner.update(title: 'submitting script')
           spinner.auto_spin
 
           stdout, status = generator.submit(file_path)
@@ -96,7 +92,7 @@ module AlcesJob
 
           spinner.success('(submitted)')
 
-          puts "#{stdout}\n"
+          puts "\n#{stdout}\n"
           exit(0)
         rescue Errno::ENOENT
           spinner.error('(error)')
