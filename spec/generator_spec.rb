@@ -3,7 +3,10 @@
 require 'spec_helper'
 require 'fileutils'
 
-RSpec.describe AlcesJob::Services::Generator do
+#Added the line below for testing 
+require_relative '../lib/services/generator'
+
+RSpec.describe AlcesJob::Services::Generator do 
   let(:pwd) { Dir.pwd }
 
   after do

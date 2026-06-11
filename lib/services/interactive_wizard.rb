@@ -70,8 +70,31 @@ module AlcesJob
           seconds.to_i
       end
 
-      def call # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength
-        system_info
+      def normalize_slurm_time(time_value)
+        if time_value.is_a?(Integer)
+          days = time_value / 86_400
+          remainder = time_value % 86_400
+
+          hours = remainder / 3600
+          remainder %= 3600
+
+          minutes = remainder / 60
+          seconds = remainder % 60
+
+          return format('%d-%02d:%02d:%02d', days, hours, minutes, seconds)
+        end
+
+        time_string = time_value.to_s
+
+        return time_string if time_string.match?(/^\d+-\d{2}:\d{2}:\d{2}$/)
+
+        return "0-#{time_string}" if time_string.match?(/^\d{2}:\d{2}:\d{2}$/)
+
+        time_string
+      end
+
+      def call
+        get_system_info
 
         puts 'Welcome to the interactive mode!'
 
@@ -94,8 +117,14 @@ module AlcesJob
 
         max_run_time = nil
 
-        partition_list = partition_types.map do |partition|
-          partition[:partition]
+        partition_list = []
+
+        puts partition_types
+
+        partition_types.each do |partition|
+          partition_list.append(partition[:partition])
+
+          partition[:time_limit] = normalize_slurm_time(partition[:time_limit]) if partition[:time_limit].is_a?(Integer)
         end
 
         nodes = @info[:nodes]
@@ -111,6 +140,8 @@ module AlcesJob
         human_readable_max_time = nil
 
         prompt = TTY::Prompt.new
+
+        puts partition_types
 
         types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
@@ -186,17 +217,17 @@ module AlcesJob
                 [
                   partition[:partition],
                   partition[:time_limit],
-                  wizard.human_readable_time(partition[:time_limit])
+                  wizard.human_readable_time(partition[:time_limit]),
+                  partition[:default] ? 'True' : 'False'
                 ]
               end
 
               puts Terminal::Table.new(
                 title: 'Available Partitions',
-                headings: ['Partition', 'Time Limit', 'Readable'],
+                headings: ['Partition', 'Time Limit', 'Readable', 'Default'],
                 rows: partition_rows
               )
 
-              # key(item).select(question, partition_list)
               selected_partition = key(item).select(question, partition_list)
 
             when :time
@@ -259,30 +290,6 @@ module AlcesJob
             system('clear')
           end
         end
-
-        # loop do
-        #   generator = AlcesJob::Services::Generator.new(
-        #     result.merge(template: job_type)
-        #   )
-
-        #   script = generator.generate
-
-        #   puts script
-
-        #   break unless prompt.yes?('Would you like to edit any of your inputs?')
-
-        #   field = prompt.select(
-        #     'Which input would you like to edit?',
-        #     result.keys
-        #   )
-
-        #   # Add logic that was in prompt.collect for better UX
-
-        #   result[field] = prompt.ask(
-        #     "Enter new value for #{field}:"
-        #   )
-        # end
-        #
 
         loop do # rubocop:disable Metrics/BlockLength
           job_type = 'default' if job_type == 'serial'

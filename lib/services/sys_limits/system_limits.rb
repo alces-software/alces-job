@@ -16,7 +16,7 @@ module AlcesJob
 
       def self.node_count(system_info)
         nodes = nodes_from(system_info)
-        nodes || DEFAULT_NODE_COUNT if nodes.empty?
+        return DEFAULT_NODE_COUNT if nodes.empty?
 
         nodes.length
       end
@@ -56,9 +56,9 @@ module AlcesJob
       end
 
       def self.gpu_total(system_info)
-        return DEFAULT_GPU_TOTAL if system_info.nil?
+        return DEFAULT_GPUS_PER_NODE if system_info.nil?
 
-        system_info[:gpu_total] || system_info['gpu_total'] || DEFAULT_GPU_TOTAL
+        system_info[:gpu_total] || system_info['gpu_total'] || DEFAULT_GPUS_PER_NODE
       end
 
       def self.nodes_from(system_info)
