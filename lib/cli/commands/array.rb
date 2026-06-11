@@ -78,7 +78,7 @@ module AlcesJob
 
           spinner.success('(successful)')
 
-          puts pastel.green("The SBTACH script has been generated and saved to #{file_path}\n")
+          puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
 
           # Submit the sbatch file to sbatch if user adds submit flag
           exit(0) unless options[:submit]
@@ -90,7 +90,7 @@ module AlcesJob
 
           unless status.success?
             spinner.error('(error)')
-            puts pastel.red("An error occurred\n")
+            puts pastel.red("\nAn error occurred\n")
             exit(1)
           end
 
@@ -100,7 +100,7 @@ module AlcesJob
           exit(0)
         rescue Errno::ENOENT
           spinner.error('(error)')
-          puts pastel.red("An error occurred\n")
+          puts pastel.red("\nAn error occurred\n")
           exit(1)
         end
       end
