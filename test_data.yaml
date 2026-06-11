@@ -52,7 +52,7 @@
 - :partition: gpu-l40s
   :time_limit: 7-00:00:00
 - :partition: gpu-h100
-  :time_limit: 7-00:00:00
+  :time_limit: 6-00:00:00
 :packages:
 - 'sh: module: command not found'
 :gpu_total: 48

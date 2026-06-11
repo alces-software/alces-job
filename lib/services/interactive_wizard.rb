@@ -15,7 +15,7 @@ module AlcesJob
         @info = YAML.load_file('test_data.yaml')
       end
 
-      def valid_slurm_time?(time_string, max_days = 7)
+      def valid_slurm_time?(time_string, max_time = '7-00:00:00')
         return false if time_string.nil?
         return false if time_string.strip.empty?
 
@@ -40,7 +40,7 @@ module AlcesJob
           minutes * 60 +
           seconds
 
-        max_seconds = max_days * 86_400
+        max_seconds = slurm_time_to_seconds(max_time)
 
         total_seconds <= max_seconds
       end
@@ -69,37 +69,8 @@ module AlcesJob
           seconds.to_i
       end
 
-      # def valid_memory?(input, max_memory)
-      #   requested_gb = memory_to_gb(input)
-      #   max_gb = memory_to_gb(max_memory)
-
-      #   return false if requested_gb.nil?
-      #   return false if max_gb.nil?
-
-      #   requested_gb <= max_gb
-      # end
-
-      # def memory_to_gb(memory)
-      #   match = memory.to_s.strip.match(/\A(\d+(?:\.\d+)?)\s*(G|GB|T|TB|P|PB)\z/i)
-
-      #   return nil unless match
-
-      #   amount = match[1].to_f
-      #   unit = match[2].upcase
-
-      #   case unit
-      #   when 'G', 'GB'
-      #     amount
-      #   when 'T', 'TB'
-      #     amount * 1024
-      #   when 'P', 'PB'
-      #     amount * 1024 * 1024
-      #   end
-      # end
-
       def call
         get_system_info
-        puts @info
 
         puts 'Welcome to the interactive mode!'
 
@@ -118,161 +89,137 @@ module AlcesJob
 
         puts table
 
-        partitionTypes = @info[:partitions]
+        partition_types = @info[:partitions]
 
-        maxRunTime = nil
+        max_run_time = nil
 
         partition_list = []
 
-        partitionTypes.each do |partition|
-          # puts "#{partition[:partition]}'s time limit is #{partition[:time_limit]}"
+        partition_types.each do |partition|
           partition_list.append(partition[:partition])
-
-          if maxRunTime.nil? ||
-             slurm_time_to_seconds(partition[:time_limit]) > slurm_time_to_seconds(maxRunTime)
-            maxRunTime = partition[:time_limit]
-          end
         end
-
-        puts "Max time: #{maxRunTime}"
 
         nodes = @info[:nodes]
 
-        maxMemory = 0
-        maxCpuCores = 0
+        max_memory = 0
+        max_cpu_cores = 0
 
         nodes.each do |node|
-          maxMemory = node[:memory] if node[:memory] > maxMemory
-          maxCpuCores = node[:cpus] if node[:cpus] > maxCpuCores
+          max_memory = node[:memory] if node[:memory] > max_memory
+          max_cpu_cores = node[:cpus] if node[:cpus] > max_cpu_cores
         end
 
-        # partition_rows = [
-        #   ['serial', 'Single-node CPU job'],
-        #   ['mpi',    'Distributed job using MPI across nodes'],
-        #   ['gpu',    'GPU-accelerated workload'],
-        #   ['array',  'Many similar jobs run as a job array']
-        # ]
-
-        # partition_table = Terminal::Table.new do |t|
-        #   t.title = 'Available Job Types'
-        #   t.headings = %w[Type Description]
-        #   t.rows = rows
-        # end
-
-        # puts table
-
-        human_readable_max_time = human_readable_time(maxRunTime)
+        human_readable_max_time = nil
 
         prompt = TTY::Prompt.new
 
-        typesOfJob = ['serial (default)', 'mpi', 'gpu', 'array']
+        types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
-        job_type = prompt.select('What type of job would you like to run?', typesOfJob)
+        job_type = prompt.select('What type of job would you like to run?', types_of_job)
 
         # To add in later?  nodes: 'How many nodes would you like to request?',   array: 'What array range would you like to use (e.g. 1-100)?', max_concurrent_tasks: 'What is the maximum number of array tasks that may run simultaneously?',    gres: 'How many GPUs would you like to request?',     ntasks: 'How many MPI tasks would you like per node?',
 
         question_bank = {
           serial: {
-            job_name: 'What is your job name? (e.g. my slurm job)',
+            job_name: 'What is your job name?',
             partition: 'Which partition would you like to use?',
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores would you like to request?',
-            mem: 'How much memory will your job use?',
+            mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?'
           },
 
           mpi: {
-            job_name: 'What is your job name? (e.g. my slurm job)',
+            job_name: 'What is your job name?',
             partition: 'Which partition would you like to use?',
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores would each MPI task require?',
-            mem: 'How much memory will your job use?',
+            mem: 'How much memory will your job use? (MB)',
             command: 'What MPI command would you like to run?'
           },
 
           gpu: {
-            job_name: 'What is your job name? (e.g. my slurm job)',
+            job_name: 'What is your job name?',
             partition: 'Which partition would you like to use?',
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores would you like to request?',
-            mem: 'How much memory will your job use?',
+            mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?'
           },
 
           array: {
-            job_name: 'What is your job name? (e.g. my slurm job)',
+            job_name: 'What is your job name?',
             partition: 'Which partition would you like to use?',
             time: 'How long would you like your job to run for?',
 
-            mem: 'How much memory would you like per array task?',
+            mem: 'How much memory would you like per array task? (MB)',
             command: 'What command would you like to run?'
           }
         }
 
+        defaults = {
+          job_name: 'my_slurm_job',
+          time: '00-01:00:00',
+          cpus_per_task: '1',
+          mem: '1024',
+          command: '#YOUR_COMMAND_HERE'
+        }
+
         job_type = job_type.split[0] if job_type.split.length > 1
+
+        selected_partition = nil
 
         system('clear')
         wizard = self
 
         questions = question_bank[job_type.to_sym]
+
         result = prompt.collect do
           questions.each do |item, question|
             if item == :partition
-              # puts partition_table
-              #
-              key(item).select(question, partition_list)
 
-            # elsif item == :time
-            #   puts "The max runtime for a job is: #{maxRunTime} i.e. #{human_readable_max_time}"
-            #   key(item).ask(question)
-
-            elsif item == :time
-              puts "The max runtime for a job is: #{maxRunTime} i.e. #{human_readable_max_time}"
-
-              key(item).ask(
-                question
-              ) do |q|
-                q.validate ->(input) { wizard.valid_slurm_time?(input) }
-                q.messages[:valid?] = 'Time must be in format D-HH:MM:SS and not exceed 7 days'
+              partition_rows = partition_types.map do |partition|
+                [
+                  partition[:partition],
+                  partition[:time_limit],
+                  wizard.human_readable_time(partition[:time_limit])
+                ]
               end
 
-            # elsif item == :nodes
-            #   puts 'Available nodes on this partition: 8'
-            #   key(item).ask(question) do |q|
-            #     q.validate(/\A\d+\z/)
-            #     q.messages[:valid?] = 'Please enter a whole number'
-            #     q.convert :int
-            #   end
+              puts Terminal::Table.new(
+                title: 'Available Partitions',
+                headings: ['Partition', 'Time Limit', 'Readable'],
+                rows: partition_rows
+              )
 
-            # elsif item == :tasks_per_node
-            #   puts "Available CPU cores per node: #{maxCpuCores}"
-            #   key(item).ask(question) do |q|
-            #     q.validate(/\A\d+\z/)
-            #     q.messages[:valid?] = 'Please enter a whole number'
-            #     q.convert :int
-            #   end
+              # key(item).select(question, partition_list)
+              selected_partition = key(item).select(question, partition_list)
 
-            elsif item == :cpus_per_task
-              puts "Max cpu cores: #{maxCpuCores}"
+            elsif item == :time
+              selected_partition_info = partition_types.find do |partition|
+                partition[:partition] == selected_partition
+              end
 
-              key(item).ask(question) do |q|
-                q.validate(/\A\d+\z/)
-                q.messages[:valid?] = 'Please enter a whole number'
+              max_run_time = selected_partition_info[:time_limit]
+              human_readable_max_time = wizard.human_readable_time(max_run_time)
+
+              puts "The max runtime for #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
+
+              key(item).ask(question, default: defaults[item]) do |q|
                 q.validate do |input|
-                  input.to_i <= maxCpuCores
+                  wizard.valid_slurm_time?(input, max_run_time)
                 end
 
-                q.messages[:valid?] = 'Value cannot be greater than maximum cpu cores.'
-                q.convert :int
+                q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
               end
 
             elsif item == :mem
-              puts "Max memory: #{maxMemory} MB"
-              key(item).ask(question) do |q|
+              puts "Max memory: #{max_memory} MB"
+              key(item).ask(question, default: defaults[item]) do |q|
                 q.validate(/\A\d+\z/)
                 q.messages[:valid?] = 'Please enter a whole number'
                 q.validate do |input|
-                  input.to_i <= maxMemory
+                  input.to_i <= max_memory
                 end
 
                 q.messages[:valid?] = 'Value cannot be greater than maximum memory.'
@@ -280,29 +227,26 @@ module AlcesJob
                 q.convert :int
               end
 
-            # elsif item == :gpus
-            #   puts 'Available GPUs per node: 4'
-            #   key(item).ask(question) do |q|
-            #     q.validate(/\A\d+\z/)
-            #     q.messages[:valid?] = 'Please enter a whole number'
-            #     q.convert :int
-            #   end
+            elsif item == :cpus_per_task
+              puts "Max cpu cores: #{max_cpu_cores}"
 
-            # elsif item == :array_range
-            #   puts 'Examples: 1-10, 1-100, 1-1000'
-            #   key(item).ask(question)
+              key(item).ask(question, default: defaults[item]) do |q|
+                q.validate(/\A\d+\z/)
+                q.messages[:valid?] = 'Please enter a whole number'
+                q.validate do |input|
+                  input.to_i <= max_cpu_cores
+                end
 
-            # elsif item == :max_concurrent_tasks
-            #   puts 'Example: if your array range is 1-100 and you enter 10, only 10 tasks run at once.'
-            #   key(item).ask(question) do |q|
-            #     q.validate(/\A\d+\z/)
-            #     q.messages[:valid?] = 'Please enter a whole number'
-            #     q.convert :int
-            #   end
+                q.messages[:valid?] = 'Value cannot be greater than maximum cpu cores.'
+                q.convert :int
+              end
 
             elsif item == :command
               puts 'Examples: python script.py, Rscript analysis.R, ./my_program, mpirun ./my_program'
-              key(item).ask(question)
+              key(item).ask(question, default: defaults[item])
+
+            elsif item == :job_name
+              key(item).ask(question, default: defaults[item])
 
             else
               key(item).ask(question)
@@ -311,9 +255,28 @@ module AlcesJob
           end
         end
 
-        puts "You enetered #{questions}"
-        puts "Result is #{result}"
+        # loop do
+        #   generator = AlcesJob::Services::Generator.new(
+        #     result.merge(template: job_type)
+        #   )
 
+        #   script = generator.generate
+
+        #   puts script
+
+        #   break unless prompt.yes?('Would you like to edit any of your inputs?')
+
+        #   field = prompt.select(
+        #     'Which input would you like to edit?',
+        #     result.keys
+        #   )
+
+        #   # Add logic that was in prompt.collect for better UX
+
+        #   result[field] = prompt.ask(
+        #     "Enter new value for #{field}:"
+        #   )
+        # end
         loop do
           generator = AlcesJob::Services::Generator.new(
             result.merge(template: job_type)
@@ -330,9 +293,133 @@ module AlcesJob
             result.keys
           )
 
-          result[field] = prompt.ask(
-            "Enter new value for #{field}:"
-          )
+          system('clear')
+
+          if field == :partition
+            partition_rows = partition_types.map do |partition|
+              [
+                partition[:partition],
+                partition[:time_limit],
+                wizard.human_readable_time(partition[:time_limit])
+              ]
+            end
+
+            puts Terminal::Table.new(
+              title: 'Available Partitions',
+              headings: ['Partition', 'Time Limit', 'Readable'],
+              rows: partition_rows
+            )
+
+            selected_partition = prompt.select(
+              questions[:partition],
+              partition_list
+            )
+
+            result[:partition] = selected_partition
+
+            selected_partition_info = partition_types.find do |partition|
+              partition[:partition] == selected_partition
+            end
+
+            max_run_time = selected_partition_info[:time_limit]
+            human_readable_max_time = wizard.human_readable_time(max_run_time)
+
+            puts "The max runtime for #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
+
+            unless wizard.valid_slurm_time?(result[:time], max_run_time)
+              puts "Your current time value #{result[:time]} is too high for #{selected_partition}."
+
+              result[:time] = prompt.ask(
+                questions[:time],
+                default: defaults[:time]
+              ) do |q|
+                q.validate do |input|
+                  wizard.valid_slurm_time?(input, max_run_time)
+                end
+
+                q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
+              end
+            end
+
+          elsif field == :time
+            selected_partition_info = partition_types.find do |partition|
+              partition[:partition] == result[:partition]
+            end
+
+            max_run_time = selected_partition_info[:time_limit]
+            human_readable_max_time = wizard.human_readable_time(max_run_time)
+
+            puts "The max runtime for #{result[:partition]} is #{max_run_time}, i.e. #{human_readable_max_time}"
+
+            result[:time] = prompt.ask(
+              questions[:time],
+              default: result[:time]
+            ) do |q|
+              q.validate do |input|
+                wizard.valid_slurm_time?(input, max_run_time)
+              end
+
+              q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
+            end
+
+          elsif field == :mem
+            puts "Max memory: #{max_memory} MB"
+
+            result[:mem] = prompt.ask(
+              questions[:mem],
+              default: result[:mem].to_s
+            ) do |q|
+              q.validate do |input|
+                input.match?(/\A\d+\z/) &&
+                  input.to_i >= 1 &&
+                  input.to_i <= max_memory
+              end
+
+              q.messages[:valid?] = "Please enter a whole number between 1 and #{max_memory} MB"
+
+              q.convert :int
+            end
+
+          elsif field == :cpus_per_task
+            puts "Max cpu cores: #{max_cpu_cores}"
+
+            result[:cpus_per_task] = prompt.ask(
+              questions[:cpus_per_task],
+              default: result[:cpus_per_task].to_s
+            ) do |q|
+              q.validate do |input|
+                input.match?(/\A\d+\z/) &&
+                  input.to_i >= 1 &&
+                  input.to_i <= max_cpu_cores
+              end
+
+              q.messages[:valid?] = "Please enter a whole number between 1 and #{max_cpu_cores}"
+
+              q.convert :int
+            end
+
+          elsif field == :command
+            puts 'Examples: python script.py, Rscript analysis.R, ./my_program, mpirun ./my_program'
+
+            result[:command] = prompt.ask(
+              questions[:command],
+              default: result[:command]
+            )
+
+          elsif field == :job_name
+            result[:job_name] = prompt.ask(
+              questions[:job_name],
+              default: result[:job_name]
+            )
+
+          else
+            result[field] = prompt.ask(
+              "Enter new value for #{field}:",
+              default: result[field].to_s
+            )
+          end
+
+          system('clear')
         end
 
         generator = AlcesJob::Services::Generator.new(
