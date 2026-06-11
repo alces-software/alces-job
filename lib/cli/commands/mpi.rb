@@ -10,21 +10,32 @@ module AlcesJob
   module CLI
     module Commands
       class MPI < Dry::CLI::Command
-        option :job_name, type: :string
-        option :nodes, type: :integer
-        option :ntasks, type: :integer
-        option :cpus_per_task, type: :integer
-        option :mem, type: :string
+        option :job_name, type: :string,
+                          desc: 'Sets the Slurm job name for the generated MPI script'
+        option :nodes, type: :integer,
+                       desc: 'Requests the number of compute nodes for the MPI job'
+        option :ntasks, type: :integer,
+                        desc: 'Specifies the total number of MPI tasks'
+        option :cpus_per_task, type: :integer,
+                               desc: 'Specifies CPU cores per task'
+        option :mem, type: :string,
+                     desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
 
-        option :time, type: :string
-        option :partition, type: :string
+        option :time, type: :string,
+                      desc: 'Sets the walltime limit for the MPI job'
+        option :partition, type: :string,
+                           desc: 'Specifies the Slurm partition or queue to use'
 
-        option :module, type: :array, default: []
+        option :module, type: :array, default: [],
+                        desc: 'Loads environment modules before running the job'
 
-        option :workdir, type: :string
-        option :command, type: :string
+        option :workdir, type: :string,
+                         desc: 'Changes to the specified working directory in the job script'
+        option :command, type: :string,
+                         desc: 'Specifies the shell command to execute in the script'
 
-        option :output_file, type: :string
+        option :output_file, type: :string,
+                             desc: 'Writes the generated script to this filename instead of job.sbatch'
 
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
