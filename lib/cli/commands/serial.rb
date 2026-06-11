@@ -32,6 +32,7 @@ module AlcesJob
         option :array, type: :string
         option :dependency, type: :string
 
+        option :template, type: :string
         option :output_file, type: :string
 
         AlcesJob::CLI.register 'serial', self
