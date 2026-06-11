@@ -6,13 +6,12 @@ require 'pastel'
 require 'yaml'
 require 'erb'
 
-require_relative 'sysinfo/sysinfo'
-
 module AlcesJob
   module Services
     class InteractiveWizard
       def get_system_info
-        @info = YAML.load_file('test_data.yaml')
+        config = YAML.load_file('./config.yaml')
+        @info = YAML.load_file(config['admin_config_file'])
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')
