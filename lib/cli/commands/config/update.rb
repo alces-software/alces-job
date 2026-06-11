@@ -32,13 +32,16 @@ module AlcesJob
         def call(**options)
           pastel = Pastel.new
 
-          return puts pastel.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
+          if Process.uid != 0
+            puts pastel.red("\nThis command must be ran with elevated privileges\n")
+            exit(1)
+          end
 
           filtered_options = options.select { |_key, value| value }
 
           if filtered_options.empty?
             puts pastel.red("\nYou didn't specify any systeminformation to update\n")
-            return
+            exit(1)
           end
 
           # Load and parse config.yaml
@@ -53,7 +56,7 @@ module AlcesJob
           unless File.exist?(@config_path)
             spinner.error('(no config)')
             puts pastel.red("\nThere is no config file currently present use config init to create one\n")
-            return
+            exit(1)
           end
 
           @system_data = YAML.load_file(@config_path)
@@ -61,7 +64,7 @@ module AlcesJob
           if @system_data.nil?
             spinner.error('(blank config)')
             puts pastel.red("\nThe config you have contains no data generate a new one using config init\n")
-            return
+            exit(1)
           end
 
           spinner.success('(successful)')
@@ -105,6 +108,7 @@ module AlcesJob
           spinner.success('(successful)')
 
           puts pastel.green("\nThe config file at #{@config_path} has been updated\n")
+          exit(0)
         end
       end
     end

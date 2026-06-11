@@ -76,7 +76,7 @@ module AlcesJob
           puts pastel.green("The SBTACH script has been generated and saved to #{file_path}\n")
 
           # Submit the sbatch file to sbatch if user adds submit flag
-          return unless options[:submit]
+          exit(0) unless options[:submit]
 
           spinner = TTY::Spinner.new(
             '[:spinner] submitting script ...',
@@ -91,15 +91,17 @@ module AlcesJob
           unless status.success?
             spinner.error('(error)')
             puts pastel.red("An error occurred\n")
-            return
+            exit(1)
           end
 
           spinner.success('(submitted)')
 
           puts "#{stdout}\n"
+          exit(0)
         rescue Errno::ENOENT
           spinner.error('(error)')
           puts pastel.red("An error occurred\n")
+          exit(1)
         end
       end
     end

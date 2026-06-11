@@ -24,7 +24,10 @@ module AlcesJob
         def call(*)
           pastel = Pastel.new
 
-          return puts pastel.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
+          if Process.uid != 0
+            puts pastel.red("\nThis command must be ran with elevated privileges\n")
+            exit(1)
+          end
 
           # Check config file
           spinner = TTY::Spinner.new(
@@ -40,7 +43,7 @@ module AlcesJob
             unless data.nil?
               spinner.error('(config exists)')
               puts pastel.green("\nA config already exists\n")
-              return
+              exit(1)
             end
 
             spinner.success('(empty config)')
@@ -72,6 +75,7 @@ module AlcesJob
           spinner.success('(successful)')
 
           puts pastel.green("\nThe config file has been written to #{@config_path}\n")
+          exit(0)
         end
       end
     end

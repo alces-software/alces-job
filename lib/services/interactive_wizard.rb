@@ -445,19 +445,23 @@ module AlcesJob
           result.merge(template: job_type)
         )
 
-        return unless prompt.yes?('Write script to file?')
+        exit(0) unless prompt.yes?('Write script to file?')
 
         file_path = generator.save
 
         puts "Script has been saved to #{file_path}"
 
-        return unless prompt.yes?('Would you like to submit the job to SBATCH?', default: false)
+        exit(0) unless prompt.yes?('Would you like to submit the job to SBATCH?', default: false)
 
         stdout, status = generator.submit(file_path)
 
-        return puts 'An error occurred' unless status.success?
+        unless status.success?
+          puts 'An error occurred'
+          exit(1)
+        end
 
         puts stdout
+        exit(0)
       end
     end
   end
