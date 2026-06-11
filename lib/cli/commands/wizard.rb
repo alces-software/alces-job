@@ -10,7 +10,7 @@ module AlcesJob
   module CLI
     module Commands
       class Wizard < Dry::CLI::Command
-        AlcesJob::CLI.register 'wizard', self
+        AlcesJob::CLI.register 'interactive', self, aliases: ['-i', '--interactive']
         desc 'This runs the interactive wizard'
 
         def call(*)

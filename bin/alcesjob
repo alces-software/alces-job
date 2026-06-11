@@ -2,14 +2,8 @@
 # frozen_string_literal: true
 
 root = File.expand_path('..', __dir__)
-
 require "#{root}/lib/cli/cli"
-require "#{root}/lib/services/interactive_wizard"
 
-if ARGV.delete('--interactive') || ARGV.delete('-i')
-  AlcesJob::Services::InteractiveWizard.new.call
-else
-  ARGV.unshift('serial') if ARGV.empty? || ARGV.first.start_with?('-')
+ARGV.unshift('serial') if ARGV.empty? || ARGV.first.start_with?('-')
 
-  Dry::CLI.new(AlcesJob::CLI).call
-end
+Dry::CLI.new(AlcesJob::CLI).call
