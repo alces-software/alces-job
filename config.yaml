@@ -1,1 +1,3 @@
 admin_config_file: /etc/alces-job/config.yaml
+# user_profile_dir: ~/.config/alces-job/profiles/
+user_profile_dir: .
