@@ -1,26 +1,24 @@
+# frozen_string_literal: true
+
 module SbatchDirectiveValidator
+  VALID_DIRECTIVES = [ # capitalised so it is a constant
+    '--ntasks',
+    '--cpus-per-task',
+    '--nodes',
+    '--mem',
+    '--time',
+    '--partition',
+    '--job-name',
+    '--output',
+    '--error'
+  ].freeze # immutable array of valid directives for now
 
-    VALID_DIRECTIVES = [    #capitalised so it is a constant
-        "--ntasks",
-        "--cpus-per-task",
-        "--nodes",
-        "--mem",
-        "--time",
-        "--partition",
-        "--job-name",
-        "--output",
-        "--error"
-].freeze #immutable array of valid directives for now
-
-def self.validate_directives(sbatch_lines, errors)
+  def self.validate_directives(sbatch_lines, errors)
     sbatch_lines.each do |line|
-        directive = line.split[1]&.split("=")&.first
-        next if directive.nil?
+      directive = line.split[1]&.split('=')&.first
+      next if directive.nil?
 
-        unless VALID_DIRECTIVES.include?(directive)
-            errors << "Invalid directive found: #{directive}."
-        end
+      errors << "Invalid directive found: #{directive}." unless VALID_DIRECTIVES.include?(directive)
     end
- end 
-
+  end
 end

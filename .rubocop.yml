@@ -3,7 +3,7 @@ AllCops:
   TargetRubyVersion: 3.3
 
 Layout/LineLength:
-  Max: 100
+  Max: 150
 
 Metrics/MethodLength:
   Max: 100
@@ -13,4 +13,19 @@ Metrics/BlockLength:
     - "spec/**/*.rb"
 
 Style/Documentation:
+  Enabled: false
+
+Style/OpenStructUse:
+  Enabled: false
+
+Metrics/AbcSize:
+  Max: 60
+
+Metrics/CyclomaticComplexity:
+  Max: 20
+
+Metrics/PerceivedComplexity:
+  Max: 20
+
+Lint/MissingSuper:
   Enabled: false

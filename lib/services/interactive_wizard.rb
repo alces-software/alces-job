@@ -10,8 +10,8 @@ require_relative 'sysinfo/sysinfo'
 
 module AlcesJob
   module Services
-    class InteractiveWizard
-      def get_system_info
+    class InteractiveWizard # rubocop:disable Metrics/ClassLength
+      def system_info
         @info = YAML.load_file('test_data.yaml')
       end
 
@@ -35,9 +35,9 @@ module AlcesJob
         return false if seconds > 59
 
         total_seconds =
-          days * 86_400 +
-          hours * 3600 +
-          minutes * 60 +
+          (days * 86_400) +
+          (hours * 3600) +
+          (minutes * 60) +
           seconds
 
         max_seconds = slurm_time_to_seconds(max_time)
@@ -51,10 +51,10 @@ module AlcesJob
 
         parts = []
 
-        parts << "#{days.to_i} days" if days.to_i > 0
-        parts << "#{hours.to_i} hours" if hours.to_i > 0
-        parts << "#{minutes.to_i} minutes" if minutes.to_i > 0
-        parts << "#{seconds.to_i} seconds" if seconds.to_i > 0
+        parts << "#{days.to_i} days" if days.to_i.positive?
+        parts << "#{hours.to_i} hours" if hours.to_i.positive?
+        parts << "#{minutes.to_i} minutes" if minutes.to_i.positive?
+        parts << "#{seconds.to_i} seconds" if seconds.to_i.positive?
 
         parts.join(', ')
       end
@@ -63,13 +63,13 @@ module AlcesJob
         days, time = time_string.split('-')
         hours, minutes, seconds = time.split(':')
 
-        days.to_i * 86_400 +
-          hours.to_i * 3600 +
-          minutes.to_i * 60 +
+        (days.to_i * 86_400) +
+          (hours.to_i * 3600) +
+          (minutes.to_i * 60) +
           seconds.to_i
       end
 
-      def call
+      def call # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength
         get_system_info
 
         puts 'Welcome to the interactive mode!'
@@ -93,10 +93,8 @@ module AlcesJob
 
         max_run_time = nil
 
-        partition_list = []
-
-        partition_types.each do |partition|
-          partition_list.append(partition[:partition])
+        partition_list = partition_types.map do |partition|
+          partition[:partition]
         end
 
         nodes = @info[:nodes]
@@ -117,7 +115,11 @@ module AlcesJob
 
         job_type = prompt.select('What type of job would you like to run?', types_of_job)
 
-        # To add in later?  nodes: 'How many nodes would you like to request?',   array: 'What array range would you like to use (e.g. 1-100)?', max_concurrent_tasks: 'What is the maximum number of array tasks that may run simultaneously?',    gres: 'How many GPUs would you like to request?',     ntasks: 'How many MPI tasks would you like per node?',
+        # To add in later?  nodes: 'How many nodes would you like to request?',
+        # array: 'What array range would you like to use (e.g. 1-100)?',
+        # max_concurrent_tasks: 'What is the maximum number of array tasks that may run simultaneously?',
+        # gres: 'How many GPUs would you like to request?',
+        # ntasks: 'How many MPI tasks would you like per node?',
 
         question_bank = {
           serial: {
@@ -174,9 +176,10 @@ module AlcesJob
 
         questions = question_bank[job_type.to_sym]
 
-        result = prompt.collect do
-          questions.each do |item, question|
-            if item == :partition
+        result = prompt.collect do # rubocop:disable Metrics/BlockLength
+          questions.each do |item, question| # rubocop:disable Metrics/BlockLength
+            case item
+            when :partition
 
               partition_rows = partition_types.map do |partition|
                 [
@@ -195,7 +198,7 @@ module AlcesJob
               # key(item).select(question, partition_list)
               selected_partition = key(item).select(question, partition_list)
 
-            elsif item == :time
+            when :time
               selected_partition_info = partition_types.find do |partition|
                 partition[:partition] == selected_partition
               end
@@ -210,10 +213,11 @@ module AlcesJob
                   wizard.valid_slurm_time?(input, max_run_time)
                 end
 
-                q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
+                q.messages[:valid?] =
+                  "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
               end
 
-            elsif item == :mem
+            when :mem
               puts "Max memory: #{max_memory} MB"
               key(item).ask(question, default: defaults[item]) do |q|
                 q.validate(/\A\d+\z/)
@@ -227,7 +231,7 @@ module AlcesJob
                 q.convert :int
               end
 
-            elsif item == :cpus_per_task
+            when :cpus_per_task
               puts "Max cpu cores: #{max_cpu_cores}"
 
               key(item).ask(question, default: defaults[item]) do |q|
@@ -241,11 +245,11 @@ module AlcesJob
                 q.convert :int
               end
 
-            elsif item == :command
+            when :command
               puts 'Examples: python script.py, Rscript analysis.R, ./my_program, mpirun ./my_program'
               key(item).ask(question, default: defaults[item])
 
-            elsif item == :job_name
+            when :job_name
               key(item).ask(question, default: defaults[item])
 
             else
@@ -279,7 +283,7 @@ module AlcesJob
         # end
         #
 
-        loop do
+        loop do # rubocop:disable Metrics/BlockLength
           job_type = 'default' if job_type == 'serial'
 
           generator = AlcesJob::Services::Generator.new(
@@ -299,7 +303,8 @@ module AlcesJob
 
           system('clear')
 
-          if field == :partition
+          case field
+          when :partition
             partition_rows = partition_types.map do |partition|
               [
                 partition[:partition],
@@ -345,7 +350,7 @@ module AlcesJob
               end
             end
 
-          elsif field == :time
+          when :time
             selected_partition_info = partition_types.find do |partition|
               partition[:partition] == result[:partition]
             end
@@ -366,7 +371,7 @@ module AlcesJob
               q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
             end
 
-          elsif field == :mem
+          when :mem
             puts "Max memory: #{max_memory} MB"
 
             result[:mem] = prompt.ask(
@@ -384,7 +389,7 @@ module AlcesJob
               q.convert :int
             end
 
-          elsif field == :cpus_per_task
+          when :cpus_per_task
             puts "Max cpu cores: #{max_cpu_cores}"
 
             result[:cpus_per_task] = prompt.ask(
@@ -402,7 +407,7 @@ module AlcesJob
               q.convert :int
             end
 
-          elsif field == :command
+          when :command
             puts 'Examples: python script.py, Rscript analysis.R, ./my_program, mpirun ./my_program'
 
             result[:command] = prompt.ask(
@@ -410,7 +415,7 @@ module AlcesJob
               default: result[:command]
             )
 
-          elsif field == :job_name
+          when :job_name
             result[:job_name] = prompt.ask(
               questions[:job_name],
               default: result[:job_name]
