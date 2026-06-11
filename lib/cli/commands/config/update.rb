@@ -5,7 +5,7 @@ require 'pastel'
 require 'tty-spinner'
 require 'yaml'
 
-require_relative '../../../services/sysinfo/sysinfo'
+require_relative '../../../services/sysinfo'
 
 module AlcesJob
   module CLI
@@ -15,10 +15,13 @@ module AlcesJob
         desc 'This command is used to update the system config.yaml'
 
         option :node, type: :boolean, default: false, desc: 'Update nodes info', aliases: ['-n']
-        option :partition, type: :boolean, default: false, desc: 'Update partitions info', aliases: ['-p']
-        option :package, type: :boolean, default: false, desc: 'Update packages info', aliases: ['-k']
+        option :partition, type: :boolean, default: false, desc: 'Update partitions info',
+                           aliases: ['-p']
+        option :package, type: :boolean, default: false, desc: 'Update packages info',
+                         aliases: ['-k']
         option :gpu, type: :boolean, default: false, desc: 'Update GPU count', aliases: ['-g']
-        option :all, type: :boolean, default: false, desc: 'Update all the system information', aliases: ['-a']
+        option :all, type: :boolean, default: false, desc: 'Update all the system information',
+                     aliases: ['-a']
 
         def initialize
           config = YAML.load_file('./config.yaml')
@@ -75,17 +78,17 @@ module AlcesJob
             filtered_options.each_pair do |key, _value|
               case key
               when :node
-                @system_data[:nodes] = SysInfo.getNodeInfo
+                @system_data[:nodes] = Services::SysInfo.node_info
               when :partition
-                @system_data[:partitions] = SysInfo.getPartitionInfo
+                @system_data[:partitions] = Services::SysInfo.partition_info
               when :package
-                @system_data[:packages] = SysInfo.getPackageInfo
+                @system_data[:packages] = Services::SysInfo.package_info
               when :gpu
-                @system_data[:gpu_total] = SysInfo.getGpuInfo
+                @system_data[:gpu_total] = Services::SysInfo.gpu_info
               end
             end
           else
-            @system_data = SysInfo.getAllInfo
+            @system_data = Services::SysInfo.all_info
           end
 
           spinner.success('(successful)')

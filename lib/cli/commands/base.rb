@@ -9,44 +9,62 @@ require_relative '../../services/generator'
 module AlcesJob
   module CLI
     module Commands
-      class MPI < Dry::CLI::Command
+      class Base < Dry::CLI::Command
         option :job_name, type: :string,
-                          desc: 'Sets the Slurm job name for the generated MPI script'
+                          desc: 'Sets the Slurm job name for the generated script'
         option :nodes, type: :integer,
-                       desc: 'Requests the number of compute nodes for the MPI job'
+                       desc: 'Requests the number of compute nodes for the job'
         option :ntasks, type: :integer,
-                        desc: 'Specifies the total number of MPI tasks'
+                        desc: 'Specifies the total number of tasks for the job'
         option :cpus_per_task, type: :integer,
                                desc: 'Specifies CPU cores per task'
         option :mem, type: :string,
                      desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
 
         option :time, type: :string,
-                      desc: 'Sets the walltime limit for the MPI job'
+                      desc: 'Sets the job time limit (e.g. 02:00:00)'
         option :partition, type: :string,
                            desc: 'Specifies the Slurm partition or queue to use'
+        option :account, type: :string,
+                         desc: 'Specifies the Slurm account to charge'
+        option :gres, type: :string,
+                      desc: 'Specifies generic resources such as GPUs or MICs'
+
+        option :output, type: :string,
+                        desc: 'Sets the Slurm stdout file path in the generated script'
+        option :error, type: :string,
+                       desc: 'Sets the Slurm stderr file path in the generated script'
+
+        option :mail_user, type: :string,
+                           desc: 'Sets the email address for Slurm notifications'
+        option :mail_type, type: :string,
+                           desc: 'Sets the Slurm mail notification type (BEGIN, END, FAIL, etc.)'
 
         option :module, type: :array, default: [],
-                        desc: 'Loads environment modules before running the job'
+                        desc: 'Loads one or more environment modules before running the job'
 
         option :workdir, type: :string,
                          desc: 'Changes to the specified working directory in the job script'
         option :command, type: :string,
                          desc: 'Specifies the shell command to execute in the script'
+        option :array, type: :string,
+                       desc: 'Sets a Slurm array specification for multiple jobs'
+        option :dependency, type: :string,
+                            desc: 'Sets a Slurm dependency string for the job'
 
         option :output_file, type: :string,
-                             desc: 'Writes the generated script to this filename instead of job.sbatch'
+                             desc: 'Writes the generated script to this output filename'
 
         option :submit, type: :boolean, default: false,
-                        desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
+                        desc: 'Submits the generated script to Slurm automatically'
 
-        AlcesJob::CLI.register 'mpi', self
-        desc 'Creates a MPI sbatch script'
+        AlcesJob::CLI.register 'base', self
+        desc 'Creates a serial sbatch script'
 
-        def call(**options)
+        def call(*_args, **options)
           pastel = Pastel.new
 
-          # Generate sbatch file bases on user flags
+          # Generate sbatch file bases on user inputs
           spinner = TTY::Spinner.new(
             "\n[:spinner] generating SBATCH script ...",
             success_mark: pastel.green('✔'),
@@ -54,8 +72,6 @@ module AlcesJob
           )
 
           spinner.auto_spin
-
-          options[:template] = 'mpi'
 
           generator = AlcesJob::Services::Generator.new(options)
           file_path = generator.save
@@ -85,7 +101,7 @@ module AlcesJob
 
           spinner.success('(submitted)')
 
-          puts "#{stdout}\n"
+          puts "\n#{stdout}\n"
         rescue Errno::ENOENT
           spinner.error('(error)')
           puts pastel.red("An error occurred\n")

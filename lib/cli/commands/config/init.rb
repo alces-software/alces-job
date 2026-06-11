@@ -4,8 +4,9 @@ require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
 require 'yaml'
+require 'fileutils'
 
-require_relative '../../../services/sysinfo/sysinfo'
+require_relative '../../../services/sysinfo'
 
 module AlcesJob
   module CLI
@@ -32,6 +33,7 @@ module AlcesJob
             error_mark: pastel.red('✖')
           )
 
+          spinner.auto_spin
           if File.exist?(@config_path)
             data = YAML.load_file(@config_path)
 
@@ -54,7 +56,7 @@ module AlcesJob
           )
 
           spinner.auto_spin
-          @system_data = SysInfo.getAllInfo
+          @system_data = Services::SysInfo.all_info
           spinner.success('(successful)')
 
           # Writing to config file
@@ -65,6 +67,7 @@ module AlcesJob
           )
 
           spinner.auto_spin
+          FileUtils.mkdir_p(File.dirname(@config_path))
           File.write(@config_path, @system_data.to_yaml)
           spinner.success('(successful)')
 

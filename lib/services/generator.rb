@@ -2,6 +2,7 @@
 
 require 'erb'
 require 'ostruct'
+require 'open3'
 
 module AlcesJob
   module Services
@@ -22,6 +23,14 @@ module AlcesJob
         path = File.join(Dir.pwd, file_name)
 
         File.write(path, script)
+
+        path
+      end
+
+      def submit(file_path)
+        stdout, _, status = Open3.capture3("sbatch #{file_path}")
+
+        [stdout, status]
       end
 
       private
