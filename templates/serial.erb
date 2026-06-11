@@ -1,0 +1,28 @@
+#!/bin/bash
+#SBATCH --job-name=<%= @context.job_name %>
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+<% if @context.partition -%>
+#SBATCH --partition=<%= @context.partition %>
+<% end -%>
+<% if @context.time -%>
+#SBATCH --time=<%= @context.time %>
+<% else -%>
+#SBATCH --time=02:00:00
+<% end -%>
+<% if @context.mem -%>
+#SBATCH --mem=<%= @context.mem %>
+<% end -%>
+
+<% Array(@context.modules).each do |mod| -%>
+module load <%= mod %>
+<% end -%>
+<% if @context.workdir -%>
+
+cd <%= @context.workdir %>
+
+<% end -%>
+echo "Running serial job: <%= @context.job_name %>"
+
+srun <%= @context.command %>
