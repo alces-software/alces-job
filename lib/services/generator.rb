@@ -37,7 +37,7 @@ module AlcesJob
       private
 
       def admin_path
-        YAML.load_file(File.expand_path('../../../config.yaml', __dir__))['admin_templates_folder']
+        YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))['admin_templates_folder']
       end
 
       def template

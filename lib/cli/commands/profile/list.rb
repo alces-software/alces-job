@@ -11,7 +11,7 @@ module AlcesJob
         desc 'Lists saved user profiles'
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
+          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
           @profile_dir = File.expand_path(config['user_profile_dir'])
         end
 

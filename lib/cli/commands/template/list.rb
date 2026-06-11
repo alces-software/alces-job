@@ -11,7 +11,7 @@ module AlcesJob
         desc 'Lists available templates from built-in, admin, and user locations'
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
+          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
           @admin_templates_folder = File.expand_path(config['admin_templates_folder'])
           @user_templates_folder = File.expand_path('~/.alces-job/templates')
           @builtin_templates_folder = File.expand_path('../../../../templates', __dir__)
