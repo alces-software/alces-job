@@ -41,6 +41,8 @@ module AlcesJob
 
         max_seconds = slurm_time_to_seconds(max_time)
 
+        return true if max_seconds.zero?
+
         total_seconds <= max_seconds
       end
 
@@ -433,8 +435,17 @@ module AlcesJob
 
         return unless prompt.yes?('Write script to file?')
 
-        generator.save
-        puts 'Script written successfully.'
+        file_path = generator.save
+
+        puts "Script has been saved to #{file_path}"
+
+        return unless prompt.yes?('Would you like to submit the job to SBATCH?', default: false)
+
+        stdout, status = generator.submit(file_path)
+
+        return puts 'An error occurred' unless status.success?
+
+        puts stdout
       end
     end
   end
