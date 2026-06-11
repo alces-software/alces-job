@@ -12,8 +12,6 @@ gem 'tty-prompt', '~> 0.23.1'
 
 gem 'terminal-table', '~> 4.0'
 
-gem 'rspec', '~> 3.13'
-
 gem 'config', '~> 5.6'
 
 gem 'rake', '~> 13.4'
