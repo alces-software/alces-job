@@ -15,7 +15,7 @@ module AlcesJob
         end
 
         def call(*)
-          profile_files = Dir.glob(File.join(@profile_dir, '*.yaml'))
+          profile_files = Dir.glob(File.join(Dir.home, @profile_dir, '*.yaml'))
 
           if profile_files.empty?
             puts 'No profiles found.'

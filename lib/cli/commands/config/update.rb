@@ -105,7 +105,7 @@ module AlcesJob
             exit(0)
           rescue StandardError => e
             spinner.error('(writing error)')
-            puts pastel.green("\nFailed to update config file: #{e.message}\n")
+            puts pastel.red("\nFailed to update config file: #{e.message}\n")
             exit(1)
           end
         end
