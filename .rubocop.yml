@@ -9,11 +9,10 @@ Metrics/ClassLength:
   Max: 500
 
 Metrics/MethodLength:
-  Max: 100
+  Max: 300
 
-Metrics/BlockLength:
-  Exclude:
-    - "spec/**/*.rb"
+Metrics/CyclomaticComplexity:
+  Max: 50
 
 Style/Documentation:
   Enabled: false
@@ -32,3 +31,8 @@ Metrics/PerceivedComplexity:
 
 Lint/MissingSuper:
   Enabled: false
+
+Metrics/BlockLength:
+  Exclude:
+    - "alces-job.gemspec"
+    - "spec/**/*"

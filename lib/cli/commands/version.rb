@@ -26,6 +26,7 @@ module AlcesJob
           ART
 
           puts pastel.decorate(art, :bright_blue, :bold)
+          exit(0)
         end
       end
     end

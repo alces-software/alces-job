@@ -13,6 +13,6 @@ module TimeConverter
 
     return nil if hours > 23
 
-    total_seconds = seconds + (minutes * 60) + (hours * 3600) + (days * 86_400)
+    seconds + (minutes * 60) + (hours * 3600) + (days * 86_400)
   end
 end

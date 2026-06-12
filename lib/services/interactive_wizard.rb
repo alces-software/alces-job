@@ -10,8 +10,7 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        config = YAML.load_file('./config.yaml')
-        @info = YAML.load_file(config['admin_config_file'])
+        @info = YAML.load_file(File.expand_path('../../../config.yaml', __dir__))['admin_config_file']
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')
@@ -81,7 +80,9 @@ module AlcesJob
           minutes = remainder / 60
           seconds = remainder % 60
 
-          return format('%d-%02d:%02d:%02d', days, hours, minutes, seconds)
+          return format(
+            '%<days>d-%<hours>02d:%<minutes>02d:%<seconds>02d', days: days, hours: hours, minutes: minutes, seconds: seconds
+          )
         end
 
         time_string = time_value.to_s
@@ -93,8 +94,10 @@ module AlcesJob
         time_string
       end
 
+      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+
       def call
-        get_system_info
+        system_info
 
         puts 'Welcome to the interactive mode!'
 
@@ -217,17 +220,17 @@ module AlcesJob
                 [
                   partition[:partition],
                   partition[:time_limit],
-                  wizard.human_readable_time(partition[:time_limit])
+                  wizard.human_readable_time(partition[:time_limit]),
+                  partition[:default] ? 'True' : 'False'
                 ]
               end
 
               puts Terminal::Table.new(
                 title: 'Available Partitions',
-                headings: ['Partition', 'Time Limit', 'Readable'],
+                headings: ['Partition', 'Time Limit', 'Readable', 'Default'],
                 rows: partition_rows
               )
 
-              # key(item).select(question, partition_list)
               selected_partition = key(item).select(question, partition_list)
 
             when :time
@@ -290,30 +293,6 @@ module AlcesJob
             system('clear')
           end
         end
-
-        # loop do
-        #   generator = AlcesJob::Services::Generator.new(
-        #     result.merge(template: job_type)
-        #   )
-
-        #   script = generator.generate
-
-        #   puts script
-
-        #   break unless prompt.yes?('Would you like to edit any of your inputs?')
-
-        #   field = prompt.select(
-        #     'Which input would you like to edit?',
-        #     result.keys
-        #   )
-
-        #   # Add logic that was in prompt.collect for better UX
-
-        #   result[field] = prompt.ask(
-        #     "Enter new value for #{field}:"
-        #   )
-        # end
-        #
 
         loop do # rubocop:disable Metrics/BlockLength
           job_type = 'default' if job_type == 'serial'
@@ -469,20 +448,25 @@ module AlcesJob
           result.merge(template: job_type)
         )
 
-        return unless prompt.yes?('Write script to file?')
+        exit(0) unless prompt.yes?('Write script to file?')
 
         file_path = generator.save
 
         puts "Script has been saved to #{file_path}"
 
-        return unless prompt.yes?('Would you like to submit the job to SBATCH?', default: false)
+        exit(0) unless prompt.yes?('Would you like to submit the job to SBATCH?', default: false)
 
         stdout, status = generator.submit(file_path)
 
-        return puts 'An error occurred' unless status.success?
+        unless status.success?
+          puts 'An error occurred'
+          exit(1)
+        end
 
         puts stdout
+        exit(0)
       end
     end
+    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   end
 end

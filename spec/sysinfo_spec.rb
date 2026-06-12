@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require_relative '../lib/services/sysinfo/sysinfo'
+require_relative '../lib/services/sysinfo'
 
 RSpec.describe AlcesJob::Services::SysInfo do
   let(:success_status) { instance_double(Process::Status, success?: true) }
@@ -57,7 +57,7 @@ RSpec.describe AlcesJob::Services::SysInfo do
       expect(described_class.partition_info).to eq(
         [
           { partition: 'serial', time_limit: '7-00:00:00', default: true },
-          { partition: 'gpu-h100', time_limit: '03:00:00', default: false }
+          { partition: 'gpu-h100', time_limit: '0-03:00:00', default: false }
         ]
       )
     end
@@ -73,7 +73,7 @@ RSpec.describe AlcesJob::Services::SysInfo do
 
       expect(described_class.partition_info).to eq(
         [
-          { partition: 'long', time_limit: '00:00:00', default: false }
+          { partition: 'long', time_limit: '0-00:00:00', default: false }
         ]
       )
     end

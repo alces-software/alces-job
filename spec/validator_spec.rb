@@ -16,7 +16,7 @@ RSpec.describe SlurmScriptValidator do
     file = create_script(content)
 
     validator = described_class.new(file.path, system_info: system_info)
-    result = validator.validate
+    result = validator.validate?
 
     [result, validator.errors, validator.warnings]
   ensure
@@ -34,7 +34,7 @@ RSpec.describe SlurmScriptValidator do
     }
   end
 
-  describe '#validate' do
+  describe '#validate?' do
     it 'returns true for a valid sbatch script' do
       result, errors, warnings = validate_script(
         <<~SBATCH,

@@ -1,16 +1,18 @@
+# frozen_string_literal: true
+
 require_relative '../converters/time_converter'
 require_relative '../converters/memory_converter'
 
-require_relative '../sysinfo'
+require_relative '../sys_limits/system_limits'
 
 module AlcesJob
   module Services
     module SystemLimits
       DEFAULT_NODE_COUNT = 1
       DEFAULT_MEMORY_MB = 5000
-      DEFAULT_TIME_SECONDS = 86_400
+      DEFAULT_TIME_SECONDS = 604800 # 7 days in seconds
       DEFAULT_CPUS_PER_NODE = 4
-      DEFAULT_GPUS_PER_NODE = 1
+      DEFAULT_GPUS_PER_NODE = 1   #Hardcoded limits for now
 
       def self.node_count(system_info)
         nodes = nodes_from(system_info)

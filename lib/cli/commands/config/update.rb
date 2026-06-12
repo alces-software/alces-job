@@ -24,36 +24,40 @@ module AlcesJob
                      aliases: ['-a']
 
         def initialize
-          config = YAML.load_file('./config.yaml')
-          @config_path = config['admin_config_file']
+          @config_path = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))['admin_config_file']
           @system_data = nil
         end
 
         def call(**options)
           pastel = Pastel.new
 
-          return puts pastel.red("\nThis command must be ran with elevated privileges\n") if Process.uid != 0
+          if Process.uid != 0
+            puts pastel.red("\nThis command must be ran with elevated privileges\n")
+            exit(1)
+          end
 
           filtered_options = options.select { |_key, value| value }
 
           if filtered_options.empty?
             puts pastel.red("\nYou didn't specify any systeminformation to update\n")
-            return
+            exit(1)
           end
 
           # Load and parse config.yaml
+          puts
           spinner = TTY::Spinner.new(
-            "\n[:spinner] loading config ...",
+            '[:spinner] :title ...',
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )
 
+          spinner.update(title: 'loading config')
           spinner.auto_spin
 
           unless File.exist?(@config_path)
             spinner.error('(no config)')
             puts pastel.red("\nThere is no config file currently present use config init to create one\n")
-            return
+            exit(1)
           end
 
           @system_data = YAML.load_file(@config_path)
@@ -61,19 +65,15 @@ module AlcesJob
           if @system_data.nil?
             spinner.error('(blank config)')
             puts pastel.red("\nThe config you have contains no data generate a new one using config init\n")
-            return
+            exit(1)
           end
 
           spinner.success('(successful)')
 
           # Get system information
-          spinner = TTY::Spinner.new(
-            '[:spinner] collecting system info ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
-          )
-
+          spinner.update(title: 'collecting system info')
           spinner.auto_spin
+
           if filtered_options[:all].nil?
             filtered_options.each_pair do |key, _value|
               case key
@@ -94,17 +94,20 @@ module AlcesJob
           spinner.success('(successful)')
 
           # New data to file
-          spinner = TTY::Spinner.new(
-            '[:spinner] writing config file ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
-          )
-
+          spinner.update(title: 'writing config file')
           spinner.auto_spin
-          File.write(@config_path, @system_data.to_yaml)
-          spinner.success('(successful)')
 
-          puts pastel.green("\nThe config file at #{@config_path} has been updated\n")
+          begin
+            File.write(@config_path, @system_data.to_yaml)
+            spinner.success('(successful)')
+
+            puts pastel.green("\nThe config file at #{@config_path} has been updated\n")
+            exit(0)
+          rescue StandardError => e
+            spinner.error('(writing error)')
+            puts pastel.green("\nFailed to update config file: #{e.message}\n")
+            exit(1)
+          end
         end
       end
     end
