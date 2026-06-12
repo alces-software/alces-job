@@ -64,6 +64,8 @@ module AlcesJob
 
         option :submit, type: :boolean, default: false,
                         desc: 'Submits the generated script to Slurm automatically'
+        option :yes, type: :boolean, default: false,
+                     desc: 'Submits the generated script without prompting'
 
         option :template, type: :string,
                           desc: 'Specifies a custom template to use for script generation (must be in built-in or user template)'
@@ -118,20 +120,30 @@ module AlcesJob
             # Submit the sbatch file to sbatch if user adds submit flag
             exit(0) unless options[:submit]
 
-            spinner.update(title: 'submitting script')
-            spinner.auto_spin
-
-            stdout, status = generator.submit(file_path)
-
-            unless status.success?
-              spinner.error('(error)')
-              puts pastel.red("\nAn error occurred\n")
-              exit(1)
+            puts generator.generate
+            unless options[:yes] || TTY::Prompt.new.yes?("\nWould you like to submit this script?", default: false)
+              puts pastel.yellow("\nSkipping submission\n")
+              exit(0)
             end
 
-            spinner.success('(submitted)')
+            spinner.update(title: 'submitting script')
+            spinner.auto_spin
+            begin
+              stdout, status = generator.submit(file_path)
 
-            puts "\n#{stdout}\n"
+              unless status.success?
+                spinner.error('(error)')
+                puts pastel.red("\nAn error occurred\n")
+                exit(1)
+              end
+
+              spinner.success('(submitted)')
+
+              puts "\n#{stdout}\n"
+            rescue Errno::ENOENT
+              spinner.error('(error)')
+              puts pastel.red("\nThis is not a SLURM environment.\n")
+            end
           else
             output = generator.generate
 
