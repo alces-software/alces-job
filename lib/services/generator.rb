@@ -13,7 +13,8 @@ module AlcesJob
       def initialize(options)
         @context = OpenStruct.new(options)
         @template = @context.template || 'default'
-        @file_path = File.join(Dir.pwd, @context.output_file.nil? ? 'job.sbatch' : @context.output_file)
+        job_name = @context.job_name || 'default'
+        @file_path = File.join(Dir.pwd, @context.output_file.nil? ? "job-#{job_name}.slurm" : @context.output_file)
       end
 
       def generate
