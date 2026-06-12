@@ -1,5 +1,5 @@
 # alces-job
-alces-job is a command-line tool that helps users quickly generate high-quality, ready-to-submit Slurm job scripts using templates, parameters, profiles, and site-specific defaults.
+`alces-job` is a command-line tool that helps users quickly generate high-quality, ready-to-submit Slurm job scripts using templates, parameters, profiles, and site-specific defaults.
 
 ## Installation
 
@@ -150,6 +150,22 @@ Output the contents of the template to the console
 $ alces-job template show TEMPLATE
 ```
 
+### Modify
+
+The `modify` subcommand will modify an existing sbatch script with additional flags. It takes in all the options that the `base` command does with the exception of `--dry-run` and `--output-file`.
+
+```sh
+$ alces-job modify SBATCH_SCRIPT [OPTIONS]
+```
+
+### Validate
+
+The `validate` subcommand will take an existing sbatch script as an input and tell you if the script is valid or not.
+
+```sh
+$ alces-job validate SBATCH_SCRIPT
+```
+
 ## Command examples
 
 Generate a basic job script:
@@ -242,7 +258,7 @@ The project is structured around a simple CLI registry and a generator service:
 - `bin/alces-job` is the executable entrypoint.
 - `lib/cli/cli.rb` defines the `AlcesJob::CLI` registry and loads all commands.
 - Command classes live in `lib/cli/commands/` and register themselves with Dry::CLI.
-  - `base`, `gpu`, `mpi`, `array`, `config init`, `config update`, `interactive`, and `version`
+  - `base`, `gpu`, `mpi`, `array`, `serial` `config init`, `config update`, `interactive`, `validate`, `template-validate`, `modify`, `template list`, `template show`, `profile create`, `profile list`, `profile show`, and `version`
 - `lib/services/generator.rb` is responsible for rendering templates, saving the generated script, and submitting it to Slurm.
 - Templates live in `templates/` and are selected by command-specific logic.
   - `default.erb` is used for the base command.
