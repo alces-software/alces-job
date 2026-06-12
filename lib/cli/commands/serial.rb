@@ -14,18 +14,18 @@ module AlcesJob
         AlcesJob::CLI.register 'serial', self
         desc 'Creates a serial sbatch script'
 
-        option :job_name, type: :string
+        option :job_name, type: :string, aliases: ['-J']
         option :mem, type: :string
 
-        option :time, type: :string
-        option :partition, type: :string
+        option :time, type: :string, aliases: ['-t']
+        option :partition, type: :string, aliases: ['-p']
 
         option :module, type: :array, default: []
 
         option :workdir, type: :string
         option :command, type: :string
 
-        option :output_file, type: :string
+        option :output_file, type: :string, aliases: ['-o']
 
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
