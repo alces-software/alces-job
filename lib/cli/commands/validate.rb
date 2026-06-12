@@ -28,7 +28,7 @@ module AlcesJob
 
           exit(0) if validator.warnings.empty?
 
-          puts 'Warnings:'
+          puts pastel.yellow("\nWarnings:")
           validator.warnings.each { |warning| puts "- #{warning}" }
 
           exit(0)
