@@ -40,8 +40,8 @@ module AlcesJob
 
           spinner = TTY::Spinner.new(
             "\n[:spinner] deleting profile ...",
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
           )
 
           spinner.auto_spin

@@ -36,8 +36,8 @@ module AlcesJob
           puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
           )
 
           spinner.update(title: 'removing from config')
