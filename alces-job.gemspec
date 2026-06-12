@@ -23,7 +23,8 @@ Gem::Specification.new do |spec|
     Dir[
       'lib/**/*',
       'bin/*',
-      'templates/*'
+      'templates/*',
+      'config/*'
     ]
   end
 

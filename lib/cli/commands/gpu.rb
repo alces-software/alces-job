@@ -42,19 +42,32 @@ module AlcesJob
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
+        option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
+
         AlcesJob::CLI.register 'gpu', self
         desc 'Creates a GPU sbatch script'
 
         def call(**options)
           pastel = Pastel.new
 
+          unless options[:profile].nil?
+            config = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))
+            profile = YAML.load_file("#{config['user_profile_dir']}/#{options[:profile]}.yaml")
+
+            options.delete(:profile)
+
+            options = profile.merge(options)
+          end
+
           # Generate sbatch file bases on user inputs
+          puts
           spinner = TTY::Spinner.new(
-            "\n[:spinner] generating SBATCH script ...",
+            '[:spinner] :title ...',
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )
 
+          spinner.updater(title: 'generating SBATCH script')
           spinner.auto_spin
 
           options[:template] = 'gpu'
@@ -64,33 +77,30 @@ module AlcesJob
 
           spinner.success('(successful)')
 
-          puts pastel.green("The SBTACH script has been generated and saved to #{file_path}\n")
+          puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
 
           # Submit the sbatch file to sbatch if user adds submit flag
-          return unless options[:submit]
+          exit(0) unless options[:submit]
 
-          spinner = TTY::Spinner.new(
-            '[:spinner] submitting script ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
-          )
-
+          spinner.update(title: 'submitting script')
           spinner.auto_spin
 
           stdout, status = generator.submit(file_path)
 
           unless status.success?
             spinner.error('(error)')
-            puts pastel.red("An error occurred\n")
-            return
+            puts pastel.red("\nAn error occurred\n")
+            exit(1)
           end
 
           spinner.success('(submitted)')
 
-          puts "#{stdout}\n"
+          puts "\n#{stdout}\n"
+          exit(0)
         rescue Errno::ENOENT
           spinner.error('(error)')
-          puts pastel.red("An error occurred\n")
+          puts pastel.red("\nAn error occurred\n")
+          exit(1)
         end
       end
     end

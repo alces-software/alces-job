@@ -137,7 +137,9 @@ By default the base command renders `templates/default.erb`, and the CLI passes 
 
 Specialized commands such as `mpi`, `gpu`, and `array` select a different template by name before rendering so they can generate job scripts with the correct SBATCH boilerplate for that workload.
 
-Custom templates can be added by creating a new ERB file in `.alces-job/templates` following the example of one given in `./templates`. You can then call these templates by using the `template` command and specifying the name
+Custom templates can be added by creating a new ERB file in `.alces-job/templates` following the example of one given in `./templates`. You can then call these templates by using the `--template` flag and specifying the name
+
+System-wide templated can be created in a simelar manner, by creating an ERB file in `/etc/alces-job/templates/`. These templates can be called by any user, but are overwritten by their own ones.
 
 ## Command examples
 
