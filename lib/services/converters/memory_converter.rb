@@ -16,7 +16,7 @@ module MemoryConverter
       amount.ceil * 1024
     when 'T', 'TB'
       amount.ceil * 1024 * 1024
-    
+
     end
   end
 end
