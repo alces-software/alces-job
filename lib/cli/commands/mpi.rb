@@ -11,6 +11,9 @@ module AlcesJob
   module CLI
     module Commands
       class MPI < Dry::CLI::Command
+        AlcesJob::CLI.register 'mpi', self
+        desc 'Creates a MPI sbatch script'
+
         option :job_name, type: :string,
                           desc: 'Sets the Slurm job name for the generated MPI script'
         option :nodes, type: :integer,
@@ -45,9 +48,6 @@ module AlcesJob
 
         option :dry_run, type: :boolean, default: false,
                          desc: 'Does not save the file if set to true'
-
-        AlcesJob::CLI.register 'mpi', self
-        desc 'Creates a MPI sbatch script'
 
         def call(**options)
           pastel = Pastel.new

@@ -10,7 +10,7 @@ module AlcesJob
     module Commands
       class ProfileEditChange < Dry::CLI::Command
         AlcesJob::CLI.register 'profile edit change', self
-        desc 'This is used to change flags that are stored in the profile'
+        desc 'This is used to change and add flags within the the specified profile'
 
         option :profile_name, type: :string, desc: 'The profile you want to update'
 

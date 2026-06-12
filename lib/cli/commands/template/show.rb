@@ -2,6 +2,7 @@
 
 require 'dry/cli'
 require 'yaml'
+require 'pastel'
 
 module AlcesJob
   module CLI
@@ -20,21 +21,26 @@ module AlcesJob
         end
 
         def call(**options)
-          return puts 'No template name supplied.' if options[:name].nil?
+          pastel = Pastel.new
+          if options[:name].nil?
+            puts pastel.red("\nNo template name supplied\n")
+            exit(1)
+          end
 
           path = template_path(options[:name])
 
           unless path
-            puts "Template #{options[:name]} not found."
-            return
+            puts pastel.red("\nTemplate #{options[:name]} not found\n")
+            exit(1)
           end
 
           puts "# Template: #{options[:name]}"
           puts "# Source: #{template_source(path)}"
           puts
           puts File.read(path)
+          exit(0)
         rescue Errno::ENOENT
-          puts 'No template directory exists.'
+          puts pastel.red("\nNo template directory exists\n")
         end
 
         private

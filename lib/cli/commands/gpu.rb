@@ -11,6 +11,9 @@ module AlcesJob
   module CLI
     module Commands
       class GPU < Dry::CLI::Command
+        AlcesJob::CLI.register 'gpu', self
+        desc 'Creates a GPU sbatch script'
+
         option :job_name, type: :string,
                           desc: 'Sets the Slurm job name for the generated GPU script'
         option :nodes, type: :integer,
@@ -47,9 +50,6 @@ module AlcesJob
 
         option :dry_run, type: :boolean, default: false,
                          desc: 'Does not save the file if set to true'
-
-        AlcesJob::CLI.register 'gpu', self
-        desc 'Creates a GPU sbatch script'
 
         def call(**options)
           pastel = Pastel.new
