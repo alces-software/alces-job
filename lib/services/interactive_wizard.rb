@@ -12,7 +12,7 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        config = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))
+        config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
         @info = AlcesJob::Services::SysInfo.load_info(config)
       end
 
