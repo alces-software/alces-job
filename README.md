@@ -14,7 +14,7 @@ $ gem --version
 Go to the [releases](https://github.com/alces-software/alces-job/releases) page and download the gem file, or download it directly with
 
 ```sh
-$ wget https://github.com/alces-software/alces-job/archive/refs/tags/v0.5.0.gem
+$ wget https://github.com/alces-software/alces-job/releases/download/v0.5.0/alces-job-0.5.0.gem
 ```
 
 Run:
