@@ -74,35 +74,31 @@ class SlurmScriptValidator
     end
   end
 
-  
-def validate_time(sbatch_lines)
-  time_value = directive_value(sbatch_lines, '--time')
-  partition_name = directive_value(sbatch_lines, '--partition')
+  def validate_time(sbatch_lines)
+    time_value = directive_value(sbatch_lines, '--time')
+    partition_name = directive_value(sbatch_lines, '--partition')
 
-  max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(
-    @system_info,
-    partition_name
-  )
-  puts "DEBUG time_value: #{time_value.inspect}"
-puts "DEBUG partition_name: #{partition_name.inspect}"
-puts "DEBUG max_time_seconds: #{max_time_seconds.inspect}"
-puts "DEBUG requested_time_seconds: #{TimeConverter.to_seconds(time_value).inspect}" if time_value
+    max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(
+      @system_info,
+      partition_name
+    )
+    puts "DEBUG time_value: #{time_value.inspect}"
+    puts "DEBUG partition_name: #{partition_name.inspect}"
+    puts "DEBUG max_time_seconds: #{max_time_seconds.inspect}"
+    puts "DEBUG requested_time_seconds: #{TimeConverter.to_seconds(time_value).inspect}" if time_value
 
-  if time_value
-    requested_time_seconds = TimeConverter.to_seconds(time_value)
+    if time_value
+      requested_time_seconds = TimeConverter.to_seconds(time_value)
 
-    if requested_time_seconds.nil?
-      errors << 'Invalid time format. Expected HH:MM:SS or D-HH:MM:SS.'
-    elsif requested_time_seconds > max_time_seconds
-      errors << "Requested time (#{requested_time_seconds} seconds) exceeds the maximum allowed (#{max_time_seconds} seconds) for partition #{partition_name || 'default'}."
+      if requested_time_seconds.nil?
+        errors << 'Invalid time format. Expected HH:MM:SS or D-HH:MM:SS.'
+      elsif requested_time_seconds > max_time_seconds
+        errors << "Requested time (#{requested_time_seconds} seconds) exceeds the maximum allowed (#{max_time_seconds} seconds) for partition #{partition_name || 'default'}."
+      end
+    else
+      warnings << 'No --time directive found.'
     end
-  else
-    warnings << 'No --time directive found.'
   end
-end
-
-
-    
 
   def directive_value(sbatch_lines, directive)
     sbatch_lines.each do |line|

@@ -6,7 +6,6 @@ require 'pastel'
 require_relative '../../services/slurm_script_validator'
 require_relative '../../services/sysinfo'
 
-
 module AlcesJob
   module CLI
     module Commands
@@ -39,4 +38,3 @@ module AlcesJob
     end
   end
 end
-
