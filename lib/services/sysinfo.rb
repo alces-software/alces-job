@@ -8,8 +8,8 @@ module AlcesJob
     module SysInfo
       # Load system information from file if available or grabs info
       # @return [Hash{nodes: Array<Hash>, partitions: Array<Hash>, packages: Array<String>, gpu_total: Integer}]
-      def self.load_info(config)
-        return complete_info(YAML.load_file(config['admin_config_file'])) if File.exist?(config['admin_config_file'])
+      def self.load_info(sysinfo_path)
+        return YAML.load_file(sysinfo_path) if File.exist?(sysinfo_path)
 
         all_info
       end
@@ -17,57 +17,12 @@ module AlcesJob
       # Gets all system information
       # @return [Hash{nodes: Array<Hash>, partitions: Array<Hash>, packages: Array<String>, gpu_total: Integer}]
       def self.all_info
-        complete_info(actual_info)
-      end
-
-      def self.actual_info
         {
           nodes: node_info,
           partitions: partition_info,
           packages: package_info,
           gpu_total: gpu_info
         }
-        return live_info if live_info[:nodes] && live_info[:partitions]
-
-        YAML.load_file('/Users/ab/Documents/alces-job/testData.yaml')
-      end
-
-      def self.slurm_available?(info = nil)
-        info ||= actual_info
-        info[:nodes].is_a?(Array) && !info[:nodes].empty? &&
-          info[:partitions].is_a?(Array) && !info[:partitions].empty?
-      end
-
-      def self.complete_info(info)
-        return default_info unless info.is_a?(Hash)
-
-        {
-          nodes: info[:nodes] || info['nodes'] || default_nodes,
-          partitions: info[:partitions] || info['partitions'] || default_partitions,
-          packages: info[:packages] || info['packages'] || default_packages,
-          gpu_total: info[:gpu_total] || info['gpu_total'] || 0
-        }
-      end
-
-      def self.default_info
-        {
-          nodes: default_nodes,
-          partitions: default_partitions,
-          packages: default_packages,
-          gpu_total: 0
-        }
-      end
-
-      def self.default_nodes
-        [{ node: 'local', cpus: 4, memory: 5_000 }]
-      end
-
-      def self.default_partitions
-        [{ partition: 'default', time_limit: '0-07:00:00', default: true }]
-      end
-
-      def self.default_packages
-        []
       end
 
       # Gets the node information
@@ -75,7 +30,7 @@ module AlcesJob
       def self.node_info
         stdout, _, status = Open3.capture3('sinfo -N -h -o "%N %c %m"')
 
-        return nil unless status.success?
+        return [] unless status.success?
 
         stdout
           .lines
@@ -84,7 +39,7 @@ module AlcesJob
             { node: node, cpus: cpus.to_i, memory: mem.to_i }
           end
       rescue Errno::ENOENT
-        nil
+        []
       end
 
       # Gets partition information
@@ -92,7 +47,7 @@ module AlcesJob
       def self.partition_info
         stdout, _, status = Open3.capture3('sinfo -o "%P %l" -h')
 
-        return nil unless status.success?
+        return [] unless status.success?
 
         stdout.lines.map do |line|
           partition, time_limit = line.strip.split(/\s+/, 2)
@@ -114,7 +69,7 @@ module AlcesJob
           }
         end
       rescue Errno::ENOENT
-        nil
+        []
       end
 
       # Gets a list of the names
@@ -122,13 +77,13 @@ module AlcesJob
       def self.package_info
         stdout, _, status = Open3.capture3('module avail')
 
-        return nil unless status.success?
+        return [] unless status.success?
 
         stdout.lines.map do |line|
           line.gsub(%r{/[^ ]*}, '').strip
         end
       rescue Errno::ENOENT
-        nil
+        []
       end
 
       # Gets the gpu information and returns a count of how many there are

@@ -6,25 +6,31 @@ require 'tty-spinner'
 require 'yaml'
 require 'fileutils'
 
-require_relative '../../../services/sysinfo'
-
 module AlcesJob
   module CLI
     module Commands
       class ConfigInit < Dry::CLI::Command
         AlcesJob::CLI.register 'config init', self
-        desc 'This command generates the initial system info config and saves it'
+        desc 'This command generates the initial admin config'
+
+        option :partition, type: :string, desc: 'The default partition to be used'
+        option :account, type: :string,
+                         desc: 'Specifies the Slurm account to charge'
 
         def initialize
           @config_path = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['admin_config_file']
-          @system_data = nil
         end
 
-        def call(*)
+        def call(**options)
           pastel = Pastel.new
 
           if Process.uid != 0
             puts pastel.red("\nThis command must be ran with elevated privileges\n")
+            exit(1)
+          end
+
+          if options.empty?
+            puts pastel.red("\nNo flags have been provided\n")
             exit(1)
           end
 
@@ -36,7 +42,7 @@ module AlcesJob
             error_mark: pastel.red('✗')
           )
 
-          spinner.update(title: 'checking for config')
+          spinner.update(title: 'checking for config file')
           spinner.auto_spin
           if File.exist?(@config_path)
             data = YAML.load_file(@config_path)
@@ -52,18 +58,13 @@ module AlcesJob
             spinner.success('(no config)')
           end
 
-          # Collecting system information
-          spinner.update(title: 'collecting system info')
-          spinner.auto_spin
-          @system_data = Services::SysInfo.all_info
-          spinner.success('(successful)')
-
           # Writing to config file
           spinner.update(title: 'writing config file')
           spinner.auto_spin
           begin
+            puts options.inspect
             FileUtils.mkdir_p(File.dirname(@config_path))
-            File.write(@config_path, @system_data.to_yaml)
+            File.write(@config_path, options.to_yaml)
             spinner.success('(successful)')
 
             puts pastel.green("\nThe config file has been written to #{@config_path}\n")
