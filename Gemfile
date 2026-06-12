@@ -16,6 +16,8 @@ gem 'config', '~> 5.6'
 
 gem 'rake', '~> 13.4'
 
+gem 'tty-spinner'
+
 group :development, :test do
   gem 'rspec'
 end

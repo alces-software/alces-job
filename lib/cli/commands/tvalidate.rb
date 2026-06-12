@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require 'dry/cli'
 require 'pastel'
 require_relative '../../services/template_validator'
@@ -7,7 +8,6 @@ module AlcesJob
   module CLI
     module Commands
       class TValidate < Dry::CLI::Command
-
         desc 'Validates a custom template'
 
         argument :name, required: true, desc: 'Name of the custom template'
@@ -26,11 +26,11 @@ module AlcesJob
           end
 
           return if validator.warnings.empty?
+
           puts pastel.yellow('Warnings:')
           validator.warnings.each { |warning| puts "- #{warning}" }
         end
       end
     end
   end
-
 end
