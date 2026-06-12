@@ -10,8 +10,8 @@ require_relative '../../../services/sysinfo'
 module AlcesJob
   module CLI
     module Commands
-      class ConfigUpdate < Dry::CLI::Command
-        AlcesJob::CLI.register 'config update', self
+      class SysInfoUpdate < Dry::CLI::Command
+        AlcesJob::CLI.register 'sysinfo update', self
         desc 'This command is used to update the system config.yaml'
 
         option :node, type: :boolean, default: false, desc: 'Update nodes info', aliases: ['-n']
@@ -24,7 +24,7 @@ module AlcesJob
                      aliases: ['-a']
 
         def initialize
-          @config_path = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['admin_config_file']
+          @system_info_path = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['system_info_file']
           @system_data = nil
         end
 
@@ -51,19 +51,19 @@ module AlcesJob
             error_mark: pastel.red('✗')
           )
 
-          spinner.update(title: 'loading config')
+          spinner.update(title: 'loading system info')
           spinner.auto_spin
 
-          unless File.exist?(@config_path)
-            spinner.error('(no config)')
+          unless File.exist?(@system_info_path)
+            spinner.error('(no system info)')
             puts pastel.red("\nThere is no config file currently present use config init to create one\n")
             exit(1)
           end
 
-          @system_data = YAML.load_file(@config_path)
+          @system_data = YAML.load_file(@system_info_path)
 
           if @system_data.nil?
-            spinner.error('(blank config)')
+            spinner.error('(blank system info)')
             puts pastel.red("\nThe config you have contains no data generate a new one using config init\n")
             exit(1)
           end
@@ -96,18 +96,18 @@ module AlcesJob
           spinner.success('(successful)')
 
           # New data to file
-          spinner.update(title: 'writing config file')
+          spinner.update(title: 'writing system info file')
           spinner.auto_spin
 
           begin
-            File.write(@config_path, @system_data.to_yaml)
+            File.write(@system_info_path, @system_data.to_yaml)
             spinner.success('(successful)')
 
-            puts pastel.green("\nThe config file at #{@config_path} has been updated\n")
+            puts pastel.green("\nThe system info file at #{@system_info_path} has been updated\n")
             exit(0)
           rescue StandardError => e
             spinner.error('(writing error)')
-            puts pastel.red("\nFailed to update config file: #{e.message}\n")
+            puts pastel.red("\nFailed to update system info file: #{e.message}\n")
             exit(1)
           end
         end

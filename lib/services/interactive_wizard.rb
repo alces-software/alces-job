@@ -13,24 +13,11 @@ module AlcesJob
     class InteractiveWizard
       def system_info
         config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
+        @info = AlcesJob::Services::SysInfo.load_info(config['system_info_file'])
 
-        if File.exist?(config['admin_config_file'])
-          @info = AlcesJob::Services::SysInfo.load_info(config)
-        else
-          candidate = AlcesJob::Services::SysInfo.actual_info
-          @info = if AlcesJob::Services::SysInfo.slurm_available?(candidate)
-                    AlcesJob::Services::SysInfo.complete_info(candidate)
-                  else
-                    prompt_for_system_info
-                  end
-        end
-      rescue Errno::ENOENT, Psych::SyntaxError
-        @info = prompt_for_system_info
-      end
+        return unless @info[:nodes].empty? && @info[:partitions].empty? && @info[:packages].empty? && @info[:gpu_total].zero?
 
-      def valid_system_info?(info)
-        info.is_a?(Hash) && info[:nodes].is_a?(Array) && info[:nodes].any? &&
-          info[:partitions].is_a?(Array) && info[:partitions].any?
+        prompt_for_system_info
       end
 
       def prompt_for_system_info
