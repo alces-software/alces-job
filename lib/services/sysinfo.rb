@@ -27,6 +27,9 @@ module AlcesJob
           packages: package_info,
           gpu_total: gpu_info
         }
+        return live_info if live_info[:nodes] && live_info[:partitions]
+
+        YAML.load_file('/Users/ab/Documents/alces-job/testData.yaml')
       end
 
       def self.slurm_available?(info = nil)
