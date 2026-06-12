@@ -10,7 +10,7 @@ require 'fileutils'
 module AlcesJob
   module CLI
     module Commands
-      class ProfileEditChange < Dry::CLI::Command
+      class ProfileEditRemove < Dry::CLI::Command
         AlcesJob::CLI.register 'profile edit remove', self
         desc 'This is used to remove flags that have been stored in a profile'
 
