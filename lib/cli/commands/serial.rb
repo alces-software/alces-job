@@ -11,6 +11,9 @@ module AlcesJob
   module CLI
     module Commands
       class Serial < Dry::CLI::Command
+        AlcesJob::CLI.register 'serial', self
+        desc 'Creates a serial sbatch script'
+
         option :job_name, type: :string
         option :mem, type: :string
 
@@ -29,9 +32,6 @@ module AlcesJob
 
         option :dry_run, type: :boolean, default: false,
                          desc: 'Does not save the file if set to true'
-
-        AlcesJob::CLI.register 'serial', self
-        desc 'Creates a serial sbatch script'
 
         def call(**options)
           pastel = Pastel.new
@@ -67,7 +67,7 @@ module AlcesJob
             puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
 
             # Submit the sbatch file to sbatch if user adds submit flag
-            return unless options[:submit]
+            exit(0) unless options[:submit]
 
             spinner.update(title: 'submitting script')
             spinner.auto_spin
@@ -77,7 +77,7 @@ module AlcesJob
             unless status.success?
               spinner.error('(error)')
               puts pastel.red("\nAn error occurred\n")
-              return
+              exit(1)
             end
 
             spinner.success('(submitted)')
@@ -91,9 +91,11 @@ module AlcesJob
             puts pastel.green("\nThe SBTACH script has been generated and looks as follows:")
             puts output
           end
+          exit(0)
         rescue Errno::ENOENT
           spinner.error('(error)')
           puts pastel.red("\nAn error occurred\n")
+          exit(1)
         end
       end
     end

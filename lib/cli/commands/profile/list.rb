@@ -2,6 +2,7 @@
 
 require 'dry/cli'
 require 'yaml'
+require 'pastel'
 
 module AlcesJob
   module CLI
@@ -15,18 +16,22 @@ module AlcesJob
         end
 
         def call(*)
+          Pastel.new
+
           profile_files = Dir.glob(File.join(Dir.home, @profile_dir, '*.yaml'))
 
           if profile_files.empty?
-            puts 'No profiles found.'
-            return
+            puts "\nNo profiles found\n"
+            exit(0)
           end
 
           profile_files.each do |path|
             puts File.basename(path, '.yaml')
           end
+          exit(0)
         rescue Errno::ENOENT
-          puts 'No profile directory exists.'
+          puts pastel.red("\nNo profile directory exists\n")
+          exit(1)
         end
       end
     end
