@@ -136,7 +136,7 @@ RSpec.describe AlcesJob::Services::SysInfo do
   describe '.gpu_info' do
     it 'returns the GPU count from command output' do
       allow(Open3).to receive(:capture3)
-        .with("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc`")
+        .with("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc")
         .and_return(["4\n", '', success_status])
 
       expect(described_class.gpu_info).to eq(4)
@@ -144,7 +144,7 @@ RSpec.describe AlcesJob::Services::SysInfo do
 
     it 'returns zero when the command fails' do
       allow(Open3).to receive(:capture3)
-        .with("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc`")
+        .with("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc")
         .and_return(['', 'error', failure_status])
 
       expect(described_class.gpu_info).to eq(0)
@@ -152,7 +152,7 @@ RSpec.describe AlcesJob::Services::SysInfo do
 
     it 'returns zero when scontrol is not installed' do
       allow(Open3).to receive(:capture3)
-        .with("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc`")
+        .with("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc")
         .and_raise(Errno::ENOENT)
 
       expect(described_class.gpu_info).to eq(0)
@@ -183,6 +183,42 @@ RSpec.describe AlcesJob::Services::SysInfo do
           gpu_total: 4
         }
       )
+    end
+
+    it 'fills missing values with defaults when slurm is unavailable' do
+      allow(described_class).to receive(:node_info).and_return(nil)
+      allow(described_class).to receive(:partition_info).and_return(nil)
+      allow(described_class).to receive(:package_info).and_return(nil)
+      allow(described_class).to receive(:gpu_info).and_return(0)
+
+      expect(described_class.all_info).to eq(
+        {
+          nodes: [{ node: 'local', cpus: 4, memory: 5_000 }],
+          partitions: [{ partition: 'default', time_limit: '0-07:00:00', default: true }],
+          packages: [],
+          gpu_total: 0
+        }
+      )
+    end
+  end
+
+  describe '.slurm_available?' do
+    it 'returns true when node and partition info exist' do
+      info = {
+        nodes: [{ node: 'node01', cpus: 4, memory: 8_000 }],
+        partitions: [{ partition: 'default', time_limit: '0-07:00:00', default: true }]
+      }
+
+      expect(described_class.slurm_available?(info)).to be true
+    end
+
+    it 'returns false when node or partition info is missing' do
+      info = {
+        nodes: nil,
+        partitions: nil
+      }
+
+      expect(described_class.slurm_available?(info)).to be false
     end
   end
 end
