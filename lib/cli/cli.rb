@@ -31,3 +31,10 @@ require_relative 'commands/serial'
 require_relative 'commands/gpu'
 require_relative 'commands/mpi'
 require_relative 'commands/array'
+<<<<<<< HEAD
+require_relative 'commands/config'
+require_relative 'commands/validate'
+require_relative 'commands/interactive'
+require_relative 'commands/tvalidate'
+=======
+>>>>>>> main
