@@ -44,6 +44,9 @@ module AlcesJob
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
+        option :yes, type: :boolean, default: false,
+                     desc: 'Submits the generated script without prompting'
+
         option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
 
         option :dry_run, type: :boolean, default: false,
@@ -93,6 +96,11 @@ module AlcesJob
 
             # Submit the sbatch file to sbatch if user adds submit flag
             exit(0) unless options[:submit]
+
+            unless options[:yes] || TTY::Prompt.new.yes?("\nWould you like to submit this script?", default: false)
+              puts pastel.yellow("\nSkipping submission\n")
+              exit(0)
+            end
 
             spinner.update(title: 'submitting script')
             spinner.auto_spin
