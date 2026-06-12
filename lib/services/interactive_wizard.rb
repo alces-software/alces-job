@@ -94,8 +94,6 @@ module AlcesJob
         time_string
       end
 
-      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-
       def call
         system_info
 
@@ -211,8 +209,8 @@ module AlcesJob
 
         questions = question_bank[job_type.to_sym]
 
-        result = prompt.collect do # rubocop:disable Metrics/BlockLength
-          questions.each do |item, question| # rubocop:disable Metrics/BlockLength
+        result = prompt.collect do
+          questions.each do |item, question|
             case item
             when :partition
 
@@ -294,7 +292,7 @@ module AlcesJob
           end
         end
 
-        loop do # rubocop:disable Metrics/BlockLength
+        loop do
           job_type = 'default' if job_type == 'serial'
 
           generator = AlcesJob::Services::Generator.new(
