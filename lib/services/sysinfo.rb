@@ -8,9 +8,7 @@ module AlcesJob
     module SysInfo
       # Load system information from file if available or grabs info
       # @return [Hash{nodes: Array<Hash>, partitions: Array<Hash>, packages: Array<String>, gpu_total: Integer}]
-      def self.load_info(config_path)
-        config = YAML.load_file(config_path)
-
+      def self.load_info(config)
         return YAML.load(config['admin_config_file']) if File.exist?(config['admin_config_file'])
 
         all_info
