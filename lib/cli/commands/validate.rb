@@ -3,6 +3,8 @@
 require 'dry/cli'
 
 require_relative '../../services/slurm_script_validator'
+require_relative '../../services/sysinfo'
+
 
 module AlcesJob
   module CLI
@@ -14,7 +16,8 @@ module AlcesJob
         AlcesJob::CLI.register 'validate', self
 
         def call(file_path:, **)
-          validator = SlurmScriptValidator.new(file_path)
+          system_info = AlcesJob::Services::SysInfo.all_info
+          validator = SlurmScriptValidator.new(file_path, system_info: system_info)
           if validator.validate?
             puts 'Validation passed.'
           else
@@ -34,3 +37,4 @@ module AlcesJob
     end
   end
 end
+

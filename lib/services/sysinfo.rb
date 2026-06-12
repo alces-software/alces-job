@@ -17,12 +17,16 @@ module AlcesJob
       # Gets all system information
       # @return [Hash{nodes: Array<Hash>, partitions: Array<Hash>, packages: Array<String>, gpu_total: Integer}]
       def self.all_info
-        {
+
+        live_info ={
           nodes: node_info,
           partitions: partition_info,
           packages: package_info,
           gpu_total: gpu_info
         }
+        return live_info if live_info[:nodes] && live_info[:partitions]
+
+        YAML.load_file('/Users/ab/Documents/alces-job/testData.yaml')
       end
 
       # Gets the node information
