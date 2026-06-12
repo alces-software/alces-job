@@ -59,6 +59,9 @@ module AlcesJob
         option :output_file, type: :string,
                              desc: 'Writes the generated script to this output filename'
 
+        option :o, type: :string,
+                   desc: 'Alias for --output-file'
+
         option :submit, type: :boolean, default: false,
                         desc: 'Submits the generated script to Slurm automatically'
 
@@ -73,6 +76,7 @@ module AlcesJob
 
         def call(**options)
           pastel = Pastel.new
+          options[:output_file] = options[:o]
 
           unless options[:profile].nil?
             config = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))
