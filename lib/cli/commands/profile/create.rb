@@ -74,6 +74,7 @@ module AlcesJob
           profile_name = options[:profile_name].strip
           profile_path = File.join(Dir.home, @profile_dir, "#{profile_name}.yaml")
           options.delete(:profile_name)
+          options.reject! { |_, value| value == [] }
 
           if options.empty?
             puts pastel.red("\nNo flags were provided that could be saved to a profile\n")

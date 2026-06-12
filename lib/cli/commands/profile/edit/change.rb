@@ -102,14 +102,14 @@ module AlcesJob
           spinner.update(title: 'updating profile')
           spinner.auto_spin
 
-          new_profile_data = @profile_data.merge(options)
+          @profile_data = @profile_data.merge(options)
 
           spinner.success('(successful)')
           spinner.update(title: 'writing to file')
           spinner.auto_spin
 
           begin
-            File.write(profile_path, new_profile_data.to_yaml)
+            File.write(profile_path, @profile_data.to_yaml)
             spinner.success('(written)')
 
             puts pastel.green("\nSuccessfully updated the profile\n")

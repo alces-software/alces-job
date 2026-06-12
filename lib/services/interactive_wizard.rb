@@ -6,11 +6,18 @@ require 'pastel'
 require 'yaml'
 require 'erb'
 
+require_relative 'sysinfo'
+
 module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        @info = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))['admin_config_file']
+        config_path = File.expand_path('../../../config/config.yaml', __dir__)
+        @info = if File.exist?(config_path)
+                  YAML.load_file(config_path)['admin_config_file']
+                else
+                  AlcesJob::Services::SysInfo.all_info
+                end
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')
