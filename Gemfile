@@ -10,13 +10,13 @@ gem 'rubocop', '~> 1.87'
 
 gem 'tty-prompt', '~> 0.23.1'
 
-gem 'tty-spinner', '~> 0.9'
-
 gem 'terminal-table', '~> 4.0'
 
 gem 'config', '~> 5.6'
 
 gem 'rake', '~> 13.4'
+
+gem 'tty-spinner'
 
 group :development, :test do
   gem 'rspec'

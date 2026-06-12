@@ -10,9 +10,9 @@ module AlcesJob
     module SystemLimits
       DEFAULT_NODE_COUNT = 1
       DEFAULT_MEMORY_MB = 5000
-      DEFAULT_TIME_SECONDS = 86_400
+      DEFAULT_TIME_SECONDS = 604_800 # 7 days in seconds
       DEFAULT_CPUS_PER_NODE = 4
-      DEFAULT_GPUS_PER_NODE = 1
+      DEFAULT_GPUS_PER_NODE = 1 # Hardcoded limits for now
 
       def self.node_count(system_info)
         nodes = nodes_from(system_info)
