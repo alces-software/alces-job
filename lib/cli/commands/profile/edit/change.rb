@@ -10,11 +10,11 @@ require 'fileutils'
 module AlcesJob
   module CLI
     module Commands
-      class ProfileCreate < Dry::CLI::Command
-        AlcesJob::CLI.register 'profile create', self
-        desc 'This command creates a profile bases on the flags passed in'
+      class ProfileEditChange < Dry::CLI::Command
+        AlcesJob::CLI.register 'profile edit change', self
+        desc 'This is used to change flags that are stored in the profile'
 
-        option :profile_name, type: :string, desc: 'What the profile will be called'
+        option :profile_name, type: :string, desc: 'The profile you want to update'
 
         option :job_name, type: :string,
                           desc: 'Sets the Slurm job name for the generated script'
@@ -59,12 +59,12 @@ module AlcesJob
                             desc: 'Sets a Slurm dependency string for the job'
 
         def initialize
-          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
+          @profile_dir = YAML.load_file(File.expand_path('../../../../../config/config.yaml', __dir__))['user_profile_dir']
+          @profile_data = nil
         end
 
         def call(**options)
           pastel = Pastel.new
-          prompt = TTY::Prompt.new
 
           if options[:profile_name].nil?
             puts pastel.red("\nNo profile name was provided\n")
@@ -76,7 +76,7 @@ module AlcesJob
           options.delete(:profile_name)
 
           if options.empty?
-            puts pastel.red("\nNo flags were provided that could be saved to a profile\n")
+            puts pastel.red("\nNo flags were provided that could be added or changed in the profile\n")
             exit(1)
           end
 
@@ -86,29 +86,37 @@ module AlcesJob
             success_mark: pastel.green('✔'),
             error_mark: pastel.red('✖')
           )
-          spinner.update(title: 'generating profile')
+          spinner.update(title: 'loading profile')
           spinner.auto_spin
 
-          if File.exist?(profile_path)
-            spinner.error('(profile exists)')
+          unless File.exist?(profile_path)
+            spinner.error('(no profile)')
 
-            exit(0) unless prompt.yes?("\nA profile with that name was found do you want to overwrite it?", default: false)
-
-            puts
-            spinner.update(title: 'overwriting profile')
-            spinner.auto_spin
+            puts pastel.red("\nNo profile can be found with that name\n")
+            exit(1)
           end
 
-          begin
-            FileUtils.mkdir_p(File.dirname(profile_path))
-            File.write(profile_path, options.to_yaml)
-            spinner.success('(successful)')
+          @profile_data = YAML.load_file(profile_path)
 
-            puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
+          spinner.success('(profile loaded)')
+          spinner.update(title: 'updating profile')
+          spinner.auto_spin
+
+          new_profile_data = @profile_data.merge(options)
+
+          spinner.success('(successful)')
+          spinner.update(title: 'writing to file')
+          spinner.auto_spin
+
+          begin
+            File.write(profile_path, new_profile_data.to_yaml)
+            spinner.success('(written)')
+
+            puts pastel.green("\nSuccessfully updated the profile\n")
             exit(0)
           rescue StandardError => e
-            spinner.error('(writing error)')
-            puts pastel.green("\nFailed to create your profile: #{e.message}\n")
+            spinner.error('(write error)')
+            puts pastel.red("\nFailed to update the profile: #{e.message}\n")
             exit(1)
           end
         end
