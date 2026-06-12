@@ -14,11 +14,15 @@ module AlcesJob
         AlcesJob::CLI.register 'serial', self
         desc 'Creates a serial sbatch script'
 
-        option :job_name, type: :string, aliases: ['-J']
-        option :mem, type: :string
+        option :job_name, type: :string, aliases: ['-J'],
+                          desc: 'Sets the Slurm job name for the generated Serial script'
+        option :mem, type: :string,
+                     desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
 
-        option :time, type: :string, aliases: ['-t']
-        option :partition, type: :string, aliases: ['-p']
+        option :time, type: :string, aliases: ['-t'],
+                      desc: 'Sets the walltime limit for the Serial job'
+        option :partition, type: :string, aliases: ['-p'],
+                           desc: 'Specifies the Slurm partition or queue to use'
 
         option :module, type: :array, default: [],
                         desc: 'Loads environment modules before running the job'

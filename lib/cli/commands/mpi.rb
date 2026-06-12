@@ -45,7 +45,7 @@ module AlcesJob
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
         option :site_config, type: :boolean, default: true, desc: 'whether or not to use the admins specified config file'
-        
+
         option :yes, type: :boolean, default: false,
                      desc: 'Submits the generated script without prompting'
 
