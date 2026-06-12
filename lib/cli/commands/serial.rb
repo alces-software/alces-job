@@ -26,6 +26,9 @@ module AlcesJob
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
+        option :dry_run, type: :boolean, default: false,
+                         desc: 'Does not save the file if set to true'
+
         AlcesJob::CLI.register 'serial', self
         desc 'Creates a serial sbatch script'
 
@@ -46,29 +49,38 @@ module AlcesJob
           options[:template] = 'serial'
 
           generator = AlcesJob::Services::Generator.new(options)
-          file_path = generator.save
+          if options[:dry_run].nil? || !options[:dry_run]
+            file_path = generator.save
 
-          spinner.success('(successful)')
+            spinner.success('(successful)')
 
-          puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
+            puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
 
-          # Submit the sbatch file to sbatch if user adds submit flag
-          return unless options[:submit]
+            # Submit the sbatch file to sbatch if user adds submit flag
+            return unless options[:submit]
 
-          spinner.update(title: 'submitting script')
-          spinner.auto_spin
+            spinner.update(title: 'submitting script')
+            spinner.auto_spin
 
-          stdout, status = generator.submit(file_path)
+            stdout, status = generator.submit(file_path)
 
-          unless status.success?
-            spinner.error('(error)')
-            puts pastel.red("\nAn error occurred\n")
-            return
+            unless status.success?
+              spinner.error('(error)')
+              puts pastel.red("\nAn error occurred\n")
+              return
+            end
+
+            spinner.success('(submitted)')
+
+            puts "#{stdout}\n"
+          else
+            output = generator.generate
+
+            spinner.success('(successful)')
+
+            puts pastel.green("\nThe SBTACH script has been generated and looks as follows:")
+            puts output
           end
-
-          spinner.success('(submitted)')
-
-          puts "#{stdout}\n"
         rescue Errno::ENOENT
           spinner.error('(error)')
           puts pastel.red("\nAn error occurred\n")
