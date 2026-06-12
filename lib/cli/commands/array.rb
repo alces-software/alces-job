@@ -91,13 +91,14 @@ module AlcesJob
             spinner.auto_spin
 
             stdout, status = generator.submit(file_path)
-            spinner.success('(submitted)')
 
             unless status.success?
               spinner.error('(error)')
               puts pastel.red("\nAn error occurred\n")
               exit(1)
             end
+
+            spinner.success('(submitted)')
 
             puts "\n#{stdout}\n"
           else
