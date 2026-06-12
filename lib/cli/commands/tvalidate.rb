@@ -12,7 +12,7 @@ module AlcesJob
 
         argument :name, required: true, desc: 'Name of the custom template'
 
-        AlcesJob::CLI.register 'tvalidate', self
+        AlcesJob::CLI.register 'template-validate', self
         def call(name:, **)
           pastel = Pastel.new
           template_path = File.expand_path("~/.alces-job/templates/#{name}.erb")
