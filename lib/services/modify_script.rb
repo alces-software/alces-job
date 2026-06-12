@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'slurm_script_validator'
+require 'open3'
 
 module AlcesJob
   module Services
@@ -99,7 +100,16 @@ module AlcesJob
         end
 
         job_name = @options[:job_name] || find_existing_job_name(lines) || 'slurm_job'
+        edited_script << ''
 
+        edited_script << "cd #{@options[:workdir]}\n" if @options[:workdir]
+
+        if @options[:modules]&.any?
+          module_list = @options[:modules][0].split
+          module_list.each do |m|
+            edited_script << "module load #{m}"
+          end
+        end
         if @options[:command]
           puts 'hello'
           edited_script << ''
@@ -114,16 +124,37 @@ module AlcesJob
 
         puts edited_script
 
-        File.write(@script, "#{edited_script.join("\n")}\n")
+        file_path = if @options[:output_file]
+                      File.join(Dir.pwd, @options[:output_file])
+                    else
+                      @script
+                    end
 
-        validator = SlurmScriptValidator.new(@script)
+        File.write(file_path, "#{edited_script.join("\n")}\n")
+
+        validator = SlurmScriptValidator.new(file_path)
 
         if validator.validate?
+
+          if @options[:submit] == true
+            stdout, _, status = Open3.capture3("sbatch #{file_path}")
+
+            puts 'sbatch finished.'
+            puts "Exit status: #{status.exitstatus}"
+
+            unless stdout.empty?
+              puts 'STDOUT:'
+              puts stdout
+            end
+
+            [stdout, status]
+
+          end
 
           puts 'Script updated successfully.'
 
         else
-          File.write(@script, old_content)
+          File.write(file_path, old_content)
 
           puts 'Changes were invalid, so the script was reverted.'
 

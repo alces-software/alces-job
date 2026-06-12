@@ -58,15 +58,12 @@ module AlcesJob
         option :submit, type: :boolean, default: false,
                         desc: 'Submits the generated script to Slurm automatically'
 
-<<<<<<< HEAD
         option :template, type: :string,
                           desc: 'Specifies a custom template to use for script generation (must be in built-in or user template)'
 
         AlcesJob::CLI.register 'base', self
         desc 'Creates a serial sbatch script'
-=======
         option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
->>>>>>> main
 
         AlcesJob::CLI.register 'base', self
         desc 'Creates a universal sbatch script'
@@ -99,11 +96,7 @@ module AlcesJob
 
           spinner.success('(successful)')
 
-<<<<<<< HEAD
-          puts pastel.green("The SBATCH script has been generated and saved to #{file_path}\n")
-=======
           puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
->>>>>>> main
 
           # Submit the sbatch file to sbatch if user adds submit flag
           exit(0) unless options[:submit]
