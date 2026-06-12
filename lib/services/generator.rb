@@ -8,9 +8,12 @@ require 'yaml'
 module AlcesJob
   module Services
     class Generator
+      attr_reader :file_path
+
       def initialize(options)
         @context = OpenStruct.new(options)
         @template = @context.template || 'default'
+        @file_path = File.join(Dir.pwd, @context.output_file.nil? ? 'job.sbatch' : @context.output_file)
       end
 
       def generate
@@ -18,14 +21,9 @@ module AlcesJob
       end
 
       def save(script = generate)
-        file_name = 'job.sbatch'
+        File.write(@file_path, script)
 
-        file_name = @context.output_file unless @context.output_file.nil?
-        path = File.join(Dir.pwd, file_name)
-
-        File.write(path, script)
-
-        path
+        @file_path
       end
 
       def submit(file_path)

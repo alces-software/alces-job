@@ -3,6 +3,7 @@
 require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
+require 'tty-prompt'
 
 require_relative '../../services/generator'
 
@@ -75,6 +76,15 @@ module AlcesJob
 
           generator = AlcesJob::Services::Generator.new(options)
           if options[:dry_run].nil? || !options[:dry_run]
+            if File.exist?(generator.file_path)
+              spinner.error('(file exists)')
+              exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
+
+              puts
+              spinner.update(title: 'Overwriting SBATCH script')
+              spinner.auto_spin
+            end
+
             file_path = generator.save
 
             spinner.success('(successful)')
