@@ -82,10 +82,6 @@ module AlcesJob
           end
         end
 
-        puts found_options
-
-        puts @options
-
         @options.each do |key, value|
           next if found_options.include?(key)
           next unless @sbatch_options.key?(key)
@@ -109,7 +105,6 @@ module AlcesJob
           end
         end
         if @options[:command]
-          puts 'hello'
           edited_script << ''
           edited_script << %(echo "Running job '#{job_name}'") if job_name
           edited_script << ''

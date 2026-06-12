@@ -91,6 +91,8 @@ module AlcesJob
             @system_data = Services::SysInfo.all_info
           end
 
+          @system_data = Services::SysInfo.complete_info(@system_data)
+
           spinner.success('(successful)')
 
           # New data to file

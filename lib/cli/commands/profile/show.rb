@@ -2,6 +2,7 @@
 
 require 'dry/cli'
 require 'yaml'
+require 'pastel'
 
 module AlcesJob
   module CLI
@@ -17,18 +18,25 @@ module AlcesJob
         end
 
         def call(**options)
-          return puts 'No profile name supplied.' if options[:profile].nil?
+          pastel = Pastel.new
+
+          if options[:profile].nil?
+            puts pastel.red("\nNo profile name supplied\n")
+            exit(1)
+          end
 
           profile_path = File.join(Dir.home, @profile_dir, "#{options[:profile]}.yaml")
 
           unless File.exist?(profile_path)
-            puts "Profile #{options[:profile]} not found."
-            return
+            puts pastel.red("\nProfile #{options[:profile]} not found\n")
+            exit(1)
           end
 
           puts File.read(profile_path)
+          exit(0)
         rescue Errno::ENOENT
-          puts 'No profile directory exists.'
+          puts "\nNo profile directory exists\n"
+          exit(1)
         end
       end
     end

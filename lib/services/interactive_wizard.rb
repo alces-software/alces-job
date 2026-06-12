@@ -13,7 +13,83 @@ module AlcesJob
     class InteractiveWizard
       def system_info
         config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
-        @info = AlcesJob::Services::SysInfo.load_info(config)
+
+        if File.exist?(config['admin_config_file'])
+          @info = AlcesJob::Services::SysInfo.load_info(config)
+        else
+          candidate = AlcesJob::Services::SysInfo.actual_info
+          @info = if AlcesJob::Services::SysInfo.slurm_available?(candidate)
+                    AlcesJob::Services::SysInfo.complete_info(candidate)
+                  else
+                    prompt_for_system_info
+                  end
+        end
+      rescue Errno::ENOENT, Psych::SyntaxError
+        @info = prompt_for_system_info
+      end
+
+      def valid_system_info?(info)
+        info.is_a?(Hash) && info[:nodes].is_a?(Array) && info[:nodes].any? &&
+          info[:partitions].is_a?(Array) && info[:partitions].any?
+      end
+
+      def prompt_for_system_info
+        prompt = TTY::Prompt.new
+
+        puts 'Unable to detect a Slurm environment. Please enter fallback cluster configuration for the system you wish to run the script on.'
+
+        partitions = prompt_for_partitions(prompt)
+        nodes = prompt_for_nodes(prompt)
+        gpu_total = prompt.ask('How many GPUs are available in total?', default: '0') do |q|
+          q.validate(/\A\d+\z/)
+          q.messages[:valid?] = 'Please enter a whole number.'
+          q.convert :int
+        end
+
+        {
+          nodes: nodes,
+          partitions: partitions,
+          packages: [],
+          gpu_total: gpu_total
+        }
+      end
+
+      def prompt_for_partitions(prompt)
+        partition_input = prompt.ask('Partition names (comma-separated)', default: 'default') do |q|
+          q.required true
+        end
+
+        partition_names = partition_input.split(',').map(&:strip).reject(&:empty?)
+        partition_names = ['default'] if partition_names.empty?
+
+        partition_names.map.with_index do |name, index|
+          time_limit = prompt.ask("Max time for partition #{name}", default: '0-07:00:00') do |q|
+            q.validate(/^\d+-\d{2}:\d{2}:\d{2}$/)
+            q.messages[:valid?] = 'Time must be in format D-HH:MM:SS.'
+          end
+
+          {
+            partition: name,
+            time_limit: time_limit,
+            default: index.zero?
+          }
+        end
+      end
+
+      def prompt_for_nodes(prompt)
+        max_cpu_cores = prompt.ask('Maximum CPU cores per node', default: '4') do |q|
+          q.validate(/\A\d+\z/)
+          q.messages[:valid?] = 'Please enter a whole number.'
+          q.convert :int
+        end
+
+        max_memory = prompt.ask('Maximum memory per node (MB)', default: '5000') do |q|
+          q.validate(/\A\d+\z/)
+          q.messages[:valid?] = 'Please enter a whole number.'
+          q.convert :int
+        end
+
+        [{ node: 'local', cpus: max_cpu_cores, memory: max_memory }]
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')

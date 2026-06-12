@@ -11,6 +11,9 @@ module AlcesJob
   module CLI
     module Commands
       class Base < Dry::CLI::Command
+        AlcesJob::CLI.register 'base', self
+        desc 'Creates a universal sbatch script'
+
         option :job_name, type: :string,
                           desc: 'Sets the Slurm job name for the generated script'
         option :nodes, type: :integer,
@@ -67,9 +70,6 @@ module AlcesJob
 
         option :dry_run, type: :boolean, default: false,
                          desc: 'Does not save the file if set to true'
-
-        AlcesJob::CLI.register 'base', self
-        desc 'Creates a universal sbatch script'
 
         def call(**options)
           pastel = Pastel.new

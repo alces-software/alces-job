@@ -25,13 +25,14 @@ module AlcesJob
           scan_templates(@user_templates_folder, 'user', templates)
 
           if templates.empty?
-            puts 'No templates found.'
-            return
+            puts "\nNo templates found\n"
+            exit(0)
           end
 
           templates.each do |name, source|
             puts "#{name} (#{source})"
           end
+          exit(0)
         end
 
         private

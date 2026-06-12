@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
+require 'pastel'
 
 require_relative '../../services/slurm_script_validator'
 require_relative '../../services/sysinfo'
@@ -11,27 +12,28 @@ module AlcesJob
     module Commands
       class Validate < Dry::CLI::Command
         desc 'Validates an existing sbatch script'
+
         argument :file_path, required: true, desc: 'Path to the sbatch/slurm script'
 
         AlcesJob::CLI.register 'validate', self
 
         def call(file_path:, **)
-          system_info = AlcesJob::Services::SysInfo.all_info
-          validator = SlurmScriptValidator.new(file_path, system_info: system_info)
+          validator = SlurmScriptValidator.new(file_path)
+          pastel = Pastel.new
+
           if validator.validate?
-            puts 'Validation passed.'
+            puts pastel.green("\nValidation passed\n")
           else
-            puts 'Validation failed:'
-
+            puts pastel.red("\nValidation failed:")
             validator.errors.each { |error| puts "- #{error}" }
-
           end
 
-          return if validator.warnings.empty?
+          exit(0) if validator.warnings.empty?
 
-          puts 'Warnings:'
-
+          puts pastel.yellow("\nWarnings:")
           validator.warnings.each { |warning| puts "- #{warning}" }
+
+          exit(0)
         end
       end
     end
