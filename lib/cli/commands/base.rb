@@ -59,9 +59,6 @@ module AlcesJob
         option :output_file, type: :string, aliases: ['-o'],
                              desc: 'Writes the generated script to this output filename'
 
-        option :o, type: :string,
-                   desc: 'Alias for --output-file'
-
         option :submit, type: :boolean, default: false,
                         desc: 'Submits the generated script to Slurm automatically'
         option :yes, type: :boolean, default: false,

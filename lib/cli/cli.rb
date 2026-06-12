@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
+require_relative 'help'
 
 require_relative '../alces_job/version'
 

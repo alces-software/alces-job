@@ -36,7 +36,7 @@ module AlcesJob
         option :array, type: :string,
                        desc: 'Sets the Slurm array task specification for the job'
 
-        option :output_file, type: :string,
+        option :output_file, type: :string, aliases: ['-o'],
                              desc: 'Writes the generated script to this filename instead of job.sbatch'
 
         option :submit, type: :boolean, default: false,
