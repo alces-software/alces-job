@@ -61,4 +61,6 @@ scratch/
 
 # Prevent any accidental commiting of generated sbatch files
 *.sbatch
+*.slurm
+
 .DS_Store

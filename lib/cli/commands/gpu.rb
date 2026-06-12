@@ -14,20 +14,20 @@ module AlcesJob
         AlcesJob::CLI.register 'gpu', self
         desc 'Creates a GPU sbatch script'
 
-        option :job_name, type: :string,
+        option :job_name, type: :string, aliases: ['-J'],
                           desc: 'Sets the Slurm job name for the generated GPU script'
-        option :nodes, type: :integer,
+        option :nodes, type: :integer, aliases: ['-N'],
                        desc: 'Requests the number of compute nodes for the job'
-        option :ntasks, type: :integer,
+        option :ntasks, type: :integer, aliases: ['-n'],
                         desc: 'Specifies the total number of tasks for the CUDA/GPU job'
-        option :cpus_per_task, type: :integer,
+        option :cpus_per_task, type: :integer, aliases: ['-c'],
                                desc: 'Specifies CPU cores per task'
         option :mem, type: :string,
                      desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
 
-        option :time, type: :string,
+        option :time, type: :string, aliases: ['-t'],
                       desc: 'Sets the walltime limit for the job'
-        option :partition, type: :string,
+        option :partition, type: :string, aliases: ['-p'],
                            desc: 'Specifies the Slurm partition or queue to use'
         option :gres, type: :string,
                       desc: 'Specifies generic resources such as GPUs'
@@ -40,16 +40,18 @@ module AlcesJob
         option :command, type: :string,
                          desc: 'Specifies the shell command to execute in the script'
 
-        option :output_file, type: :string,
+        option :output_file, type: :string, aliases: ['-o'],
                              desc: 'Writes the generated script to this filename instead of job.sbatch'
 
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
-        option :profile, type: :string,
-                         desc: 'The name of a profile you have stored to load predetermined flags'
-
         option :site_config, type: :boolean, default: true, desc: 'whether or not to use the admins specified config file'
+        
+        option :yes, type: :boolean, default: false,
+                     desc: 'Submits the generated script without prompting'
+
+        option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
 
         option :dry_run, type: :boolean, default: false,
                          desc: 'Does not save the file if set to true'
@@ -107,6 +109,11 @@ module AlcesJob
 
             # Submit the sbatch file to sbatch if user adds submit flag
             exit(0) unless options[:submit]
+
+            unless options[:yes] || TTY::Prompt.new.yes?("\nWould you like to submit this script?", default: false)
+              puts pastel.yellow("\nSkipping submission\n")
+              exit(0)
+            end
 
             spinner.update(title: 'submitting script')
             spinner.auto_spin
