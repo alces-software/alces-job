@@ -127,8 +127,6 @@ module AlcesJob
 
         partition_list = []
 
-        puts partition_types
-
         partition_types.each do |partition|
           partition_list.append(partition[:partition])
 
@@ -148,8 +146,6 @@ module AlcesJob
         human_readable_max_time = nil
 
         prompt = TTY::Prompt.new
-
-        puts partition_types
 
         types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
