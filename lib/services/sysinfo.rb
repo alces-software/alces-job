@@ -1,10 +1,19 @@
 # frozen_string_literal: true
 
 require 'open3'
+require 'yaml'
 
 module AlcesJob
   module Services
     module SysInfo
+      # Load system information from file if available or grabs info
+      # @return [Hash{nodes: Array<Hash>, partitions: Array<Hash>, packages: Array<String>, gpu_total: Integer}]
+      def self.load_info(config)
+        return YAML.load_file(config['admin_config_file']) if File.exist?(config['admin_config_file'])
+
+        all_info
+      end
+
       # Gets all system information
       # @return [Hash{nodes: Array<Hash>, partitions: Array<Hash>, packages: Array<String>, gpu_total: Integer}]
       def self.all_info
