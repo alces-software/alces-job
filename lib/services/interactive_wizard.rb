@@ -6,12 +6,18 @@ require 'pastel'
 require 'yaml'
 require 'erb'
 
+require_relative 'sysinfo'
+
 module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        # @info = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))['admin_config_file']
-        @info = YAML.load_file('testData.yaml')
+        config_path = File.expand_path('../../../config/config.yaml', __dir__)
+        @info = if File.exist?(config_path)
+                  YAML.load_file(config_path)['admin_config_file']
+                else
+                  AlcesJob::Services::SysInfo.all_info
+                end
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')
@@ -95,8 +101,6 @@ module AlcesJob
         time_string
       end
 
-      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-
       def call
         system_info
 
@@ -123,8 +127,6 @@ module AlcesJob
 
         partition_list = []
 
-        puts partition_types
-
         partition_types.each do |partition|
           partition_list.append(partition[:partition])
 
@@ -144,8 +146,6 @@ module AlcesJob
         human_readable_max_time = nil
 
         prompt = TTY::Prompt.new
-
-        puts partition_types
 
         types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
@@ -212,8 +212,8 @@ module AlcesJob
 
         questions = question_bank[job_type.to_sym]
 
-        result = prompt.collect do # rubocop:disable Metrics/BlockLength
-          questions.each do |item, question| # rubocop:disable Metrics/BlockLength
+        result = prompt.collect do
+          questions.each do |item, question|
             case item
             when :partition
 
@@ -295,7 +295,7 @@ module AlcesJob
           end
         end
 
-        loop do # rubocop:disable Metrics/BlockLength
+        loop do
           job_type = 'default' if job_type == 'serial'
 
           generator = AlcesJob::Services::Generator.new(

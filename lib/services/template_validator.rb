@@ -9,7 +9,6 @@ require 'tempfile'
 require_relative 'slurm_script_validator'
 
 class TemplateValidator
-
   attr_reader :errors, :warnings
 
   DEFAULT_CONTEXT = {
@@ -25,20 +24,19 @@ class TemplateValidator
   }.freeze
 
   def initialize(template_path, context = {})
-
     @template_path = template_path
     @context = OpenStruct.new(DEFAULT_CONTEXT.merge(context))
     @errors = []
     @warnings = []
-
   end
 
   def validate?
-
     validate_template_file
     return false unless errors.empty?
+
     rendered_script = render_template
     return false unless errors.empty?
+
     validate_rendered_script(rendered_script)
     errors.empty?
   end
@@ -52,6 +50,7 @@ class TemplateValidator
     end
 
     return if File.extname(@template_path) == '.erb'
+
     errors << 'Template must be an .erb file.'
   end
 
@@ -61,7 +60,6 @@ class TemplateValidator
   rescue StandardError => e
     errors << "Template failed to render: #{e.message}"
     nil
-
   end
 
   def validate_rendered_script(script)
@@ -73,7 +71,5 @@ class TemplateValidator
       errors.concat(validator.errors)
       warnings.concat(validator.warnings)
     end
-
   end
-
 end

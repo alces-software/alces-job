@@ -7,7 +7,6 @@ require_relative 'validators/sbatch_directive_validator'
 require_relative 'sys_limits/system_limits'
 
 class SlurmScriptValidator
-
   attr_reader :errors, :warnings
 
   def initialize(file_path, system_info: nil)
@@ -18,7 +17,6 @@ class SlurmScriptValidator
   end
 
   def validate?
-
     lines = File.readlines(@file_path, chomp: true)
     validate_shebang(lines)
     sbatch_lines = lines.select { |line| line.start_with?('#SBATCH') }
@@ -35,11 +33,13 @@ class SlurmScriptValidator
 
   def validate_shebang(lines)
     return if lines[0] == '#!/bin/bash'
+
     errors << 'Missing shebang, spelt incorrectly, or unsupported. Expected: #!/bin/bash.'
   end
 
   def validate_sbatch_lines_exist(sbatch_lines)
     return unless sbatch_lines.empty?
+
     errors << 'No #SBATCH directives found.'
   end
 
@@ -55,7 +55,6 @@ class SlurmScriptValidator
     duplicates.each do |duplicate|
       errors << "Duplicate directive found: #{duplicate}."
     end
-
   end
 
   def validate_memory(sbatch_lines)
@@ -78,7 +77,7 @@ class SlurmScriptValidator
   def validate_time(sbatch_lines)
     time_value = directive_value(sbatch_lines, '--time')
     max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(@system_info)
-    
+
     if time_value
       requested_time_seconds = TimeConverter.to_seconds(time_value)
 
@@ -95,12 +94,10 @@ class SlurmScriptValidator
   end
 
   def directive_value(sbatch_lines, directive)
-   sbatch_lines.each do |line|
-    match = line.match((/\A#SBATCH\s+#{Regexp.escape(directive)}(?:=|\s+)(.+)\z/))
-    return match[1].strip if match
+    sbatch_lines.each do |line|
+      match = line.match(/\A#SBATCH\s+#{Regexp.escape(directive)}(?:=|\s+)(.+)\z/)
+      return match[1].strip if match
     end
     nil
   end
-
-        
 end

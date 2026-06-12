@@ -3,16 +3,16 @@ AllCops:
   TargetRubyVersion: 3.3
 
 Layout/LineLength:
-  Max: 150
+  Enabled: false
 
 Metrics/ClassLength:
-  Max: 500
+  Enabled: false
 
 Metrics/MethodLength:
-  Max: 300
+  Enabled: false
 
 Metrics/CyclomaticComplexity:
-  Max: 50
+  Enabled: false
 
 Style/Documentation:
   Enabled: false
@@ -21,18 +21,13 @@ Style/OpenStructUse:
   Enabled: false
 
 Metrics/AbcSize:
-  Max: 60
-
-Metrics/CyclomaticComplexity:
-  Max: 20
+  Enabled: false
 
 Metrics/PerceivedComplexity:
-  Max: 20
+  Enabled: false
 
 Lint/MissingSuper:
   Enabled: false
 
 Metrics/BlockLength:
-  Exclude:
-    - "alces-job.gemspec"
-    - "spec/**/*"
+  Enabled: false

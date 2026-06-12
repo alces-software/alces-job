@@ -41,8 +41,6 @@ module AlcesJob
         job_line.split('=', 2).last
       end
 
-      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-
       def call
         unless File.exist?(@script)
           puts "Script not found: #{@script}"

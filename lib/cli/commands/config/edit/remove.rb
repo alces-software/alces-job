@@ -4,20 +4,19 @@ require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
 require 'yaml'
-require 'fileutils'
 
 module AlcesJob
   module CLI
     module Commands
-      class ConfigRemove < Dry::CLI::Command
-        AlcesJob::CLI.register 'config remove', self
+      class ConfigEditRemove < Dry::CLI::Command
+        AlcesJob::CLI.register 'config edit remove', self
         desc 'Used to remove items from the the admin config file e.g. partitions, nodes'
 
         option :nodes, type: :string, desc: 'The nodes you want to remove from the system config'
         option :partitions, type: :string, desc: 'The partitions you want to remove from the system config'
 
         def initialize
-          @config_path = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['admin_config_file']
+          @config_path = YAML.load_file(File.expand_path('../../../../../config/config.yaml', __dir__))['admin_config_file']
           @system_data = nil
         end
 
@@ -37,8 +36,8 @@ module AlcesJob
           puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
           )
 
           spinner.update(title: 'removing from config')

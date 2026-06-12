@@ -3,6 +3,7 @@
 require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
+require 'tty-prompt'
 
 require_relative '../../services/generator'
 
@@ -40,6 +41,9 @@ module AlcesJob
 
         option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
 
+        option :dry_run, type: :boolean, default: false,
+                         desc: 'Does not save the file if set to true'
+
         AlcesJob::CLI.register 'array', self
         desc 'Creates an array sbatch script'
 
@@ -59,8 +63,8 @@ module AlcesJob
           puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
-            success_mark: pastel.green('✔'),
-            error_mark: pastel.red('✖')
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
           )
 
           spinner.update(title: 'generating SBATCH script')
@@ -74,29 +78,47 @@ module AlcesJob
           options[:template] = 'array'
 
           generator = AlcesJob::Services::Generator.new(options)
-          file_path = generator.save
+          if options[:dry_run].nil? || !options[:dry_run]
+            if File.exist?(generator.file_path)
+              spinner.error('(file exists)')
+              exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
 
-          spinner.success('(successful)')
+              puts
+              spinner.update(title: 'Overwriting SBATCH script')
+              spinner.auto_spin
+            end
 
-          puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
+            file_path = generator.save
 
-          # Submit the sbatch file to sbatch if user adds submit flag
-          exit(0) unless options[:submit]
+            spinner.success('(successful)')
 
-          spinner.update(title: 'submitting script')
-          spinner.auto_spin
+            puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
 
-          stdout, status = generator.submit(file_path)
+            # Submit the sbatch file to sbatch if user adds submit flag
+            exit(0) unless options[:submit]
 
-          unless status.success?
-            spinner.error('(error)')
-            puts pastel.red("\nAn error occurred\n")
-            exit(1)
+            spinner.update(title: 'submitting script')
+            spinner.auto_spin
+
+            stdout, status = generator.submit(file_path)
+
+            unless status.success?
+              spinner.error('(error)')
+              puts pastel.red("\nAn error occurred\n")
+              exit(1)
+            end
+
+            spinner.success('(submitted)')
+
+            puts "\n#{stdout}\n"
+          else
+            output = generator.generate
+
+            spinner.success('(successful)')
+
+            puts pastel.green("\nThe SBTACH script has been generated and looks as follows:")
+            puts output
           end
-
-          spinner.success('(submitted)')
-
-          puts "\n#{stdout}\n"
           exit(0)
         rescue Errno::ENOENT
           spinner.error('(error)')
