@@ -14,16 +14,16 @@ module AlcesJob
         AlcesJob::CLI.register 'array', self
         desc 'Creates an array sbatch script'
 
-        option :job_name, type: :string,
+        option :job_name, type: :string, aliases: ['-J'],
                           desc: 'Sets the Slurm job name for the generated array script'
-        option :nodes, type: :integer,
+        option :nodes, type: :integer, aliases: ['-N'],
                        desc: 'Requests the number of compute nodes for the array job'
         option :mem, type: :string,
                      desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
 
-        option :time, type: :string,
+        option :time, type: :string, aliases: ['-t'],
                       desc: 'Sets the walltime limit for the array job'
-        option :partition, type: :string,
+        option :partition, type: :string, aliases: ['-p'],
                            desc: 'Specifies the Slurm partition or queue to use'
 
         option :module, type: :array, default: [],
