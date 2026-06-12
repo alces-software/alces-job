@@ -15,7 +15,7 @@ module AlcesJob
 
         def call(file_path:, **)
           validator = SlurmScriptValidator.new(file_path)
-          if validator.validate
+          if validator.validate?
             puts 'Validation passed.'
           else
             puts 'Validation failed:'

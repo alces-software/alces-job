@@ -48,18 +48,24 @@ module AlcesJob
 
           if options[:nodes]
             nodes_to_delete = options[:nodes].split(',').map(&:strip)
+            node_count = @system_data[:nodes].length
 
             @system_data[:nodes] = @system_data[:nodes].reject do |node|
               nodes_to_delete.include?(node[:node])
             end
+
+            puts pastel.red("\nRemoved no nodes from the config\n") if node_count == @system_data[:nodes].length
           end
 
           if options[:partitions]
             partitions_to_delete = options[:partitions].split(',').map(&:strip)
+            partition_count = @system_data[:partitions].length
 
             @system_data[:partitions] = @system_data[:partitions].reject do |partition|
               partitions_to_delete.include?(partition[:partition])
             end
+
+            puts pastel.red("\nRemoved no partitions from the config\n") if partition_count == @system_data[:partitions]
           end
 
           spinner.success('(successful)')
@@ -74,7 +80,7 @@ module AlcesJob
             exit(0)
           rescue StandardError => e
             spinner.error('(writing error)')
-            puts pastel.green("\nFailed to remove the items from the config: #{e.message}\n")
+            puts pastel.red("\nFailed to remove the items from the config: #{e.message}\n")
             exit(1)
           end
         end

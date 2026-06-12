@@ -19,7 +19,7 @@ module AlcesJob
         def call(**options)
           return puts 'No profile name supplied.' if options[:profile].nil?
 
-          profile_path = File.join(@profile_dir, "#{options[:profile]}.yaml")
+          profile_path = File.join(Dir.home, @profile_dir, "#{options[:profile]}.yaml")
 
           unless File.exist?(profile_path)
             puts "Profile #{options[:profile]} not found."

@@ -56,7 +56,7 @@ module AlcesJob
           end
 
           profile_name = options[:profile_name].strip
-          profile_path = "#{@profile_dir}#{profile_name}.yaml"
+          profile_path = File.join(Dir.home, @profile_dir, "#{profile_name}.yaml")
           options.delete(:profile_name)
 
           if options.empty?
@@ -84,7 +84,7 @@ module AlcesJob
           end
 
           begin
-            FileUtils.mkdir_p(File.dirname(@profile_dir))
+            FileUtils.mkdir_p(File.dirname(profile_path))
             File.write(profile_path, options.to_yaml)
             spinner.success('(successful)')
 
