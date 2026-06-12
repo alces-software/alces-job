@@ -4,7 +4,6 @@ require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
 require 'yaml'
-require 'fileutils'
 
 module AlcesJob
   module CLI
