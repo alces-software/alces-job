@@ -13,17 +13,24 @@ module AlcesJob
         AlcesJob::CLI.register 'config init', self
         desc 'This command generates the initial admin config'
 
-        option :default_partition, type: :string, desc: 'The default partition to be used'
+        option :partition, type: :string, desc: 'The default partition to be used'
+        option :account, type: :string,
+                         desc: 'Specifies the Slurm account to charge'
 
         def initialize
           @config_path = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['admin_config_file']
         end
 
-        def call(**_options)
+        def call(**options)
           pastel = Pastel.new
 
           if Process.uid != 0
             puts pastel.red("\nThis command must be ran with elevated privileges\n")
+            exit(1)
+          end
+
+          if options.empty?
+            puts pastel.red("\nNo flags have been provided\n")
             exit(1)
           end
 
@@ -55,8 +62,9 @@ module AlcesJob
           spinner.update(title: 'writing config file')
           spinner.auto_spin
           begin
+            puts options.inspect
             FileUtils.mkdir_p(File.dirname(@config_path))
-            File.write(@config_path, @options.to_yaml)
+            File.write(@config_path, options.to_yaml)
             spinner.success('(successful)')
 
             puts pastel.green("\nThe config file has been written to #{@config_path}\n")

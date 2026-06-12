@@ -12,7 +12,7 @@ module AlcesJob
     module Commands
       class SysInfoUpdate < Dry::CLI::Command
         AlcesJob::CLI.register 'sysinfo update', self
-        desc 'This command is used to update the system config.yaml'
+        desc 'This command is used to update the system info file'
 
         option :node, type: :boolean, default: false, desc: 'Update nodes info', aliases: ['-n']
         option :partition, type: :boolean, default: false, desc: 'Update partitions info',
