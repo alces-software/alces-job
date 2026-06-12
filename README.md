@@ -1,7 +1,5 @@
 # alces-job
-![CI](https://github.com/alces-software/alces-job/actions/workflows/ci.yml/badge.svg)
-
-alces-job is a command-line tool that helps users quickly generate high-quality, ready-to-submit Slurm job scripts using templates, parameters, profiles, and site-specific defaults.
+`alces-job` is a command-line tool that helps users quickly generate high-quality, ready-to-submit Slurm job scripts using templates, parameters, profiles, and site-specific defaults.
 
 ## Installation
 
@@ -16,13 +14,13 @@ $ gem --version
 Go to the [releases](https://github.com/alces-software/alces-job/releases) page and download the gem file, or download it directly with
 
 ```sh
-$ wget https://github.com/alces-software/alces-job/archive/refs/tags/v0.3.0.gem
+$ wget https://github.com/alces-software/alces-job/archive/refs/tags/v0.5.0.gem
 ```
 
 Run:
 
 ```sh
-$ gem install alces-job-0.3.0.gem
+$ gem install alces-job-0.5.0.gem
 ```
 
 Verify installation with
@@ -55,7 +53,7 @@ $ gem build alces-job.gemspec
 Install it with:
 
 ```sh
-$ gem install alces-job-0.3.0.gem
+$ gem install alces-job-0.5.0.gem
 ```
 
 Verify installation with
@@ -118,6 +116,8 @@ The default command supports the following flags:
   - Writes the generated script to a specific filename instead of `job.sbatch`.
 - `--submit`
   - If present, submits the generated script to Slurm with `sbatch` after generation.
+- `--dry-run`
+  - If present, does not save the file, and instead outputs what would be saved to the console
 
 Use these flags together to customize the generated Slurm script and optionally submit it automatically.
 
@@ -140,6 +140,31 @@ Specialized commands such as `mpi`, `gpu`, and `array` select a different templa
 Custom templates can be added by creating a new ERB file in `.alces-job/templates` following the example of one given in `./templates`. You can then call these templates by using the `--template` flag and specifying the name
 
 System-wide templated can be created in a simelar manner, by creating an ERB file in `/etc/alces-job/templates/`. These templates can be called by any user, but are overwritten by their own ones.
+
+List all the available templates to use
+```sh
+$ alces-job template list
+```
+Output the contents of the template to the console
+```sh
+$ alces-job template show TEMPLATE
+```
+
+### Modify
+
+The `modify` subcommand will modify an existing sbatch script with additional flags. It takes in all the options that the `base` command does with the exception of `--dry-run` and `--output-file`.
+
+```sh
+$ alces-job modify SBATCH_SCRIPT [OPTIONS]
+```
+
+### Validate
+
+The `validate` subcommand will take an existing sbatch script as an input and tell you if the script is valid or not.
+
+```sh
+$ alces-job validate SBATCH_SCRIPT
+```
 
 ## Command examples
 
@@ -165,6 +190,12 @@ Generate an array job script:
 
 ```sh
 $ alces-job array --job-name array-job --nodes 1 --mem 2G --time 01:00:00 --array '1-10%2' --command 'echo task $SLURM_ARRAY_TASK_ID'
+```
+
+Generate a serial job via a template:
+
+```sh
+$ alces-job base --job-name serial-job --mem 1G --time 01:00:00 --template serial
 ```
 
 Use the interactive mode to answer prompts instead of supplying flags manually:
@@ -227,7 +258,7 @@ The project is structured around a simple CLI registry and a generator service:
 - `bin/alces-job` is the executable entrypoint.
 - `lib/cli/cli.rb` defines the `AlcesJob::CLI` registry and loads all commands.
 - Command classes live in `lib/cli/commands/` and register themselves with Dry::CLI.
-  - `base`, `gpu`, `mpi`, `array`, `config init`, `config update`, `interactive`, and `version`
+  - `base`, `gpu`, `mpi`, `array`, `serial` `config init`, `config update`, `interactive`, `validate`, `template-validate`, `modify`, `template list`, `template show`, `profile create`, `profile list`, `profile show`, and `version`
 - `lib/services/generator.rb` is responsible for rendering templates, saving the generated script, and submitting it to Slurm.
 - Templates live in `templates/` and are selected by command-specific logic.
   - `default.erb` is used for the base command.
