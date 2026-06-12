@@ -11,12 +11,11 @@ module AlcesJob
         desc 'Lists saved user profiles'
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
-          @profile_dir = File.expand_path(config['user_profile_dir'])
+          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
         end
 
         def call(*)
-          profile_files = Dir.glob(File.join(@profile_dir, '*.yaml')).sort
+          profile_files = Dir.glob(File.join(Dir.home, @profile_dir, '*.yaml'))
 
           if profile_files.empty?
             puts 'No profiles found.'

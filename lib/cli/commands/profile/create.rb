@@ -42,6 +42,10 @@ module AlcesJob
         option :workdir, type: :string,
                          desc: 'Changes to the specified working directory in the job script'
 
+        def initialize
+          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
+        end
+
         def call(**options)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
@@ -52,7 +56,7 @@ module AlcesJob
           end
 
           profile_name = options[:profile_name].strip
-          profile_path = "#{@profile_dir}/#{profile_name}.yaml"
+          profile_path = File.join(Dir.home, @profile_dir, "#{profile_name}.yaml")
           options.delete(:profile_name)
 
           if options.empty?
@@ -80,7 +84,7 @@ module AlcesJob
           end
 
           begin
-            FileUtils.mkdir_p(File.dirname(@profile_dir))
+            FileUtils.mkdir_p(File.dirname(profile_path))
             File.write(profile_path, options.to_yaml)
             spinner.success('(successful)')
 

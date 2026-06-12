@@ -75,7 +75,7 @@ module AlcesJob
           pastel = Pastel.new
 
           unless options[:profile].nil?
-            config = YAML.load_file(File.expand_path('../../../config.yaml', __dir__))
+            config = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))
             profile = YAML.load_file("#{config['user_profile_dir']}/#{options[:profile]}.yaml")
 
             options.delete(:profile)
@@ -123,10 +123,6 @@ module AlcesJob
 
           puts "\n#{stdout}\n"
           exit(0)
-        rescue Errno::ENOENT
-          spinner.error('(error)')
-          puts pastel.red("\nAn error occurred\n")
-          exit(1)
         end
       end
     end

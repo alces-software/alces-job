@@ -10,7 +10,7 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        @info = YAML.load_file(File.expand_path('../../../config.yaml', __dir__))['admin_config_file']
+        @info = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))['admin_config_file']
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')

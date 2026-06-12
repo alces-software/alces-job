@@ -13,14 +13,13 @@ module AlcesJob
         option :profile, type: :string, desc: 'The name of the profile to display'
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config.yaml', __dir__))
-          @profile_dir = File.expand_path(config['user_profile_dir'])
+          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
         end
 
         def call(**options)
           return puts 'No profile name supplied.' if options[:profile].nil?
 
-          profile_path = File.join(@profile_dir, "#{options[:profile]}.yaml")
+          profile_path = File.join(Dir.home, @profile_dir, "#{options[:profile]}.yaml")
 
           unless File.exist?(profile_path)
             puts "Profile #{options[:profile]} not found."

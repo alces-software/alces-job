@@ -15,6 +15,10 @@ module AlcesJob
 
         option :profile, type: :string, desc: 'The name of the profile'
 
+        def initialize
+          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
+        end
+
         def call(**options)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
@@ -25,7 +29,7 @@ module AlcesJob
           end
 
           profile_name = options[:profile].strip
-          profile_path = "#{@profile_dir}/#{profile_name}.yaml"
+          profile_path = File.join(Dir.home, @profile_dir, "#{profile_name}.yaml")
 
           unless File.exist?(profile_path)
             puts pastel.red("\nThe profile you're trying to delete doesn't exist\n")
