@@ -40,6 +40,8 @@ module AlcesJob
         job_line.split('=', 2).last
       end
 
+      # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+
       def call
         unless File.exist?(@script)
           puts "Script not found: #{@script}"
@@ -112,7 +114,7 @@ module AlcesJob
 
         puts edited_script
 
-        File.write(@script, edited_script.join("\n") + "\n")
+        File.write(@script, "#{edited_script.join("\n")}\n")
 
         validator = SlurmScriptValidator.new(@script)
 
@@ -120,9 +122,6 @@ module AlcesJob
 
           puts 'Script updated successfully.'
 
-          validator.warnings.each do |warning|
-            puts "WARNING: #{warning}"
-          end
         else
           File.write(@script, old_content)
 
@@ -132,11 +131,12 @@ module AlcesJob
             puts "ERROR: #{error}"
           end
 
-          validator.warnings.each do |warning|
-            puts "WARNING: #{warning}"
-          end
+        end
+        validator.warnings.each do |warning|
+          puts "WARNING: #{warning}"
         end
       end
+      # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
     end
   end
 end

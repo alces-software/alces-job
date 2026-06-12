@@ -59,11 +59,11 @@ module AlcesJob
         option :dependency, type: :string,
                             desc: 'Sets a Slurm dependency string'
 
-        option :modules, type: :array, default: [],
-                         desc: 'Loads one or more environment modules before running the job'
+        # option :modules, type: :array, default: [],
+        #                  desc: 'Loads one or more environment modules before running the job'
 
-        option :workdir, type: :string,
-                         desc: 'Changes to the specified working directory in the job script'
+        # option :workdir, type: :string,
+        #                  desc: 'Changes to the specified working directory in the job script'
 
         option :command, type: :string,
                          desc: 'Specifies the shell command to execute in the script'
