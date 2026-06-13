@@ -2,6 +2,7 @@
 
 require_relative 'slurm_script_validator'
 require 'open3'
+require 'tty-prompt'
 
 module AlcesJob
   module Services
@@ -143,7 +144,14 @@ module AlcesJob
           end
         end
 
+        puts "\n--- ORIGINAL SCRIPT ---"
+        puts old_content
+        puts "\n--- MODIFIED SCRIPT ---"
         puts edited_script.join("\n")
+        unless TTY::Prompt.new.yes?("\nWould you like to save this script?", default: false)
+          puts 'Aborting...'
+          exit(0)
+        end
 
         file_path = if @options[:output_file]
                       File.join(Dir.pwd, @options[:output_file])

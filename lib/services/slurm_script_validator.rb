@@ -5,15 +5,17 @@ require_relative 'converters/time_converter'
 require_relative 'validators/integer_directive_validator'
 require_relative 'validators/sbatch_directive_validator'
 require_relative 'sys_limits/system_limits'
+require_relative 'sysinfo'
 
 class SlurmScriptValidator
   attr_reader :errors, :warnings
 
-  def initialize(file_path, system_info: nil)
+  def initialize(file_path)
     @file_path = file_path
     @errors = []
     @warnings = []
-    @system_info = system_info
+    config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
+    @system_info = AlcesJob::Services::SysInfo.load_info(config['system_info_file'])
   end
 
   def validate?

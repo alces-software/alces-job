@@ -16,6 +16,9 @@ require_relative 'commands/version'
 # Loads all config commands
 require_relative 'commands/config'
 
+# Loads sysinfo commands
+require_relative 'commands/sysinfo'
+
 # Loads all profile commands
 require_relative 'commands/profile'
 
