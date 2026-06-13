@@ -12,18 +12,20 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
+        # config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
 
-        if File.exist?(config['admin_config_file'])
-          @info = AlcesJob::Services::SysInfo.load_info(config)
-        else
-          candidate = AlcesJob::Services::SysInfo.actual_info
-          @info = if AlcesJob::Services::SysInfo.slurm_available?(candidate)
-                    AlcesJob::Services::SysInfo.complete_info(candidate)
-                  else
-                    prompt_for_system_info
-                  end
-        end
+        # if File.exist?(config['admin_config_file'])
+        #   @info = AlcesJob::Services::SysInfo.load_info(config)
+        # else
+        #   candidate = AlcesJob::Services::SysInfo.actual_info
+        #   @info = if AlcesJob::Services::SysInfo.slurm_available?(candidate)
+        #             AlcesJob::Services::SysInfo.complete_info(candidate)
+        #           else
+        #             prompt_for_system_info
+        #           end
+        # end
+        #
+        @info = YAML.load_file('testData.yaml')
       rescue Errno::ENOENT, Psych::SyntaxError
         @info = prompt_for_system_info
       end

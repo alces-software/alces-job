@@ -96,26 +96,54 @@ module AlcesJob
         job_name = @options[:job_name] || find_existing_job_name(lines) || 'slurm_job'
         edited_script << ''
 
-        edited_script << "cd #{@options[:workdir]}\n" if @options[:workdir]
+        existing_cd_line = lines.find { |line| line.strip.start_with?('cd ') }
+        existing_modules = lines.select { |line| line.strip.start_with?('module load ') }.map { |line| line.strip.sub(/^module load\s+/, '') }
 
-        if @options[:modules]&.any?
-          module_list = @options[:modules][0].split
-          module_list.each do |m|
-            edited_script << "module load #{m}"
-          end
+        if @options[:workdir] && !@options[:workdir].to_s.empty?
+          edited_script << "cd #{@options[:workdir]}\n"
+        elsif existing_cd_line
+          edited_script << "#{existing_cd_line}\n"
         end
+
+        modules_to_write =
+          if @options[:module]&.any?
+            @options[:module]
+          else
+            existing_modules
+          end
+
+        used_modules = []
+
+        modules_to_write.each do |m|
+          m = m.to_s.strip
+          next if m.empty?
+          next if used_modules.include?(m)
+
+          edited_script << "module load #{m}"
+          used_modules << m
+        end
+
+        edited_script << ''
+        edited_script << %(echo "Running job '#{job_name}'") if job_name
+        edited_script << ''
+
         if @options[:command]
-          edited_script << ''
-          edited_script << %(echo "Running job '#{job_name}'") if job_name
-          edited_script << ''
+
           edited_script << @options[:command]
         else
           lines.each do |line|
-            edited_script << line if !line.start_with?('#!') && !line.start_with?('#SBATCH')
+            next if line.start_with?('#!')
+            next if line.start_with?('#SBATCH')
+            next if line.strip.start_with?('module load ')
+            next if line.strip.start_with?('cd ')
+            next if line.strip.start_with?('echo "Running job ')
+            next if line.empty? && edited_script.last == ''
+
+            edited_script << line
           end
         end
 
-        puts edited_script
+        puts edited_script.join("\n")
 
         file_path = if @options[:output_file]
                       File.join(Dir.pwd, @options[:output_file])
