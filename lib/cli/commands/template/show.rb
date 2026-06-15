@@ -41,6 +41,7 @@ module AlcesJob
           exit(0)
         rescue Errno::ENOENT
           puts pastel.red("\nNo template directory exists\n")
+          exit(0)
         end
 
         private

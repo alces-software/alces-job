@@ -63,16 +63,27 @@ module AlcesJob
           if options[:site_config]
             admin_path = config['admin_config_file']
             if File.exist?(admin_path)
-              admin = YAML.load(admin_path)
+              admin = YAML.load_file(admin_path)
+              admin_keys = admin.keys
+              puts
+              options.each_key do |key|
+                puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
+              end
+
               options = admin.merge(options)
             end
           end
 
           unless options[:profile].nil?
             profile_path = File.join(config['user_profile_dir'], "#{options[:profile]}.yaml")
+            options.delete(:profile)
             if File.exist?(profile_path)
               profile = YAML.load_file(profile_path)
-              options.delete(:profile)
+              options_keys = options.keys
+              puts
+              profile.keys.each_key do |key|
+                puts pastel.green("Loaded profile flag #{key}") unless options_keys.include?(key)
+              end
               options = profile.merge(options)
             end
           end
@@ -93,7 +104,7 @@ module AlcesJob
           generator = AlcesJob::Services::Generator.new(options)
           if options[:dry_run].nil? || !options[:dry_run]
             if File.exist?(generator.file_path)
-              spinner.error('(file exists)')
+              spinner.error(pastel.red('(file exists)'))
               exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
 
               puts
@@ -103,7 +114,7 @@ module AlcesJob
 
             file_path = generator.save
 
-            spinner.success('(successful)')
+            spinner.success(pastel.green('(successful)'))
 
             puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
 
@@ -121,25 +132,25 @@ module AlcesJob
             stdout, status = generator.submit(file_path)
 
             unless status.success?
-              spinner.error('(error)')
+              spinner.error(pastel.red('(error)'))
               puts pastel.red("\nAn error occurred\n")
               exit(1)
             end
 
-            spinner.success('(submitted)')
+            spinner.success(pastel.green('(submitted)'))
 
             puts "\n#{stdout}\n"
           else
             output = generator.generate
 
-            spinner.success('(successful)')
+            spinner.success(pastel.green('(successful)'))
 
             puts pastel.green("\nThe SBTACH script has been generated and looks as follows:")
             puts output
           end
           exit(0)
         rescue Errno::ENOENT
-          spinner.error('(error)')
+          spinner.error(pastel.red('(error)'))
           puts pastel.red("\nAn error occurred\n")
           exit(1)
         end

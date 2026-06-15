@@ -62,7 +62,6 @@ module AlcesJob
           spinner.update(title: 'writing config file')
           spinner.auto_spin
           begin
-            puts options.inspect
             FileUtils.mkdir_p(File.dirname(@config_path))
             File.write(@config_path, options.to_yaml)
             spinner.success('(successful)')

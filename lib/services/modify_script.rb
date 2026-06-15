@@ -32,7 +32,7 @@ module AlcesJob
 
         warn "ERROR: Unexpected arguments: #{@options[:args].join(' ')}"
         warn 'Wrap the command in quotes, e.g. --command="python script.py"'
-        exit 1
+        exit(1)
       end
 
       def find_existing_job_name(lines)
@@ -45,7 +45,7 @@ module AlcesJob
       def call
         unless File.exist?(@script)
           puts "Script not found: #{@script}"
-          return
+          exit(1)
         end
 
         old_content = File.read(@script)
@@ -195,6 +195,7 @@ module AlcesJob
         validator.warnings.each do |warning|
           puts "WARNING: #{warning}"
         end
+        exit(0)
       end
       # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
     end
