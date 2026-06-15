@@ -18,6 +18,7 @@ module AlcesJob
         end
 
         def call(*)
+          pastel = Pastel.new
           templates = {}
 
           scan_templates(@builtin_templates_folder, 'built-in', templates)
@@ -25,7 +26,7 @@ module AlcesJob
           scan_templates(@user_templates_folder, 'user', templates)
 
           if templates.empty?
-            puts "\nNo templates found\n"
+            puts pastel.red("\nNo templates found\n")
             exit(0)
           end
 

@@ -91,7 +91,7 @@ module AlcesJob
           spinner.auto_spin
 
           if File.exist?(profile_path)
-            spinner.error('(profile exists)')
+            spinner.error(pastel.red('(profile exists)'))
 
             exit(0) unless prompt.yes?("\nA profile with that name was found do you want to overwrite it?", default: false)
 
@@ -103,12 +103,12 @@ module AlcesJob
           begin
             FileUtils.mkdir_p(File.dirname(profile_path))
             File.write(profile_path, options.to_yaml)
-            spinner.success('(successful)')
+            spinner.success(pastel.green('(successful)'))
 
             puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
             exit(0)
           rescue StandardError => e
-            spinner.error('(writing error)')
+            spinner.error(pastel.red('(writing error)'))
             puts pastel.green("\nFailed to create your profile: #{e.message}\n")
             exit(1)
           end

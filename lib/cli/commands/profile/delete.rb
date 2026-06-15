@@ -48,12 +48,12 @@ module AlcesJob
 
           begin
             File.unlink(profile_path)
-            spinner.success('(deleted)')
+            spinner.success(pastel.green('(deleted)'))
 
             puts pastel.green("\nSuccessfully deleted the profile\n")
             exit(0)
           rescue StandardError => e
-            spinner.error('(failed)')
+            spinner.error(pastel.red('(failed)'))
             puts pastel.red("\nFailed to delete the profile: #{e.message}\n")
             exit(1)
           end

@@ -16,12 +16,12 @@ module AlcesJob
         end
 
         def call(*)
-          Pastel.new
+          pastel = Pastel.new
 
           profile_files = Dir.glob(File.join(Dir.home, @profile_dir, '*.yaml'))
 
           if profile_files.empty?
-            puts "\nNo profiles found\n"
+            puts pastel.red("\nNo profiles found\n")
             exit(0)
           end
 

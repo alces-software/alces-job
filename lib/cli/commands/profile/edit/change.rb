@@ -89,7 +89,7 @@ module AlcesJob
           spinner.auto_spin
 
           unless File.exist?(profile_path)
-            spinner.error('(no profile)')
+            spinner.error(pastel.red('(no profile)'))
 
             puts pastel.red("\nNo profile can be found with that name\n")
             exit(1)
@@ -97,24 +97,24 @@ module AlcesJob
 
           @profile_data = YAML.load_file(profile_path)
 
-          spinner.success('(profile loaded)')
+          spinner.success(pastel.green('(profile loaded)'))
           spinner.update(title: 'updating profile')
           spinner.auto_spin
 
           @profile_data = @profile_data.merge(options)
 
-          spinner.success('(successful)')
+          spinner.success(pastel.green('(successful)'))
           spinner.update(title: 'writing to file')
           spinner.auto_spin
 
           begin
             File.write(profile_path, @profile_data.to_yaml)
-            spinner.success('(written)')
+            spinner.success(pastel.green('(written)'))
 
             puts pastel.green("\nSuccessfully updated the profile\n")
             exit(0)
           rescue StandardError => e
-            spinner.error('(write error)')
+            spinner.error(pastel.red('(write error)'))
             puts pastel.red("\nFailed to update the profile: #{e.message}\n")
             exit(1)
           end

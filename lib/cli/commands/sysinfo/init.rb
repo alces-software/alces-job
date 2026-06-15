@@ -42,21 +42,21 @@ module AlcesJob
             data = YAML.load_file(@system_info_path)
 
             unless data.nil?
-              spinner.error('(config exists)')
+              spinner.error(pastel.red('(config exists)'))
               puts pastel.green("\nA system info already exists\n")
               exit(1)
             end
 
-            spinner.success('(empty system info)')
+            spinner.success(pastel.green('(empty system info)'))
           else
-            spinner.success('(no system info)')
+            spinner.success(pastel.green('(no system info)'))
           end
 
           # Collecting system information
           spinner.update(title: 'collecting system info')
           spinner.auto_spin
           @system_data = Services::SysInfo.all_info
-          spinner.success('(successful)')
+          spinner.success(pastel.green('(successful)'))
 
           # Writing to system info file
           spinner.update(title: 'writing system info file')
@@ -64,12 +64,12 @@ module AlcesJob
           begin
             FileUtils.mkdir_p(File.dirname(@system_info_path))
             File.write(@system_info_path, @system_data.to_yaml)
-            spinner.success('(successful)')
+            spinner.success(pastel.green('(successful)'))
 
             puts pastel.green("\nThe system info file has been written to #{@system_info_path}\n")
             exit(0)
           rescue StandardError => e
-            spinner.error('(writing error)')
+            spinner.error(pastel.red('(writing error)'))
             puts pastel.red("\nFailed to write system info file: #{e.message}\n")
             exit(1)
           end

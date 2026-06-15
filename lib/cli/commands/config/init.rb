@@ -48,14 +48,14 @@ module AlcesJob
             data = YAML.load_file(@config_path)
 
             unless data.nil?
-              spinner.error('(config exists)')
+              spinner.error(pastel.red('(config exists)'))
               puts pastel.green("\nA config already exists\n")
               exit(1)
             end
 
-            spinner.success('(empty config)')
+            spinner.success(pastel.green('(empty config)'))
           else
-            spinner.success('(no config)')
+            spinner.success(pastel.green('(no config)'))
           end
 
           # Writing to config file
@@ -64,12 +64,12 @@ module AlcesJob
           begin
             FileUtils.mkdir_p(File.dirname(@config_path))
             File.write(@config_path, options.to_yaml)
-            spinner.success('(successful)')
+            spinner.success(pastel.green('(successful)'))
 
             puts pastel.green("\nThe config file has been written to #{@config_path}\n")
             exit(0)
           rescue StandardError => e
-            spinner.error('(writing error)')
+            spinner.error(pastel.red('(writing error)'))
             puts pastel.red("\nFailed to write config file: #{e.message}\n")
             exit(1)
           end

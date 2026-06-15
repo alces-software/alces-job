@@ -35,7 +35,7 @@ module AlcesJob
           puts File.read(profile_path)
           exit(0)
         rescue Errno::ENOENT
-          puts "\nNo profile directory exists\n"
+          puts pastel.red("\nNo profile directory exists\n")
           exit(1)
         end
       end
