@@ -84,10 +84,6 @@ class SlurmScriptValidator
       @system_info,
       partition_name
     )
-    puts "DEBUG time_value: #{time_value.inspect}"
-    puts "DEBUG partition_name: #{partition_name.inspect}"
-    puts "DEBUG max_time_seconds: #{max_time_seconds.inspect}"
-    puts "DEBUG requested_time_seconds: #{TimeConverter.to_seconds(time_value).inspect}" if time_value
 
     if time_value
       requested_time_seconds = TimeConverter.to_seconds(time_value)

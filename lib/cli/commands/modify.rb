@@ -14,28 +14,28 @@ module AlcesJob
 
         argument :script, required: true, desc: 'The script to modify'
 
-        option :job_name, type: :string,
+        option :job_name, aliases: ['-j'], type: :string,
                           desc: 'Sets the Slurm job name'
 
-        option :nodes, type: :integer,
+        option :nodes, aliases: ['-N'], type: :integer,
                        desc: 'Requests the number of compute nodes'
 
-        option :ntasks, type: :integer,
+        option :ntasks, aliases: ['-n'], type: :integer,
                         desc: 'Specifies the total number of tasks'
 
-        option :cpus_per_task, type: :integer,
+        option :cpus_per_task, aliases: ['-c'], type: :integer,
                                desc: 'Specifies CPU cores per task'
 
         option :mem, type: :string,
                      desc: 'Sets the memory requirement for the job, e.g. 4G or 2000M'
 
-        option :time, type: :string,
+        option :time, aliases: ['-t'], type: :string,
                       desc: 'Sets the job walltime limit, e.g. 02:00:00 or 1-00:00:00'
 
-        option :partition, type: :string,
+        option :partition, aliases: ['-p'], type: :string,
                            desc: 'Specifies the Slurm partition or queue to use'
 
-        option :account, type: :string,
+        option :account, aliases: ['-A'], type: :string,
                          desc: 'Specifies the Slurm account to charge'
 
         option :gres, type: :string,
@@ -44,7 +44,7 @@ module AlcesJob
         option :output, type: :string,
                         desc: 'Sets the Slurm stdout file path'
 
-        option :error, type: :string,
+        option :error, aliases: ['-e'], type: :string,
                        desc: 'Sets the Slurm stderr file path'
 
         option :mail_user, type: :string,
@@ -59,8 +59,8 @@ module AlcesJob
         option :dependency, type: :string,
                             desc: 'Sets a Slurm dependency string'
 
-        option :modules, type: :array, default: [],
-                         desc: 'Loads one or more environment modules before running the job'
+        option :module, type: :array, default: [],
+                        desc: 'Loads one or more environment modules before running the job'
 
         option :workdir, type: :string,
                          desc: 'Changes to the specified working directory in the job script'
@@ -68,17 +68,41 @@ module AlcesJob
         option :command, type: :string,
                          desc: 'Specifies the shell command to execute in the script'
 
-        option :output_file, type: :string,
+        option :output_file, aliases: ['-o'], type: :string,
                              desc: 'Writes the modified script to this output filename'
 
         option :submit, type: :boolean, default: false,
                         desc: 'Submits the script to Slurm automatically'
 
         def call(script:, **options)
+          options[:module] = extract_modules(ARGV)
+
           AlcesJob::Services::ModifyScript.new(
             script: script,
             options: options
           ).call
+        end
+
+        def extract_modules(argv)
+          modules = []
+
+          argv.each_with_index do |arg, index|
+            value =
+              if ['--module', '-m'].include?(arg)
+                argv[index + 1]
+              elsif arg.start_with?('--module=') || arg.start_with?('-m=')
+                arg.split('=', 2).last
+              end
+
+            next unless value
+
+            value
+              .split(',')
+              .map(&:strip)
+              .reject(&:empty?)
+              .each { |mod| modules << mod }
+          end
+          modules
         end
       end
     end
