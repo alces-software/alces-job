@@ -17,7 +17,7 @@ module AlcesJob
 
         return unless @info[:nodes].empty? && @info[:partitions].empty? && @info[:packages].empty? && @info[:gpu_total].zero?
 
-        prompt_for_system_info
+        @info = prompt_for_system_info
       end
 
       def prompt_for_system_info

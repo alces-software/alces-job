@@ -59,7 +59,11 @@ module AlcesJob
               admin_keys = admin.keys
               puts
               options.each_key do |key|
-                puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
+                if admin_keys.include?(key)
+                  puts pastel.yellow("You are overwriting the system admin defined #{key}")
+                else
+                  puts pastel.green("Admin defined #{key} loaded")
+                end
               end
 
               options = admin.merge(options)
@@ -74,8 +78,13 @@ module AlcesJob
               options_keys = options.keys
               puts
               profile.keys.each_key do |key|
-                puts pastel.green("Loaded profile flag #{key}") unless options_keys.include?(key)
+                if options_keys.include?(key)
+                  puts pastel.yellow("Ignoring profile flag #{key}")
+                else
+                  puts pastel.green("Loaded profile flag #{key}")
+                end
               end
+
               options = profile.merge(options)
             end
           end

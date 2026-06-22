@@ -1,9 +1,55 @@
+  # .rubocop.yml
+
+plugins:
+  - rubocop-performance
+  - rubocop-rspec
+
 AllCops:
   NewCops: enable
   TargetRubyVersion: 3.3
+  Exclude:
+    - "bin/**/*"
+    - "db/schema.rb"
+    - "db/migrate/**/*"
+    - "node_modules/**/*"
+    - "vendor/**/*"
 
+# -------------------------
+# Layout / formatting
+# -------------------------
 Layout/LineLength:
   Enabled: false
+
+Layout/EmptyLinesAroundClassBody:
+  Enabled: true
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: space
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+# -------------------------
+# Style
+# -------------------------
+Style/FrozenStringLiteralComment:
+  Enabled: true
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/Documentation:
+  Enabled: false
+
+Style/HashSyntax:
+  EnforcedStyle: ruby19
+
+Style/ClassAndModuleChildren:
+  EnforcedStyle: nested
+
+# -------------------------
+# Metrics (keep sane defaults)
+# -------------------------
 
 Metrics/ClassLength:
   Enabled: false
@@ -12,9 +58,6 @@ Metrics/MethodLength:
   Enabled: false
 
 Metrics/CyclomaticComplexity:
-  Enabled: false
-
-Style/Documentation:
   Enabled: false
 
 Style/OpenStructUse:
@@ -31,3 +74,33 @@ Lint/MissingSuper:
 
 Metrics/BlockLength:
   Enabled: false
+
+# -------------------------
+# Linting
+# -------------------------
+Lint/UnusedMethodArgument:
+  AllowUnusedKeywordArguments: true
+
+Lint/UselessAssignment:
+  Enabled: true
+
+# -------------------------
+# Performance (recommended)
+# -------------------------
+Performance/CollectionLiteralInLoop:
+  Enabled: true
+
+Performance/StringReplacement:
+  Enabled: true
+
+# -------------------------
+# RSpec (if applicable)
+# -------------------------
+RSpec:
+  Enabled: true
+
+RSpec/ExampleLength:
+  Max: 20
+
+RSpec/MultipleExpectations:
+  Max: 3

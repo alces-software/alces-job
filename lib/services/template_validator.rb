@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
 require 'erb'
-
 require 'ostruct'
-
 require 'tempfile'
 
 require_relative 'slurm_script_validator'
@@ -12,7 +10,6 @@ class TemplateValidator
   attr_reader :errors, :warnings
 
   DEFAULT_CONTEXT = {
-
     job_name: 'template_test',
     nodes: 1,
     ntasks: 1,
