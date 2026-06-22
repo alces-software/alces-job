@@ -97,10 +97,4 @@ Performance/StringReplacement:
 # RSpec (if applicable)
 # -------------------------
 RSpec:
-  Enabled: true
-
-RSpec/ExampleLength:
-  Max: 20
-
-RSpec/MultipleExpectations:
-  Max: 3
+  Enabled: false

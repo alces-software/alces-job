@@ -5,13 +5,13 @@ require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
 
-require_relative '../../services/script_generator/script_generator'
+require_relative '../../../services/script_generator/script_generator'
 
 module AlcesJob
   module CLI
     module Commands
       class Serial < Dry::CLI::Command
-        AlcesJob::CLI.register 'serial', self
+        AlcesJob::CLI.register 'generate serial', self
         desc 'Creates a serial sbatch script'
 
         option :job_name, type: :string, aliases: ['-J'],
@@ -50,7 +50,7 @@ module AlcesJob
 
         def call(**options)
           pastel = Pastel.new
-          config = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))
+          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
 
           if options[:site_config]
             admin_path = config['admin_config_file']
@@ -77,7 +77,7 @@ module AlcesJob
               profile = YAML.load_file(profile_path)
               options_keys = options.keys
               puts
-              profile.keys.each_key do |key|
+              profile.each_key do |key|
                 if options_keys.include?(key)
                   puts pastel.yellow("Ignoring profile flag #{key}")
                 else

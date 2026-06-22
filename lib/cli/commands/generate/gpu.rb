@@ -5,82 +5,60 @@ require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
 
-require_relative '../../services/script_generator/script_generator'
+require_relative '../../../services/script_generator/script_generator'
 
 module AlcesJob
   module CLI
     module Commands
-      class Base < Dry::CLI::Command
-        AlcesJob::CLI.register 'base', self
-        desc 'Creates a universal sbatch script'
+      class GPU < Dry::CLI::Command
+        AlcesJob::CLI.register 'generate gpu', self
+        desc 'Creates a GPU sbatch script'
 
         option :job_name, type: :string, aliases: ['-J'],
-                          desc: 'Sets the Slurm job name for the generated script'
+                          desc: 'Sets the Slurm job name for the generated GPU script'
         option :nodes, type: :integer, aliases: ['-N'],
                        desc: 'Requests the number of compute nodes for the job'
         option :ntasks, type: :integer, aliases: ['-n'],
-                        desc: 'Specifies the total number of tasks for the job'
+                        desc: 'Specifies the total number of tasks for the CUDA/GPU job'
         option :cpus_per_task, type: :integer, aliases: ['-c'],
                                desc: 'Specifies CPU cores per task'
         option :mem, type: :string,
                      desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
 
         option :time, type: :string, aliases: ['-t'],
-                      desc: 'Sets the job time limit (e.g. 02:00:00)'
+                      desc: 'Sets the walltime limit for the job'
         option :partition, type: :string, aliases: ['-p'],
                            desc: 'Specifies the Slurm partition or queue to use'
-        option :account, type: :string, aliases: ['-A'],
-                         desc: 'Specifies the Slurm account to charge'
         option :gres, type: :string,
-                      desc: 'Specifies generic resources such as GPUs or MICs'
-
-        option :output, type: :string,
-                        desc: 'Sets the Slurm stdout file path in the generated script'
-        option :error, type: :string, aliases: ['-e'],
-                       desc: 'Sets the Slurm stderr file path in the generated script'
-
-        option :mail_user, type: :string,
-                           desc: 'Sets the email address for Slurm notifications'
-        option :mail_type, type: :string,
-                           desc: 'Sets the Slurm mail notification type (BEGIN, END, FAIL, etc.)'
+                      desc: 'Specifies generic resources such as GPUs'
 
         option :module, type: :array, default: [],
-                        desc: 'Loads one or more environment modules before running the job'
+                        desc: 'Loads environment modules before running the job'
 
         option :workdir, type: :string,
                          desc: 'Changes to the specified working directory in the job script'
         option :command, type: :string,
                          desc: 'Specifies the shell command to execute in the script'
-        option :array, type: :string,
-                       desc: 'Sets a Slurm array specification for multiple jobs'
-        option :dependency, type: :string,
-                            desc: 'Sets a Slurm dependency string for the job'
 
         option :output_file, type: :string, aliases: ['-o'],
-                             desc: 'Writes the generated script to this output filename'
-
-        option :o, type: :string,
-                   desc: 'Alias for --output-file'
+                             desc: 'Writes the generated script to this filename instead of job.sbatch'
 
         option :submit, type: :boolean, default: false,
-                        desc: 'Submits the generated script to Slurm automatically'
+                        desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
+
+        option :site_config, type: :boolean, default: true, desc: 'whether or not to use the admins specified config file'
+
         option :yes, type: :boolean, default: false,
                      desc: 'Submits the generated script without prompting'
 
-        option :template, type: :string,
-                          desc: 'Specifies a custom template to use for script generation (must be in built-in or user template)'
-
-        option :profile, type: :string,
-                         desc: 'The name of a profile you have stored to load predetermined flags'
-
-        option :site_config, type: :boolean, default: true, desc: 'whether or not to use the admins specified config file'
+        option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
 
         option :dry_run, type: :boolean, default: false,
                          desc: 'Does not save the file if set to true'
 
         def call(**options)
           pastel = Pastel.new
-          config = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))
+          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
 
           if options[:site_config]
             admin_path = config['admin_config_file']
@@ -107,7 +85,7 @@ module AlcesJob
               profile = YAML.load_file(profile_path)
               options_keys = options.keys
               puts
-              profile.keys.each_key do |key|
+              profile.each_key do |key|
                 if options_keys.include?(key)
                   puts pastel.yellow("Ignoring profile flag #{key}")
                 else
@@ -130,6 +108,8 @@ module AlcesJob
           spinner.update(title: 'generating SBATCH script')
           spinner.auto_spin
 
+          options[:template] = 'gpu'
+
           generator = Services::ScriptGenerator.new(options)
           if options[:dry_run].nil? || !options[:dry_run]
             if File.exist?(generator.file_path)
@@ -150,7 +130,6 @@ module AlcesJob
             # Submit the sbatch file to sbatch if user adds submit flag
             exit(0) unless options[:submit]
 
-            puts generator.generate
             unless options[:yes] || TTY::Prompt.new.yes?("\nWould you like to submit this script?", default: false)
               puts pastel.yellow("\nSkipping submission\n")
               exit(0)
@@ -158,22 +137,18 @@ module AlcesJob
 
             spinner.update(title: 'submitting script')
             spinner.auto_spin
-            begin
-              stdout, status = generator.submit(file_path)
 
-              unless status.success?
-                spinner.error(pastel.red('(error)'))
-                puts pastel.red("\nAn error occurred\n")
-                exit(1)
-              end
+            stdout, status = generator.submit(file_path)
 
-              spinner.success('(submitted)')
-
-              puts "\n#{stdout}\n"
-            rescue Errno::ENOENT
+            unless status.success?
               spinner.error(pastel.red('(error)'))
-              puts pastel.red("\nThis is not a SLURM environment.\n")
+              puts pastel.red("\nAn error occurred\n")
+              exit(1)
             end
+
+            spinner.success(pastel.green('(submitted)'))
+
+            puts "\n#{stdout}\n"
           else
             output = generator.generate
 
@@ -183,6 +158,10 @@ module AlcesJob
             puts output
           end
           exit(0)
+        rescue Errno::ENOENT
+          spinner.error(pastel.red('(error)'))
+          puts pastel.red("\nAn error occurred\n")
+          exit(1)
         end
       end
     end
