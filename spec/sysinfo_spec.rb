@@ -161,19 +161,7 @@ RSpec.describe AlcesJob::Services::SysInfo do
 
   describe '.all_info' do
     it 'returns all system information in one hash' do
-      allow(described_class).to receive(:node_info).and_return(
-        [{ node: 'node01', cpus: 64, memory: 385_024 }]
-      )
-
-      allow(described_class).to receive(:partition_info).and_return(
-        [{ partition: 'serial', time_limit: '7-00:00:00', default: true }]
-      )
-
-      allow(described_class).to receive(:package_info).and_return(
-        %w[miniconda gcc]
-      )
-
-      allow(described_class).to receive(:gpu_info).and_return(4)
+      allow(described_class).to receive_messages(node_info: [{ node: 'node01', cpus: 64, memory: 385_024 }], partition_info: [{ partition: 'serial', time_limit: '7-00:00:00', default: true }], package_info: %w[miniconda gcc], gpu_info: 4)
 
       expect(described_class.all_info).to eq(
         {
@@ -186,10 +174,7 @@ RSpec.describe AlcesJob::Services::SysInfo do
     end
 
     it 'fills missing values with defaults when slurm is unavailable' do
-      allow(described_class).to receive(:node_info).and_return(nil)
-      allow(described_class).to receive(:partition_info).and_return(nil)
-      allow(described_class).to receive(:package_info).and_return(nil)
-      allow(described_class).to receive(:gpu_info).and_return(0)
+      allow(described_class).to receive_messages(node_info: nil, partition_info: nil, package_info: nil, gpu_info: 0)
 
       expect(described_class.all_info).to eq(
         {

@@ -5,24 +5,22 @@ require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
 
-require_relative '../../services/generator'
+require_relative '../../../services/script_generator/script_generator'
 
 module AlcesJob
   module CLI
     module Commands
-      class Array < Dry::CLI::Command
-        AlcesJob::CLI.register 'array', self
-        desc 'Creates an array sbatch script'
+      class Serial < Dry::CLI::Command
+        AlcesJob::CLI.register 'generate serial', self
+        desc 'Creates a serial sbatch script'
 
         option :job_name, type: :string, aliases: ['-J'],
-                          desc: 'Sets the Slurm job name for the generated array script'
-        option :nodes, type: :integer, aliases: ['-N'],
-                       desc: 'Requests the number of compute nodes for the array job'
+                          desc: 'Sets the Slurm job name for the generated Serial script'
         option :mem, type: :string,
                      desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
 
         option :time, type: :string, aliases: ['-t'],
-                      desc: 'Sets the walltime limit for the array job'
+                      desc: 'Sets the walltime limit for the Serial job'
         option :partition, type: :string, aliases: ['-p'],
                            desc: 'Specifies the Slurm partition or queue to use'
 
@@ -33,28 +31,26 @@ module AlcesJob
                          desc: 'Changes to the specified working directory in the job script'
         option :command, type: :string,
                          desc: 'Specifies the shell command to execute in the script'
-        option :array, type: :string,
-                       desc: 'Sets the Slurm array task specification for the job'
 
         option :output_file, type: :string,
                              desc: 'Writes the generated script to this filename instead of job.sbatch'
 
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
+        option :profile, type: :string,
+                         desc: 'The name of a profile you have stored to load predetermined flags'
 
         option :site_config, type: :boolean, default: true, desc: 'whether or not to use the admins specified config file'
 
         option :yes, type: :boolean, default: false,
                      desc: 'Submits the generated script without prompting'
 
-        option :profile, type: :string, desc: 'The name of a profile you have stored to load predetermined flags'
-
         option :dry_run, type: :boolean, default: false,
                          desc: 'Does not save the file if set to true'
 
         def call(**options)
           pastel = Pastel.new
-          config = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))
+          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
 
           if options[:site_config]
             admin_path = config['admin_config_file']
@@ -81,7 +77,7 @@ module AlcesJob
               profile = YAML.load_file(profile_path)
               options_keys = options.keys
               puts
-              profile.keys.each_key do |key|
+              profile.each_key do |key|
                 if options_keys.include?(key)
                   puts pastel.yellow("Ignoring profile flag #{key}")
                 else
@@ -93,7 +89,7 @@ module AlcesJob
             end
           end
 
-          # Generate sbatch file bases on user inputs
+          # Generate sbatch file bases on user flags
           puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
@@ -104,14 +100,9 @@ module AlcesJob
           spinner.update(title: 'generating SBATCH script')
           spinner.auto_spin
 
-          if options[:array].nil? || options[:array].to_s.strip.empty?
-            warn 'Error: --array is required for array jobs'
-            exit(1)
-          end
+          options[:template] = 'serial'
 
-          options[:template] = 'array'
-
-          generator = AlcesJob::Services::Generator.new(options)
+          generator = Services::ScriptGenerator.new(options)
           if options[:dry_run].nil? || !options[:dry_run]
             if File.exist?(generator.file_path)
               spinner.error(pastel.red('(file exists)'))
@@ -147,9 +138,9 @@ module AlcesJob
               exit(1)
             end
 
-            spinner.success('(submitted)')
+            spinner.success(pastel.grren('(submitted)'))
 
-            puts "\n#{stdout}\n"
+            puts "#{stdout}\n"
           else
             output = generator.generate
 

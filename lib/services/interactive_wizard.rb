@@ -6,7 +6,7 @@ require 'pastel'
 require 'yaml'
 require 'erb'
 
-require_relative 'sysinfo'
+require_relative 'sys_info/sys_info'
 
 module AlcesJob
   module Services

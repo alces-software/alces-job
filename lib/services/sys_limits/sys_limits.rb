@@ -3,8 +3,6 @@
 require_relative '../converters/time_converter'
 require_relative '../converters/memory_converter'
 
-require_relative '../sys_limits/system_limits'
-
 module AlcesJob
   module Services
     module SystemLimits
@@ -26,7 +24,7 @@ module AlcesJob
 
         return DEFAULT_MEMORY_MB if nodes.empty?
 
-        nodes.map { |node| node[:memory] || node['memory'] }.compact.max || DEFAULT_MEMORY_MB
+        nodes.filter_map { |node| node[:memory] || node['memory'] }.max || DEFAULT_MEMORY_MB
       end
 
       def self.max_cpus_per_node(system_info)
@@ -34,13 +32,13 @@ module AlcesJob
 
         return DEFAULT_CPUS_PER_NODE if nodes.empty?
 
-        nodes.map { |node| node[:cpus] || node['cpus'] }.compact.max || DEFAULT_CPUS_PER_NODE
+        nodes.filter_map { |node| node[:cpus] || node['cpus'] }.max || DEFAULT_CPUS_PER_NODE
       end
 
       def self.valid_partitions(system_info)
         partitions = partitions_from(system_info)
 
-        partitions.map { |partition| partition[:partition] || partition['partition'] }.compact
+        partitions.filter_map { |partition| partition[:partition] || partition['partition'] }
       end
 
       def self.time_limit_seconds(system_info, partition_name = nil)

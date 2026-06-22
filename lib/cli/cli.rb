@@ -28,12 +28,11 @@ require_relative 'commands/template'
 # Loads interactive command
 require_relative 'commands/interactive'
 
-# Loads all commands used to make sbatch scripts
-require_relative 'commands/base'
-require_relative 'commands/serial'
-require_relative 'commands/gpu'
-require_relative 'commands/mpi'
-require_relative 'commands/array'
+# Loads all generator commands
+require_relative 'commands/generate'
+
+# Loads all validator commands
 require_relative 'commands/validate'
-require_relative 'commands/tvalidate'
+
+# Load modify command
 require_relative 'commands/modify'

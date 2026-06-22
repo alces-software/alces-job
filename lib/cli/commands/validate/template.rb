@@ -3,17 +3,17 @@
 require 'dry/cli'
 require 'pastel'
 
-require_relative '../../services/template_validator'
+require_relative '../../../services/validators/template_validator'
 
 module AlcesJob
   module CLI
     module Commands
       class TValidate < Dry::CLI::Command
+        AlcesJob::CLI.register 'validate template', self
         desc 'Validates a custom template'
 
         argument :name, required: true, desc: 'Name of the custom template'
 
-        AlcesJob::CLI.register 'template-validate', self
         def call(name:, **)
           template_path = File.expand_path("~/.alces-job/templates/#{name}.erb")
           validator = TemplateValidator.new(template_path)

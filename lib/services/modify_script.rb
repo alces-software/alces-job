@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
-require_relative 'slurm_script_validator'
 require 'open3'
 require 'tty-prompt'
+
+require_relative 'validators/slurm_script_validator'
 
 module AlcesJob
   module Services

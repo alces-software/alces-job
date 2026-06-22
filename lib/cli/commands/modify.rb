@@ -90,7 +90,7 @@ module AlcesJob
             value =
               if ['--module', '-m'].include?(arg)
                 argv[index + 1]
-              elsif arg.start_with?('--module=') || arg.start_with?('-m=')
+              elsif arg.start_with?('--module=', '-m=')
                 arg.split('=', 2).last
               end
 
