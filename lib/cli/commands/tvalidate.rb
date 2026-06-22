@@ -3,7 +3,7 @@
 require 'dry/cli'
 require 'pastel'
 
-require_relative '../../services/template_validator'
+require_relative '../../services/validators/template_validator'
 
 module AlcesJob
   module CLI

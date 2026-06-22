@@ -7,7 +7,7 @@ require 'yaml'
 
 module AlcesJob
   module Services
-    class Generator
+    class ScriptGenerator
       attr_reader :file_path
 
       def initialize(options)

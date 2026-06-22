@@ -3,7 +3,7 @@
 require 'dry/cli'
 require 'pastel'
 
-require_relative '../../services/slurm_script_validator'
+require_relative '../../services/validators/slurm_script_validator'
 
 module AlcesJob
   module CLI

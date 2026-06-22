@@ -5,7 +5,7 @@ require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
 
-require_relative '../../services/generator'
+require_relative '../../services/script_generator/script_generator'
 
 module AlcesJob
   module CLI
@@ -111,7 +111,7 @@ module AlcesJob
 
           options[:template] = 'array'
 
-          generator = AlcesJob::Services::Generator.new(options)
+          generator = Services::ScriptGenerator.new(options)
           if options[:dry_run].nil? || !options[:dry_run]
             if File.exist?(generator.file_path)
               spinner.error(pastel.red('(file exists)'))

@@ -6,7 +6,7 @@ require 'tty-spinner'
 require 'yaml'
 require 'fileutils'
 
-require_relative '../../../services/sysinfo'
+require_relative '../../../services/sys_info/sys_info'
 
 module AlcesJob
   module CLI

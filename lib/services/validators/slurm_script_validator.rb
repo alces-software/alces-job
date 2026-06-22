@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative 'converters/memory_converter'
-require_relative 'converters/time_converter'
-require_relative 'validators/integer_directive_validator'
-require_relative 'validators/sbatch_directive_validator'
-require_relative 'sys_limits/system_limits'
-require_relative 'sysinfo'
+require_relative '../converters/memory_converter'
+require_relative '../converters/time_converter'
+require_relative 'integer_directive_validator'
+require_relative 'sbatch_directive_validator'
+require_relative '../sys_limits/sys_limits'
+require_relative '../sys_info/sys_info'
 
 class SlurmScriptValidator
   attr_reader :errors, :warnings
@@ -51,9 +51,9 @@ class SlurmScriptValidator
     end
 
     duplicates = directive_names
-                 .compact
-                 .select { |name| directive_names.count(name) > 1 }
-                 .uniq
+      .compact
+      .select { |name| directive_names.count(name) > 1 }
+      .uniq
     duplicates.each do |duplicate|
       errors << "Duplicate directive found: #{duplicate}."
     end
