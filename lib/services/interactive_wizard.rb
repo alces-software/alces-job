@@ -27,6 +27,7 @@ module AlcesJob
 
         partitions = prompt_for_partitions(prompt)
         nodes = prompt_for_nodes(prompt)
+
         gpu_total = prompt.ask('How many GPUs are available in total?', default: '0') do |q|
           q.validate(/\A\d+\z/)
           q.messages[:valid?] = 'Please enter a whole number.'
@@ -357,7 +358,7 @@ module AlcesJob
         loop do
           job_type = 'default' if job_type == 'serial'
 
-          generator = AlcesJob::Services::Generator.new(
+          generator = AlcesJob::Services::ScriptGenerator.new(
             result.merge(template: job_type)
           )
 
@@ -504,7 +505,7 @@ module AlcesJob
 
         job_type = 'default' if job_type == 'serial'
 
-        generator = AlcesJob::Services::Generator.new(
+        generator = AlcesJob::Services::ScriptGenerator.new(
           result.merge(template: job_type)
         )
 

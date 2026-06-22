@@ -14,7 +14,7 @@ module AlcesJob
         @context = OpenStruct.new(options)
         @template = @context.template || 'default'
         job_name = @context.job_name || 'default'
-        @admin_path = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))['admin_templates_folder']
+        @admin_path = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))['admin_templates_folder']
         @file_path = File.join(Dir.pwd, @context.output_file.nil? ? "job-#{job_name}.slurm" : @context.output_file)
       end
 
@@ -47,7 +47,7 @@ module AlcesJob
       # The template to be used to generate the script
       # @return [String]
       def template
-        built_in_path = File.join(__dir__, '../../templates', "#{@template}.erb")
+        built_in_path = File.join(__dir__, '../../../templates', "#{@template}.erb")
         user_path = File.join(File.expand_path('~/.alces-job/templates'), "#{@template}.erb")
         admin_file = File.join(File.expand_path(@admin_path), "#{@template}.erb")
 
