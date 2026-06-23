@@ -8,6 +8,7 @@ require 'erb'
 
 require_relative 'sys_info/sys_info'
 require_relative 'converters/time_converter'
+require_relative 'converters/memory_converter'
 
 module AlcesJob
   module Services
@@ -53,19 +54,17 @@ module AlcesJob
 
         partition_names.map.with_index do |name, index|
           time_limit = prompt.ask("Max time for partition #{name}", default: '0-07:00:00') do |q|
-            q.validate do |input|
-              !TimeConverter.to_seconds(input).nil?
+            q.validate { |input| !TimeConverter.to_seconds(input).nil? }
+            q.messages[:valid?] = 'time must be in format HH:MM:SS or D-HH:MM:SS'
           end
-          q.messages[:valid?] = 'time must be in format HH:MM:SS or D-HH:MM:SS'
-        end
 
           {
             partition: name,
             time_limit: time_limit,
             default: index.zero?
           }
+        end
       end
-    end
 
       def prompt_for_nodes(prompt)
         max_cpu_cores = prompt.ask('Maximum CPU cores per node', default: '4') do |q|
@@ -75,9 +74,13 @@ module AlcesJob
         end
 
         max_memory = prompt.ask('Maximum memory per node (MB)', default: '5000') do |q|
-          q.validate(/\A\d+\z/)
-          q.messages[:valid?] = 'Please enter a whole number.'
-          q.convert :int
+          q.validate do |input|
+            !MemoryConverter.to_mb(input).nil?
+          end
+          q.messages[:valid?] = 'Please enter memory using M, MB, G, GB e.g. 5000M or 4G'
+          q.convert do |input|
+            MemoryConverter.to_mb(input)
+          end
         end
 
         [{ node: 'local', cpus: max_cpu_cores, memory: max_memory }]
@@ -175,7 +178,10 @@ module AlcesJob
         max_cpu_cores = 0
 
         nodes.each do |node|
-          max_memory = node[:memory] if node[:memory] > max_memory
+          node_memory = MemoryConverter.to_mb((node[:memory] || node ['memory']).to_s)
+          node_cpus = (node[:cpu] || node['cpus']).to_i
+
+          max_memory = node_memory if node_memory && node_memory > max_memory
           max_cpu_cores = node[:cpus] if node[:cpus] > max_cpu_cores
         end
 
@@ -292,7 +298,9 @@ module AlcesJob
             when :mem
               puts "Max memory: #{max_memory} MB"
               key(item).ask(question, default: defaults[item]) do |q|
-                q.validate(/\A\d+\z/)
+                q.validate do |input|
+                  !MemoryConverter.to_mb(input).nil?
+                end
                 q.messages[:valid?] = 'Please enter a whole number'
                 q.validate do |input|
                   input.to_i <= max_memory
@@ -422,19 +430,21 @@ module AlcesJob
           when :mem
             puts "Max memory: #{max_memory} MB"
 
-            result[:mem] = prompt.ask(
-              questions[:mem],
-              default: result[:mem].to_s
-            ) do |q|
+            key(item).ask(question, default: defaults[item]) do |q|
               q.validate do |input|
-                input.match?(/\A\d+\z/) &&
-                  input.to_i >= 1 &&
-                  input.to_i <= max_memory
+                requested_memory_mb = MemoryConverter.to_mb(input)
+
+                !requested_memory_mb.nil? &&
+                  requested_memory_mb >= 1 &&
+                  requested_memory_mb <= max_memory
               end
 
-              q.messages[:valid?] = "Please enter a whole number between 1 and #{max_memory} MB"
+              q.messages[:valid?] =
+                "Enter memory between 1 MB and #{max_memory} MB, such as 500, 500M, or 2G."
 
-              q.convert :int
+              q.convert do |input|
+                MemoryConverter.to_mb(input)
+              end
             end
 
           when :cpus_per_task

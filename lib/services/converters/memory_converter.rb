@@ -13,9 +13,9 @@ module MemoryConverter
     when 'M', 'MB'
       amount.ceil
     when 'G', 'GB'
-      amount.ceil * 1024
+      (amount.ceil) * 1024
     when 'T', 'TB'
-      amount.ceil * 1024 * 1024
+      (amount.ceil) * 1024 * 1024
 
     end
   end
