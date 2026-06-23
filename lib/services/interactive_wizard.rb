@@ -15,7 +15,7 @@ module AlcesJob
     class InteractiveWizard
       def initialize
         @info = AlcesJob::Services::SysInfo.load_info(Services::Paths.new.system_info_path)
-        @info = self.class.deep_symbolize_keys(@info)
+        @info = deep_symbolize_keys(@info)
 
         return unless @info[:nodes].empty? &&
                       @info[:partitions].empty? &&
@@ -149,7 +149,7 @@ module AlcesJob
                 [
                   partition[:partition],
                   partition[:time_limit],
-                  AlcesJob::Services::HumanReadableTime.call(partition[:time_limit]),
+                  TimeConverter.to_human_readable(partition[:time_limit]),
                   partition[:default] ? 'True' : 'False'
                 ]
               end
@@ -269,7 +269,7 @@ module AlcesJob
               [
                 partition[:partition],
                 partition[:time_limit],
-                AlcesJob::Services::HumanReadableTime.call(partition[:time_limit])
+                TimeConverter.to_human_readable(partition[:time_limit])
               ]
             end
 
@@ -291,7 +291,7 @@ module AlcesJob
             end
 
             max_run_time = selected_partition_info[:time_limit]
-            human_readable_max_time = AlcesJob::Services::HumanReadableTime.call(max_run_time)
+            human_readable_max_time = TimeConverter.to_human_readable(max_run_time)
 
             puts "The max runtime for #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
 
@@ -316,7 +316,7 @@ module AlcesJob
             end
 
             max_run_time = selected_partition_info[:time_limit]
-            human_readable_max_time = AlcesJob::Services::HumanReadableTime.call(max_run_time)
+            human_readable_max_time = TimeConverter.to_human_readable(max_run_time)
 
             puts "The max runtime for #{result[:partition]} is #{max_run_time}, i.e. #{human_readable_max_time}"
 
