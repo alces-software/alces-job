@@ -6,14 +6,14 @@ require 'tty-spinner'
 require 'tty-prompt'
 require 'yaml'
 
-require_relative 'template/generate_template'
+require_relative 'command_templates/generate_command_template'
 require_relative '../../../services/script_generator/script_generator'
 require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
     module Commands
-      class Array < AlcesJob::CLI::Commands::GenerateTemplate
+      class Array < Templates::GenerateCommandTemplate
         AlcesJob::CLI.register 'generate array', self
         desc 'Creates an array sbatch script'
 

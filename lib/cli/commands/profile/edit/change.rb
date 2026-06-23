@@ -62,7 +62,7 @@ module AlcesJob
           options.delete(:args)
           pastel = Pastel.new
 
-          if profile_name.nil?
+          if profile_name.to_s.strip.empty?
             puts pastel.red("\nNo profile name was provided\n")
             exit(1)
           end

@@ -14,13 +14,13 @@ module AlcesJob
         AlcesJob::CLI.register 'profile delete', self
         desc 'Deletes a saved profile'
 
-        argument :profile, require: true, type: :string, desc: 'The name of the profile'
+        argument :profile_name, require: true, type: :string, desc: 'The name of the profile'
 
-        def call(profile:)
+        def call(profile_name:)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 
-          unless profile.nil?
+          unless profile_name.to_s.strip.empty?
             puts pastel.red("\nNo profile name was provided\n")
             exit(1)
           end

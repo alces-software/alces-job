@@ -17,8 +17,8 @@ module AlcesJob
         def call(profile_name:)
           pastel = Pastel.new
 
-          if profile.nil?
-            puts pastel.red("\nNo profile name supplied\n")
+          if profile_name.to_s.strip.empty?
+            puts pastel.red("\nNo profile name was provided\n")
             exit(1)
           end
 

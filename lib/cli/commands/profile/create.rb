@@ -76,7 +76,7 @@ module AlcesJob
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 
-          if profile_name.nil?
+          if name.to_s.strip.empty?
             puts pastel.red("\nNo profile name was provided\n")
             exit(1)
           end
