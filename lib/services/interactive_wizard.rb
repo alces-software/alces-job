@@ -15,10 +15,6 @@ module AlcesJob
     class InteractiveWizard
       def system_info
         @info = AlcesJob::Services::SysInfo.load_info(Services::Paths.new.system_info_path)
-
-        config = YAML.safe_load_file(config_path, symbolize_names: true)
-
-        @info = AlcesJob::Services::SysInfo.load_info(config[:system_info_file])
         @info = self.class.deep_symbolize_keys(@info)
 
         return unless @info[:nodes].empty? &&
@@ -241,7 +237,7 @@ module AlcesJob
 
         nodes.each do |node|
           node_memory = MemoryConverter.to_mb((node[:memory] || node['memory']).to_s)
-          node_cpus = (node[:cpu] || node['cpus']).to_i
+          (node[:cpu] || node['cpus']).to_i
 
           max_memory = node_memory if node_memory && node_memory > max_memory
           max_cpu_cores = node[:cpus] if node[:cpus] > max_cpu_cores
