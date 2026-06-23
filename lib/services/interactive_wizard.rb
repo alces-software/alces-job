@@ -13,191 +13,8 @@ require_relative 'converters/memory_converter'
 module AlcesJob
   module Services
     class InteractiveWizard
-      def system_info
-        @info = AlcesJob::Services::SysInfo.load_info(Services::Paths.new.system_info_path)
-        @info = self.class.deep_symbolize_keys(@info)
-
-        return unless @info[:nodes].empty? &&
-                      @info[:partitions].empty? &&
-                      @info[:packages].empty? &&
-                      @info[:gpu_total].zero?
-
-        @info = prompt_for_system_info
-      end
-
-      def self.deep_symbolize_keys(value)
-        case value
-        when Hash
-          value.each_with_object({}) do |(key, val), result|
-            result[key.to_sym] = deep_symbolize_keys(val)
-          end
-        when Array
-          value.map { |item| deep_symbolize_keys(item) }
-        else
-          value
-        end
-      end
-
-      def prompt_for_system_info
-        prompt = TTY::Prompt.new
-
-        puts 'Unable to detect a Slurm environment. Please enter fallback cluster configuration for the system you wish to run the script on.'
-
-        partitions = prompt_for_partitions(prompt)
-        nodes = prompt_for_nodes(prompt)
-
-        gpu_total = prompt.ask('How many GPUs are available in total?', default: '0') do |q|
-          q.validate(/\A\d+\z/)
-          q.messages[:valid?] = 'Please enter a whole number.'
-          q.convert :int
-        end
-
-        {
-          nodes: nodes,
-          partitions: partitions,
-          packages: [],
-          gpu_total: gpu_total
-        }
-      end
-
-      def prompt_for_partitions(prompt)
-        partition_input = prompt.ask('Partition names (comma-separated)', default: 'default') do |q|
-          q.required true
-        end
-
-        partition_names = partition_input.split(',').map(&:strip).reject(&:empty?)
-        partition_names = ['default'] if partition_names.empty?
-
-        partition_names.map.with_index do |name, index|
-          time_limit = prompt.ask("Max time for partition #{name}", default: '0-07:00:00') do |q|
-            q.validate { |input| !TimeConverter.to_seconds(input).nil? }
-            q.messages[:valid?] = 'time must be in format HH:MM:SS or D-HH:MM:SS'
-          end
-
-          {
-            partition: name,
-            time_limit: time_limit,
-            default: index.zero?
-          }
-        end
-      end
-
-      def prompt_for_nodes(prompt)
-        max_cpu_cores = prompt.ask('Maximum CPU cores per node', default: '4') do |q|
-          q.validate(/\A\d+\z/)
-          q.messages[:valid?] = 'Please enter a whole number.'
-          q.convert :int
-        end
-
-        max_memory = prompt.ask('Maximum memory per node (MB)', default: '5000') do |q|
-          q.validate do |input|
-            !MemoryConverter.to_mb(input).nil?
-          end
-          q.messages[:valid?] = 'Please enter memory using M, MB, G, GB e.g. 5000M or 4G'
-          q.convert do |input|
-            MemoryConverter.to_mb(input)
-          end
-        end
-
-        [{ node: 'local', cpus: max_cpu_cores, memory: max_memory }]
-      end
-
-      def slurm_time_to_seconds(time)
-        return nil if time.nil?
-
-        time = time.strip
-        return nil if time.empty?
-
-        days = 0
-
-        if time.include?('-')
-          day_part, time_part = time.split('-', 2)
-
-          return nil unless day_part.match?(/\A\d+\z/)
-
-          days = day_part.to_i
-        else
-          time_part = time
-        end
-        parts = time_part.split(':')
-
-        return nil unless parts.length == 3
-        return nil unless parts.all? { |part| part.match?(/\A\d+\z/) }
-
-        hours, minutes, seconds = parts.map(&:to_i)
-
-        return nil unless hours.between?(0, 23)
-        return nil unless minutes.between?(0, 59)
-        return nil unless seconds.between?(0, 59)
-
-        (days * 86_400) + (hours * 3_600) + (minutes * 60) + seconds
-      end
-
-      def valid_slurm_time?(input, max_time)
-        input_seconds = TimeConverter.to_seconds(input)
-        max_seconds = TimeConverter.to_seconds(max_time)
-
-        return false if input_seconds.nil?
-        return false if max_seconds.nil?
-
-        return true if max_seconds.zero?
-
-        input_seconds.positive? && input_seconds <= max_seconds
-      end
-
-      def human_readable_time(max_time)
-        return 'unknown' if max_time.nil?
-
-        max_time = max_time.strip
-
-        days = 0
-
-        if max_time.include?('-')
-          day_part, time_part = max_time.split('-', 2)
-          days = day_part.to_i
-        else
-          time_part = max_time
-        end
-
-        hours, minutes, seconds = time_part.split(':').map(&:to_i)
-
-        parts = []
-
-        parts << "#{days} days" if days.positive?
-        parts << "#{hours} hours" if hours.positive?
-        parts << "#{minutes} minutes" if minutes.positive?
-        parts << "#{seconds} seconds" if seconds.positive?
-
-        parts.empty? ? '0 seconds' : parts.join(', ')
-      end
-
-      def normalize_slurm_time(time_value)
-        if time_value.is_a?(Integer)
-          days = time_value / 86_400
-          remainder = time_value % 86_400
-
-          hours = remainder / 3600
-          remainder %= 3600
-
-          minutes = remainder / 60
-          seconds = remainder % 60
-
-          return format(
-            '%<days>d-%<hours>02d:%<minutes>02d:%<seconds>02d', days: days, hours: hours, minutes: minutes, seconds: seconds
-          )
-        end
-
-        time_string = time_value.to_s
-
-        return time_string if time_string.match?(/^\d+-\d{2}:\d{2}:\d{2}$/)
-
-        return "0-#{time_string}" if time_string.match?(/^\d{2}:\d{2}:\d{2}$/)
-
-        time_string
-      end
-
       def call
-        system_info
+        pastel = Pastel.new
 
         puts 'Welcome to the interactive mode!'
 
@@ -321,7 +138,7 @@ module AlcesJob
                 [
                   partition[:partition],
                   partition[:time_limit],
-                  wizard.human_readable_time(partition[:time_limit]),
+                  AlcesJob::Services::HumanReadableTime.call(partition[:time_limit]),
                   partition[:default] ? 'True' : 'False'
                 ]
               end
@@ -345,7 +162,7 @@ module AlcesJob
               end
 
               max_run_time = selected_partition_info[:time_limit]
-              human_readable_max_time = wizard.human_readable_time(max_run_time)
+              human_readable_max_time = TimeConverter.to_human_readable(max_run_time)
 
               puts "The max runtime for #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
 
@@ -441,7 +258,7 @@ module AlcesJob
               [
                 partition[:partition],
                 partition[:time_limit],
-                wizard.human_readable_time(partition[:time_limit])
+                AlcesJob::Services::HumanReadableTime.call(partition[:time_limit])
               ]
             end
 
@@ -463,7 +280,7 @@ module AlcesJob
             end
 
             max_run_time = selected_partition_info[:time_limit]
-            human_readable_max_time = wizard.human_readable_time(max_run_time)
+            human_readable_max_time = AlcesJob::Services::HumanReadableTime.call(max_run_time)
 
             puts "The max runtime for #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
 
@@ -488,7 +305,7 @@ module AlcesJob
             end
 
             max_run_time = selected_partition_info[:time_limit]
-            human_readable_max_time = wizard.human_readable_time(max_run_time)
+            human_readable_max_time = AlcesJob::Services::HumanReadableTime.call(max_run_time)
 
             puts "The max runtime for #{result[:partition]} is #{max_run_time}, i.e. #{human_readable_max_time}"
 
@@ -587,7 +404,7 @@ module AlcesJob
 
         exit(0) if File.exist?(generator.file_path) && !prompt.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
 
-        file_path = generator.save
+        file_path = generator.save(generator.generate)
 
         puts "Script has been saved to #{file_path}"
 
@@ -596,12 +413,162 @@ module AlcesJob
         stdout, status = generator.submit(file_path)
 
         unless status.success?
-          puts 'An error occurred'
+          puts pastel.red("\nAn error occurred\n")
           exit(1)
         end
 
-        puts stdout
+        puts "\n#{stdout}\n"
         exit(0)
+      end
+
+      private
+
+      def system_info
+        @info = AlcesJob::Services::SysInfo.load_info(Services::Paths.new.system_info_path)
+        @info = self.class.deep_symbolize_keys(@info)
+
+        return unless @info[:nodes].empty? &&
+                      @info[:partitions].empty? &&
+                      @info[:packages].empty? &&
+                      @info[:gpu_total].zero?
+
+        @info = prompt_for_system_info
+      end
+
+      def deep_symbolize_keys(value)
+        case value
+        when Hash
+          value.each_with_object({}) do |(key, val), result|
+            result[key.to_sym] = deep_symbolize_keys(val)
+          end
+        when Array
+          value.map { |item| deep_symbolize_keys(item) }
+        else
+          value
+        end
+      end
+
+      def prompt_for_system_info
+        prompt = TTY::Prompt.new
+
+        puts Pastel.new.red("\nUnable to detect a Slurm environment. Please enter fallback cluster configuration for the system you wish to run the script on\n")
+
+        {
+          nodes: prompt_for_nodes(prompt),
+          partitions: prompt_for_partitions(prompt),
+          packages: [],
+          gpu_total: prompt.ask('How many GPUs are available in total?', default: '0') do |q|
+            q.validate(/\A\d+\z/)
+            q.messages[:valid?] = 'Please enter a whole number.'
+            q.convert :int
+          end
+        }
+      end
+
+      def prompt_for_partitions(prompt)
+        partition_input = prompt.ask('Partition names (comma-separated)', default: 'default') do |q|
+          q.required true
+        end
+
+        partition_names = partition_input.split(',').map(&:strip).reject(&:empty?)
+        partition_names = ['default'] if partition_names.empty?
+
+        partition_names.map.with_index do |name, index|
+          {
+            partition: name,
+            time_limit: prompt.ask("Max time for partition #{name}", default: '0-07:00:00') do |q|
+              q.validate { |input| !TimeConverter.to_seconds(input).nil? }
+              q.messages[:valid?] = 'time must be in format HH:MM:SS or D-HH:MM:SS'
+            end,
+            default: index.zero?
+          }
+        end
+      end
+
+      def prompt_for_nodes(prompt)
+        [{
+          node: 'local',
+          cpus: prompt.ask('Maximum CPU cores per node', default: '4') do |q|
+            q.validate(/\A\d+\z/)
+            q.messages[:valid?] = 'Please enter a whole number.'
+            q.convert :int
+          end,
+          memory: prompt.ask('Maximum memory per node (MB)', default: '5000') do |q|
+            q.validate do |input|
+              !MemoryConverter.to_mb(input).nil?
+            end
+            q.messages[:valid?] = 'Please enter memory using M, MB, G, GB e.g. 5000M or 4G'
+            q.convert do |input|
+              MemoryConverter.to_mb(input)
+            end
+          end
+        }]
+      end
+
+      def slurm_time_to_seconds(time)
+        return nil if time.nil?
+
+        time = time.strip
+        return nil if time.empty?
+
+        days = 0
+
+        if time.include?('-')
+          day_part, time_part = time.split('-', 2)
+
+          return nil unless day_part.match?(/\A\d+\z/)
+
+          days = day_part.to_i
+        else
+          time_part = time
+        end
+        parts = time_part.split(':')
+
+        return nil unless parts.length == 3
+        return nil unless parts.all? { |part| part.match?(/\A\d+\z/) }
+
+        hours, minutes, seconds = parts.map(&:to_i)
+
+        return nil unless hours.between?(0, 23)
+        return nil unless minutes.between?(0, 59)
+        return nil unless seconds.between?(0, 59)
+
+        (days * 86_400) + (hours * 3_600) + (minutes * 60) + seconds
+      end
+
+      def valid_slurm_time?(input, max_time)
+        input_seconds = slurm_time_to_seconds(input)
+        max_seconds = slurm_time_to_seconds(max_time)
+
+        return false if input_seconds.nil?
+        return false if max_seconds.nil?
+
+        input_seconds.positive? && input_seconds <= max_seconds
+      end
+
+      def normalize_slurm_time(time_value)
+        if time_value.is_a?(Integer)
+          days = time_value / 86_400
+          remainder = time_value % 86_400
+
+          hours = remainder / 3600
+          remainder %= 3600
+
+          minutes = remainder / 60
+          seconds = remainder % 60
+
+          return format(
+            '%<days>d-%<hours>02d:%<minutes>02d:%<seconds>02d', days: days, hours: hours, minutes: minutes, seconds: seconds
+          )
+        end
+
+        time_string = time_value.to_s
+
+        return time_string if time_string.match?(/^\d+-\d{2}:\d{2}:\d{2}$/)
+
+        return "0-#{time_string}" if time_string.match?(/^\d{2}:\d{2}:\d{2}$/)
+
+        time_string
       end
     end
     # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity

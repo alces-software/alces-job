@@ -26,7 +26,7 @@ module AlcesJob
       # Saves the script that was passed
       # @param [String] script
       # @return [String]
-      def save(script = generate)
+      def save(script)
         File.write(@file_path, script)
 
         @file_path
