@@ -4,7 +4,7 @@ module AlcesJob
   module Services
     module TimeConverter
       def self.to_seconds(time_value)
-        match = time_value.strip.match(/\A(?:(\d+)-)?(\d{1,2}):([0-5]\d):([0-5]\d)\z/)
+        match = time_value.strip.match(/\A(?:(\d+)-)?(\d{1,2}):(\d{1,2}):(\d{1,2})\z/)
 
         return nil unless match
 

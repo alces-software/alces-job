@@ -134,11 +134,13 @@ module AlcesJob
       end
 
       def valid_slurm_time?(input, max_time)
-        input_seconds = slurm_time_to_seconds(input)
-        max_seconds = slurm_time_to_seconds(max_time)
+        input_seconds = TimeConverter.to_seconds(input)
+        max_seconds = TimeConverter.to_seconds(max_time)
 
         return false if input_seconds.nil?
         return false if max_seconds.nil?
+
+        return true if max_seconds.zero?
 
         input_seconds.positive? && input_seconds <= max_seconds
       end
@@ -414,7 +416,7 @@ module AlcesJob
         end
 
         loop do
-          job_type = 'default' if job_type == 'serial'
+          job_type = 'universal' if job_type == 'serial'
 
           generator = AlcesJob::Services::ScriptGenerator.new(
             result.merge(template: job_type)
@@ -575,7 +577,7 @@ module AlcesJob
           system('clear')
         end
 
-        job_type = 'default' if job_type == 'serial'
+        job_type = 'universal' if job_type == 'serial'
 
         generator = AlcesJob::Services::ScriptGenerator.new(
           result.merge(template: job_type)
