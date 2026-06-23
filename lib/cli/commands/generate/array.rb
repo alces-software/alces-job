@@ -4,7 +4,9 @@ require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
+require 'tempfile'
 
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
 
 module AlcesJob
@@ -122,11 +124,33 @@ module AlcesJob
               spinner.auto_spin
             end
 
-            file_path = generator.save
+            script = generator.generate
 
-            spinner.success(pastel.green('(successful)'))
+            Tempfile.create(['generated_script', '.slurm']) do |tempfile|
+              tempfile.write(script)
+              tempfile.flush
 
-            puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
+              validator = SlurmScriptValidator.new(tempfile.path)
+
+              unless validator.validate?
+                spinner.error(pastel.red('(invalid)'))
+
+                puts pastel.red("\nGenerated script may not be valid:\n")
+                validator.errors.each { |error| puts pastel.red("ERROR: #{error}") }
+                validator.warnings.each { |warning| puts pastel.yellow("WARNING: #{warning}") }
+
+                unless TTY::Prompt.new.yes?("\nWould you still like to save this script?", default: false)
+                  puts pastel.yellow("\nScript was not saved.\n")
+                  exit(1)
+                end
+              end
+
+              file_path = generator.save(script)
+
+              spinner.success(pastel.green('(successful)'))
+
+              puts pastel.green("\nThe SBATCH script has been generated and saved to #{file_path}\n")
+            end
 
             # Submit the sbatch file to sbatch if user adds submit flag
             exit(0) unless options[:submit]
