@@ -4,66 +4,33 @@ require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
+require 'yaml'
+require 'tempfile'
 
+require_relative 'command_templates/generate_command_template'
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
     module Commands
-      class Serial < Dry::CLI::Command
+      class Serial < Templates::GenerateCommandTemplate
         AlcesJob::CLI.register 'generate serial', self
         desc 'Creates a serial sbatch script'
 
-        option :job_name, type: :string, aliases: ['-J'],
-                          desc: 'Sets the Slurm job name for the generated Serial script'
-        option :mem, type: :string,
-                     desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
-
-        option :time, type: :string, aliases: ['-t'],
-                      desc: 'Sets the walltime limit for the Serial job'
-        option :partition, type: :string, aliases: ['-p'],
-                           desc: 'Specifies the Slurm partition or queue to use'
-
-        option :module, type: :array, default: [],
-                        desc: 'Loads environment modules before running the job'
-
-        option :workdir, type: :string,
-                         desc: 'Changes to the specified working directory in the job script'
-        option :command, type: :string,
-                         desc: 'Specifies the shell command to execute in the script'
-
-        option :output_file, type: :string,
-                             desc: 'Writes the generated script to this filename instead of job.sbatch'
-
-        option :submit, type: :boolean, default: false,
-                        desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
-        option :profile, type: :string,
-                         desc: 'The name of a profile you have stored to load predetermined flags'
-
-        option :site_config, type: :boolean, default: true, desc: 'whether or not to use the admins specified config file'
-
-        option :yes, type: :boolean, default: false,
-                     desc: 'Submits the generated script without prompting'
-
-        option :dry_run, type: :boolean, default: false,
-                         desc: 'Does not save the file if set to true'
-
         def call(**options)
+          paths = Services::Paths.new
           pastel = Pastel.new
-          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
 
           if options[:site_config]
-            admin_path = config['admin_config_file']
+            admin_path = paths.admin_config_path
             if File.exist?(admin_path)
               admin = YAML.load_file(admin_path)
               admin_keys = admin.keys
               puts
               options.each_key do |key|
-                if admin_keys.include?(key)
-                  puts pastel.yellow("You are overwriting the system admin defined #{key}")
-                else
-                  puts pastel.green("Admin defined #{key} loaded")
-                end
+                puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
               end
 
               options = admin.merge(options)
@@ -71,8 +38,9 @@ module AlcesJob
           end
 
           unless options[:profile].nil?
-            profile_path = File.join(config['user_profile_dir'], "#{options[:profile]}.yaml")
+            profile_path = paths.user_profile_path(options[:profile].strip)
             options.delete(:profile)
+            remove_empty_module_default!(options)
             if File.exist?(profile_path)
               profile = YAML.load_file(profile_path)
               options_keys = options.keys
@@ -86,6 +54,8 @@ module AlcesJob
               end
 
               options = profile.merge(options)
+            else
+              puts pastel.red("\nA profile with that name was not found\n")
             end
           end
 
@@ -101,8 +71,11 @@ module AlcesJob
           spinner.auto_spin
 
           options[:template] = 'serial'
+          normalize_module_options!(options)
 
           generator = Services::ScriptGenerator.new(options)
+          script = generator.generate
+
           if options[:dry_run].nil? || !options[:dry_run]
             if File.exist?(generator.file_path)
               spinner.error(pastel.red('(file exists)'))
@@ -113,14 +86,36 @@ module AlcesJob
               spinner.auto_spin
             end
 
-            file_path = generator.save
+            file_path = nil
+            Tempfile.create(['generated_script', '.slurm']) do |tempfile|
+              tempfile.write(script)
+              tempfile.flush
+
+              validator = Services::SlurmScriptValidator.new(tempfile.path)
+
+              unless validator.validate?
+                spinner.error(pastel.red('(invalid)'))
+
+                puts pastel.bold.red("\nGenerated script may not be valid:\n")
+                validator.errors.each { |error| puts pastel.red("ERROR: #{error}") }
+                validator.warnings.each { |warning| puts pastel.yellow("WARNING: #{warning}") }
+
+                puts pastel.yellow("\nScript was not saved.\n")
+                exit(1)
+              end
+
+              file_path = generator.save(script)
+            end
 
             spinner.success(pastel.green('(successful)'))
 
-            puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
+            puts pastel.green("\nThe SBATCH script has been generated and saved to #{file_path}\n")
 
             # Submit the sbatch file to sbatch if user adds submit flag
             exit(0) unless options[:submit]
+
+            puts "\n--- SCRIPT PREVIEW ---"
+            puts script
 
             unless options[:yes] || TTY::Prompt.new.yes?("\nWould you like to submit this script?", default: false)
               puts pastel.yellow("\nSkipping submission\n")
@@ -138,8 +133,10 @@ module AlcesJob
               exit(1)
             end
 
-            spinner.success(pastel.grren('(submitted)'))
+            spinner.success(pastel.green('(submitted)'))
 
+            job_id = stdout[/Submitted batch job (\d+)/, 1]
+            puts pastel.green("\nSubmitted Job ID: #{job_id}\n") if job_id
             puts "#{stdout}\n"
           else
             output = generator.generate

@@ -4,6 +4,7 @@ require 'dry/cli'
 require 'pastel'
 
 require_relative '../../../services/validators/template_validator'
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -15,9 +16,14 @@ module AlcesJob
         argument :name, required: true, desc: 'Name of the custom template'
 
         def call(name:, **)
-          template_path = File.expand_path("~/.alces-job/templates/#{name}.erb")
-          validator = TemplateValidator.new(template_path)
           pastel = Pastel.new
+
+          if name.to_s.strip.empty?
+            puts pastel.red("\nNo template name was provided\n")
+            exit(1)
+          end
+
+          validator = TemplateValidator.new(Services::Paths.new.user_template_path(name.strip))
 
           if validator.validate?
             puts pastel.green("\nTemplate validation passed\n")
@@ -26,10 +32,11 @@ module AlcesJob
             validator.errors.each { |error| puts "- #{error}" }
           end
 
-          exit(0) if validator.warnings.empty?
+          unless validator.warnings.empty?
+            puts pastel.yellow("\nWarnings:")
+            validator.warnings.each { |warning| puts "- #{warning}" }
+          end
 
-          puts pastel.yellow("\nWarnings:")
-          validator.warnings.each { |warning| puts "- #{warning}" }
           exit(0)
         end
       end

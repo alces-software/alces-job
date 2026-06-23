@@ -5,6 +5,8 @@ require 'yaml'
 require 'pastel'
 require 'tty-spinner'
 
+require_relative '../../../../services/paths/paths'
+
 module AlcesJob
   module CLI
     module Commands
@@ -12,7 +14,7 @@ module AlcesJob
         AlcesJob::CLI.register 'profile edit change', self
         desc 'This is used to change and add flags within the the specified profile'
 
-        option :profile_name, type: :string, desc: 'The profile you want to update'
+        argument :profile_name, require: true, type: :string, desc: 'The profile you want to update'
 
         option :job_name, type: :string,
                           desc: 'Sets the Slurm job name for the generated script'
@@ -56,22 +58,17 @@ module AlcesJob
         option :dependency, type: :string,
                             desc: 'Sets a Slurm dependency string for the job'
 
-        def initialize
-          @profile_dir = YAML.load_file(File.expand_path('../../../../../config/config.yaml', __dir__))['user_profile_dir']
-          @profile_data = nil
-        end
-
-        def call(**options)
+        def call(profile_name:, **options)
+          options.delete(:args)
           pastel = Pastel.new
 
-          if options[:profile_name].nil?
+          if profile_name.to_s.strip.empty?
             puts pastel.red("\nNo profile name was provided\n")
             exit(1)
           end
 
-          profile_name = options[:profile_name].strip
-          profile_path = File.join(Dir.home, @profile_dir, "#{profile_name}.yaml")
-          options.delete(:profile_name)
+          profile_path = Services::Paths.new.user_profile_path(profile_name.strip)
+          normalize_module_options!(options)
           options.reject! { |_, value| value == [] }
 
           if options.empty?
@@ -95,20 +92,20 @@ module AlcesJob
             exit(1)
           end
 
-          @profile_data = YAML.load_file(profile_path)
+          profile_data = YAML.load_file(profile_path)
 
           spinner.success(pastel.green('(profile loaded)'))
           spinner.update(title: 'updating profile')
           spinner.auto_spin
 
-          @profile_data = @profile_data.merge(options)
+          profile_data = profile_data.merge(options)
 
           spinner.success(pastel.green('(successful)'))
           spinner.update(title: 'writing to file')
           spinner.auto_spin
 
           begin
-            File.write(profile_path, @profile_data.to_yaml)
+            File.write(profile_path, profile_data.to_yaml)
             spinner.success(pastel.green('(written)'))
 
             puts pastel.green("\nSuccessfully updated the profile\n")
@@ -118,6 +115,34 @@ module AlcesJob
             puts pastel.red("\nFailed to update the profile: #{e.message}\n")
             exit(1)
           end
+        end
+
+        private
+
+        def normalize_module_options!(options, argv = ARGV)
+          modules = extract_modules(argv)
+          modules = Array(options[:module]) if modules.empty?
+
+          options[:module] = modules
+            .map(&:to_s)
+            .map(&:strip)
+            .reject(&:empty?)
+            .uniq
+        end
+
+        def extract_modules(argv)
+          modules = []
+
+          argv.each_with_index do |arg, index|
+            if ['--module', '-m'].include?(arg)
+              value = argv[index + 1]
+              modules << value if value && !value.start_with?('-')
+            elsif arg.start_with?('--module=', '-m=')
+              modules << arg.split('=', 2).last
+            end
+          end
+
+          modules
         end
       end
     end

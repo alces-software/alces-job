@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# Slurm options: request multiple tasks/nodes for a distributed MPI job.
 #SBATCH --job-name=<%= @context.job_name %>
 #SBATCH --nodes=<%= @context.nodes || 2 %>
 #SBATCH --ntasks=<%= @context.ntasks || 32 %>
@@ -15,15 +17,19 @@
 #SBATCH --mem=<%= @context.mem %>
 <% end -%>
 
+# Load MPI first, then any extra modules requested by the user.
 module load openmpi
-<% Array(@context.modules).each do |mod| -%>
+<% Array(@context.module).each do |mod| -%>
 module load <%= mod %>
 <% end -%>
 <% if @context.workdir -%>
 
+# Run the job from this working directory.
 cd <%= @context.workdir %>
 
 <% end -%>
+# Show how many MPI tasks Slurm assigned.
 echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"
 
+# Launch the MPI workload through Slurm.
 srun <%= @context.command %>

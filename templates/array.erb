@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# Slurm options: this array job runs the same script for many task IDs.
 #SBATCH --job-name=<%= @context.job_name %>
 #SBATCH --array=<%= @context.array %>
 <% if @context.partition -%>
@@ -11,14 +13,18 @@
 #SBATCH --mem=<%= @context.mem %>
 <% end -%>
 
-<% Array(@context.modules).each do |mod| -%>
+# Load software modules before each array task runs.
+<% Array(@context.module).each do |mod| -%>
 module load <%= mod %>
 <% end -%>
 <% if @context.workdir -%>
 
+# Run each array task from this working directory.
 cd <%= @context.workdir %>
 
 <% end -%>
+# Slurm sets SLURM_ARRAY_TASK_ID so each task can choose different input/output.
 echo "Task ID: $SLURM_ARRAY_TASK_ID"
 
+# Your array task command starts here.
 <%= @context.command %>

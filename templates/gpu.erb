@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# Slurm options: request GPU resources plus the CPU/memory/time needed.
 #SBATCH --job-name=<%= @context.job_name %>
 #SBATCH --gres=<%= @context.gres || "gpu:1" %>
 <% if @context.nodes -%>
@@ -28,14 +30,18 @@
 #SBATCH --partition=<%= @context.partition %>
 <% end -%>
 
+# Load CUDA before running GPU software.
 module load cuda
-<% Array(@context.modules).each do |mod| -%>
+<% Array(@context.module).each do |mod| -%>
 module load <%= mod %>
 <% end -%>
 <% if @context.workdir -%>
+# Run the job from this working directory.
 cd <%= @context.workdir %>
 <% end -%>
 
+# Print GPU details into the output for easier debugging.
 nvidia-smi
 
+# Your GPU application command starts here.
 <%= @context.command %>

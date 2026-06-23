@@ -1,6 +1,8 @@
 #!/bin/bash
+
+# Slurm options: these lines tell the scheduler what resources this job needs.
 #SBATCH --job-name=<%= @context.job_name %>
-#SBATCH --nodes=1
+#SBATCH --nodes=1 
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 <% if @context.partition -%>
@@ -15,14 +17,18 @@
 #SBATCH --mem=<%= @context.mem %>
 <% end -%>
 
-<% Array(@context.modules).each do |mod| -%>
+# Load software modules before your command runs.
+<% Array(@context.module).each do |mod| -%>
 module load <%= mod %>
 <% end -%>
 <% if @context.workdir -%>
 
+# Run the job from this working directory.
 cd <%= @context.workdir %>
 
 <% end -%>
+# Print a short message into the job output so it is easy to identify.
 echo "Running serial job: <%= @context.job_name %>"
 
+# Your application command starts here.
 <%= @context.command || "echo 'No command provided'" %>
