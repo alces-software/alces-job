@@ -6,6 +6,8 @@ require 'tty-spinner'
 require 'yaml'
 require 'fileutils'
 
+require_relative '../../../services/paths/paths'
+
 module AlcesJob
   module CLI
     module Commands
@@ -14,11 +16,12 @@ module AlcesJob
         desc 'This command generates the initial admin config'
 
         option :partition, type: :string, desc: 'The default partition to be used'
+
         option :account, type: :string,
                          desc: 'Specifies the Slurm account to charge'
 
         def initialize
-          @config_path = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['admin_config_file']
+          @admin_config_path = Services::Paths.new.admin_config_path
         end
 
         def call(**options)
@@ -44,8 +47,8 @@ module AlcesJob
 
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
-          if File.exist?(@config_path)
-            data = YAML.load_file(@config_path)
+          if File.exist?(@admin_config_path)
+            data = YAML.load_file(@admin_config_path)
 
             unless data.nil?
               spinner.error(pastel.red('(config exists)'))
@@ -62,11 +65,11 @@ module AlcesJob
           spinner.update(title: 'writing config file')
           spinner.auto_spin
           begin
-            FileUtils.mkdir_p(File.dirname(@config_path))
-            File.write(@config_path, options.to_yaml)
+            FileUtils.mkdir_p(File.dirname(@admin_config_path))
+            File.write(@admin_config_path, options.to_yaml)
             spinner.success(pastel.green('(successful)'))
 
-            puts pastel.green("\nThe config file has been written to #{@config_path}\n")
+            puts pastel.green("\nThe config file has been written to #{@admin_config_path}\n")
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))

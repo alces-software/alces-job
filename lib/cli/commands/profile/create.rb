@@ -1,11 +1,12 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
-require 'yaml'
 require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
 require 'fileutils'
+
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -14,35 +15,44 @@ module AlcesJob
         AlcesJob::CLI.register 'profile create', self
         desc 'This command creates a profile bases on the flags passed in'
 
-        option :profile_name, type: :string, desc: 'What the profile will be called'
+        argument :profile_name, require: true, type: :string, desc: 'What the profile will be called'
 
         option :job_name, type: :string,
                           desc: 'Sets the Slurm job name for the generated script'
+
         option :nodes, type: :integer,
                        desc: 'Requests the number of compute nodes for the job'
+
         option :ntasks, type: :integer,
                         desc: 'Specifies the total number of tasks for the job'
+
         option :cpus_per_task, type: :integer,
                                desc: 'Specifies CPU cores per task'
+
         option :mem, type: :string,
                      desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
 
         option :time, type: :string,
                       desc: 'Sets the job time limit (e.g. 02:00:00)'
+
         option :partition, type: :string,
                            desc: 'Specifies the Slurm partition or queue to use'
+
         option :account, type: :string,
                          desc: 'Specifies the Slurm account to charge'
+
         option :gres, type: :string,
                       desc: 'Specifies generic resources such as GPUs or MICs'
 
         option :output, type: :string,
                         desc: 'Sets the Slurm stdout file path in the generated script'
+
         option :error, type: :string,
                        desc: 'Sets the Slurm stderr file path in the generated script'
 
         option :mail_user, type: :string,
                            desc: 'Sets the email address for Slurm notifications'
+
         option :mail_type, type: :string,
                            desc: 'Sets the Slurm mail notification type (BEGIN, END, FAIL, etc.)'
 
@@ -51,29 +61,27 @@ module AlcesJob
 
         option :workdir, type: :string,
                          desc: 'Changes to the specified working directory in the job script'
+
         option :command, type: :string,
                          desc: 'Specifies the shell command to execute in the script'
+
         option :array, type: :string,
                        desc: 'Sets a Slurm array specification for multiple jobs'
+
         option :dependency, type: :string,
                             desc: 'Sets a Slurm dependency string for the job'
 
-        def initialize
-          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
-        end
-
-        def call(**options)
+        def call(profile_name:, **options)
+          options.delete(:args)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 
-          if options[:profile_name].nil?
+          if name.to_s.strip.empty?
             puts pastel.red("\nNo profile name was provided\n")
             exit(1)
           end
 
-          profile_name = options[:profile_name].strip
-          profile_path = File.join(Dir.home, @profile_dir, "#{profile_name}.yaml")
-          options.delete(:profile_name)
+          profile_path = Services::Paths.new.user_profile_path(profile_name.strip)
           options.reject! { |_, value| value == [] }
 
           if options.empty?

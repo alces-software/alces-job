@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
-require 'yaml'
 require 'pastel'
+
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -14,9 +15,9 @@ module AlcesJob
         option :name, type: :string, desc: 'The name of the template to display'
 
         def initialize
-          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
-          @admin_templates_folder = File.expand_path(config['admin_templates_folder'])
-          @user_templates_folder = File.expand_path('~/.alces-job/templates')
+          paths = Services::Paths.new
+          @admin_templates_folder = paths.admin_template_dir
+          @user_templates_folder = paths.user_template_dir
           @builtin_templates_folder = File.expand_path('../../../../templates', __dir__)
         end
 
@@ -46,6 +47,9 @@ module AlcesJob
 
         private
 
+        # Searches for the directories for where the template is stored
+        # @param [String] name
+        # @return [String]
         def template_path(name)
           candidate_paths = [
             File.join(@user_templates_folder, "#{name}.erb"),
@@ -56,6 +60,8 @@ module AlcesJob
           candidate_paths.find { |path| File.exist?(path) }
         end
 
+        # Determines where the template is stored e.g. user, admin or built in
+        # @return [String]
         def template_source(path)
           case path
           when /#{Regexp.escape(@user_templates_folder)}/ then 'user'
