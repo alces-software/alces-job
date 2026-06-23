@@ -15,8 +15,14 @@ module AlcesJob
         argument :file_path, required: true, desc: 'Path to the sbatch/slurm script'
 
         def call(file_path:, **)
-          validator = SlurmScriptValidator.new(file_path)
           pastel = Pastel.new
+
+          if file_path.to_s.strip.empty?
+            puts pastel.red("\nNo template name was provided\n")
+            exit(1)
+          end
+
+          validator = SlurmScriptValidator.new(file_path)
 
           if validator.validate?
             puts pastel.green("\nValidation passed\n")
@@ -25,10 +31,10 @@ module AlcesJob
             validator.errors.each { |error| puts "- #{error}" }
           end
 
-          exit(0) if validator.warnings.empty?
-
-          puts pastel.yellow("\nWarnings:")
-          validator.warnings.each { |warning| puts "- #{warning}" }
+          unless validator.warnings.empty?
+            puts pastel.yellow("\nWarnings:")
+            validator.warnings.each { |warning| puts "- #{warning}" }
+          end
 
           exit(0)
         end

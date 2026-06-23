@@ -6,6 +6,7 @@ require_relative 'integer_directive_validator'
 require_relative 'sbatch_directive_validator'
 require_relative '../sys_limits/sys_limits'
 require_relative '../sys_info/sys_info'
+require_relative '../paths/paths'
 
 class SlurmScriptValidator
   attr_reader :errors, :warnings
@@ -14,8 +15,7 @@ class SlurmScriptValidator
     @file_path = file_path
     @errors = []
     @warnings = []
-    config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
-    @system_info = AlcesJob::Services::SysInfo.load_info(config['system_info_file'])
+    @system_info = AlcesJob::Services::SysInfo.load_info(AlcesJob::Paths.new.system_info_path)
   end
 
   def validate?

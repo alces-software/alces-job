@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
-require 'yaml'
 require 'pastel'
+
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -11,14 +12,10 @@ module AlcesJob
         AlcesJob::CLI.register 'profile list', self
         desc 'Lists saved user profiles'
 
-        def initialize
-          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
-        end
-
         def call(*)
           pastel = Pastel.new
 
-          profile_files = Dir.glob(File.join(Dir.home, @profile_dir, '*.yaml'))
+          profile_files = Dir.glob(AlcesJob::Paths.new.user_profile_path('*'))
 
           if profile_files.empty?
             puts pastel.red("\nNo profiles found\n")

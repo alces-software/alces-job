@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
-require 'yaml'
 require 'pastel'
+
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -11,24 +12,21 @@ module AlcesJob
         AlcesJob::CLI.register 'profile show', self
         desc 'Shows the contents of a saved profile'
 
-        option :profile, type: :string, desc: 'The name of the profile to display'
+        argument :profile_name, require: true, type: :string, desc: 'The name of the profile to display'
 
-        def initialize
-          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
-        end
-
-        def call(**options)
+        def call(profile_name:)
           pastel = Pastel.new
 
-          if options[:profile].nil?
+          if profile.nil?
             puts pastel.red("\nNo profile name supplied\n")
             exit(1)
           end
 
-          profile_path = File.join(Dir.home, @profile_dir, "#{options[:profile]}.yaml")
+          profile_name = profile_name.strip
+          profile_path = Dir.glob(AlcesJob::Paths.new.user_profile_path(profile_name))
 
           unless File.exist?(profile_path)
-            puts pastel.red("\nProfile #{options[:profile]} not found\n")
+            puts pastel.red("\nProfile #{profile_name} not found\n")
             exit(1)
           end
 

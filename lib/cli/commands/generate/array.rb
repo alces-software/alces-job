@@ -4,40 +4,24 @@ require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
+require 'yaml'
 
+require_relative 'template/generate_template'
 require_relative '../../../services/script_generator/script_generator'
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
     module Commands
-      class Array < Dry::CLI::Command
+      class Array < AlcesJob::CLI::Commands::GenerateTemplate
         AlcesJob::CLI.register 'generate array', self
         desc 'Creates an array sbatch script'
 
-        option :job_name, type: :string, aliases: ['-J'],
-                          desc: 'Sets the Slurm job name for the generated array script'
         option :nodes, type: :integer, aliases: ['-N'],
                        desc: 'Requests the number of compute nodes for the array job'
-        option :mem, type: :string,
-                     desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
 
-        option :time, type: :string, aliases: ['-t'],
-                      desc: 'Sets the walltime limit for the array job'
-        option :partition, type: :string, aliases: ['-p'],
-                           desc: 'Specifies the Slurm partition or queue to use'
-
-        option :module, type: :array, default: [],
-                        desc: 'Loads environment modules before running the job'
-
-        option :workdir, type: :string,
-                         desc: 'Changes to the specified working directory in the job script'
-        option :command, type: :string,
-                         desc: 'Specifies the shell command to execute in the script'
         option :array, type: :string,
                        desc: 'Sets the Slurm array task specification for the job'
-
-        option :output_file, type: :string,
-                             desc: 'Writes the generated script to this filename instead of job.sbatch'
 
         option :submit, type: :boolean, default: false,
                         desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
@@ -53,21 +37,17 @@ module AlcesJob
                          desc: 'Does not save the file if set to true'
 
         def call(**options)
+          paths = AlcesJob::Paths.new
           pastel = Pastel.new
-          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
 
           if options[:site_config]
-            admin_path = config['admin_config_file']
+            admin_path = paths.admin_config_path
             if File.exist?(admin_path)
               admin = YAML.load_file(admin_path)
               admin_keys = admin.keys
               puts
               options.each_key do |key|
-                if admin_keys.include?(key)
-                  puts pastel.yellow("You are overwriting the system admin defined #{key}")
-                else
-                  puts pastel.green("Admin defined #{key} loaded")
-                end
+                puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
               end
 
               options = admin.merge(options)
@@ -75,7 +55,7 @@ module AlcesJob
           end
 
           unless options[:profile].nil?
-            profile_path = File.join(config['user_profile_dir'], "#{options[:profile]}.yaml")
+            profile_path = paths.user_profile_path(options[:profile].strip)
             options.delete(:profile)
             if File.exist?(profile_path)
               profile = YAML.load_file(profile_path)
@@ -90,6 +70,8 @@ module AlcesJob
               end
 
               options = profile.merge(options)
+            else
+              puts pastel.red("\nA profile with that name was not found\n")
             end
           end
 

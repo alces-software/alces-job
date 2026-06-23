@@ -7,6 +7,7 @@ require 'yaml'
 require 'fileutils'
 
 require_relative '../../../services/sys_info/sys_info'
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -15,12 +16,8 @@ module AlcesJob
         AlcesJob::CLI.register 'sysinfo init', self
         desc 'This command generates the initial system info and saves it'
 
-        def initialize
-          @system_info_path = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['system_info_file']
-          @system_data = nil
-        end
-
         def call(*)
+          system_info_file_path = AlcesJob::Paths.new.system_info_path
           pastel = Pastel.new
 
           if Process.uid != 0
@@ -38,8 +35,8 @@ module AlcesJob
 
           spinner.update(title: 'checking for system info file')
           spinner.auto_spin
-          if File.exist?(@system_info_path)
-            data = YAML.load_file(@system_info_path)
+          if File.exist?(system_info_file_path)
+            data = YAML.load_file(system_info_file_path)
 
             unless data.nil?
               spinner.error(pastel.red('(config exists)'))
@@ -55,18 +52,18 @@ module AlcesJob
           # Collecting system information
           spinner.update(title: 'collecting system info')
           spinner.auto_spin
-          @system_data = Services::SysInfo.all_info
+          system_data = Services::SysInfo.all_info
           spinner.success(pastel.green('(successful)'))
 
           # Writing to system info file
           spinner.update(title: 'writing system info file')
           spinner.auto_spin
           begin
-            FileUtils.mkdir_p(File.dirname(@system_info_path))
-            File.write(@system_info_path, @system_data.to_yaml)
+            FileUtils.mkdir_p(File.dirname(system_info_file_path))
+            File.write(system_info_file_path, system_data.to_yaml)
             spinner.success(pastel.green('(successful)'))
 
-            puts pastel.green("\nThe system info file has been written to #{@system_info_path}\n")
+            puts pastel.green("\nThe system info file has been written to #{system_info_file_path}\n")
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))

@@ -6,6 +6,7 @@ require 'tty-spinner'
 require 'yaml'
 
 require_relative '../../../services/sys_info/sys_info'
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -23,12 +24,8 @@ module AlcesJob
         option :all, type: :boolean, default: false, desc: 'Update all the system information',
                      aliases: ['-a']
 
-        def initialize
-          @system_info_path = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['system_info_file']
-          @system_data = nil
-        end
-
         def call(**options)
+          system_info_file_path = AlcesJob::Paths.new.system_info_path
           pastel = Pastel.new
 
           if Process.uid != 0
@@ -54,15 +51,15 @@ module AlcesJob
           spinner.update(title: 'loading system info')
           spinner.auto_spin
 
-          unless File.exist?(@system_info_path)
+          unless File.exist?(system_info_file_path)
             spinner.error(pastel.red('(no system info)'))
             puts pastel.red("\nThere is no config file currently present use config init to create one\n")
             exit(1)
           end
 
-          @system_data = YAML.load_file(@system_info_path)
+          system_data = YAML.load_file(system_info_file_path)
 
-          if @system_data.nil?
+          if system_data.nil?
             spinner.error(pastel.red('(blank system info)'))
             puts pastel.red("\nThe config you have contains no data generate a new one using config init\n")
             exit(1)
@@ -77,20 +74,18 @@ module AlcesJob
             filtered_options.each_pair do |key, _value|
               case key
               when :node
-                @system_data[:nodes] = Services::SysInfo.node_info
+                system_data[:nodes] = Services::SysInfo.node_info
               when :partition
-                @system_data[:partitions] = Services::SysInfo.partition_info
+                system_data[:partitions] = Services::SysInfo.partition_info
               when :package
-                @system_data[:packages] = Services::SysInfo.package_info
+                system_data[:packages] = Services::SysInfo.package_info
               when :gpu
-                @system_data[:gpu_total] = Services::SysInfo.gpu_info
+                system_data[:gpu_total] = Services::SysInfo.gpu_info
               end
             end
           else
-            @system_data = Services::SysInfo.all_info
+            system_data = Services::SysInfo.all_info
           end
-
-          @system_data = Services::SysInfo.complete_info(@system_data)
 
           spinner.success(pastel.green('(successful)'))
 
@@ -99,10 +94,10 @@ module AlcesJob
           spinner.auto_spin
 
           begin
-            File.write(@system_info_path, @system_data.to_yaml)
+            File.write(system_info_file_path, system_data.to_yaml)
             spinner.success(pastel.green('(successful)'))
 
-            puts pastel.green("\nThe system info file at #{@system_info_path} has been updated\n")
+            puts pastel.green("\nThe system info file at #{system_info_file_path} has been updated\n")
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))

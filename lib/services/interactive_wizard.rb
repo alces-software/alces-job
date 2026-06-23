@@ -3,17 +3,16 @@
 require 'tty-prompt'
 require 'terminal-table'
 require 'pastel'
-require 'yaml'
 require 'erb'
 
 require_relative 'sys_info/sys_info'
+require_relative 'paths/paths'
 
 module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
-        @info = AlcesJob::Services::SysInfo.load_info(config['system_info_file'])
+        @info = AlcesJob::Services::SysInfo.load_info(AlcesJob::Paths.new.system_info_path)
 
         return unless @info[:nodes].empty? && @info[:partitions].empty? && @info[:packages].empty? && @info[:gpu_total].zero?
 

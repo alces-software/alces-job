@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
-require 'yaml'
 require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
+
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -13,23 +14,19 @@ module AlcesJob
         AlcesJob::CLI.register 'profile delete', self
         desc 'Deletes a saved profile'
 
-        option :profile, type: :string, desc: 'The name of the profile'
+        argument :profile, require: true, type: :string, desc: 'The name of the profile'
 
-        def initialize
-          @profile_dir = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))['user_profile_dir']
-        end
-
-        def call(**options)
+        def call(profile:)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 
-          unless options[:profile].nil?
+          unless profile.nil?
             puts pastel.red("\nNo profile name was provided\n")
             exit(1)
           end
 
-          profile_name = options[:profile].strip
-          profile_path = File.join(Dir.home, @profile_dir, "#{profile_name}.yaml")
+          profile_name = profile.strip
+          profile_path = AlcesJob::Paths.new.user_profile_path(profile_name)
 
           unless File.exist?(profile_path)
             puts pastel.red("\nThe profile you're trying to delete doesn't exist\n")
