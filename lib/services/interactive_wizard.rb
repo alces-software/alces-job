@@ -14,32 +14,12 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        config_path = File.expand_path('../../config/config.yaml', __dir__)
+        config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
+        @info = AlcesJob::Services::SysInfo.load_info(config['system_info_file'])
 
-        config = YAML.safe_load_file(config_path, symbolize_names: true)
-
-        @info = AlcesJob::Services::SysInfo.load_info(config[:system_info_file])
-        @info = self.class.deep_symbolize_keys(@info)
-
-        return unless @info[:nodes].empty? &&
-                      @info[:partitions].empty? &&
-                      @info[:packages].empty? &&
-                      @info[:gpu_total].zero?
+        return unless @info[:nodes].empty? && @info[:partitions].empty? && @info[:packages].empty? && @info[:gpu_total].zero?
 
         @info = prompt_for_system_info
-      end
-
-      def self.deep_symbolize_keys(value)
-        case value
-        when Hash
-          value.each_with_object({}) do |(key, val), result|
-            result[key.to_sym] = deep_symbolize_keys(val)
-          end
-        when Array
-          value.map { |item| deep_symbolize_keys(item) }
-        else
-          value
-        end
       end
 
       def prompt_for_system_info
@@ -106,73 +86,33 @@ module AlcesJob
         [{ node: 'local', cpus: max_cpu_cores, memory: max_memory }]
       end
 
-      def valid_slurm_time?(input, max_time)
-        input_seconds = slurm_time_to_seconds(input)
-        max_seconds = slurm_time_to_seconds(max_time)
+      def valid_slurm_time?(time_string, max_time = '7-00:00:00')
+        requested_seconds = TimeConverter.to_seconds(time_string)
+        return false if requested_seconds.nil?
 
-        return false if input_seconds.nil?
+        max_seconds = TimeConverter.to_seconds(max_time)
+
+        warn "DEBUG: #{time_string.inspect} -> #{requested_seconds.inspect}"
+        warn "DEBUG max: #{max_time.inspect} -> #{max_seconds.inspect}"
         return false if max_seconds.nil?
 
-        input_seconds.positive? && input_seconds <= max_seconds
-      end
-
-      def slurm_time_to_seconds(time)
-        return nil if time.nil?
-
-        time = time.strip
-        return nil if time.empty?
-
-        days = 0
-
-        if time.include?('-')
-          day_part, time_part = time.split('-', 2)
-
-          return nil unless day_part.match?(/\A\d+\z/)
-
-          days = day_part.to_i
-        else
-          time_part = time
-        end
-
-        parts = time_part.split(':')
-
-        return nil unless parts.length == 3
-        return nil unless parts.all? { |part| part.match?(/\A\d+\z/) }
-
-        hours, minutes, seconds = parts.map(&:to_i)
+        return true if max_seconds.zero?
 
         requested_seconds <= max_seconds
-        return nil unless hours.between?(0, 23)
-        return nil unless minutes.between?(0, 59)
-        return nil unless seconds.between?(0, 59)
-
-        (days * 86_400) + (hours * 3_600) + (minutes * 60) + seconds
       end
 
       def human_readable_time(max_time)
-        return 'unknown' if max_time.nil?
-
-        max_time = max_time.strip
-
-        days = 0
-
-        if max_time.include?('-')
-          day_part, time_part = max_time.split('-', 2)
-          days = day_part.to_i
-        else
-          time_part = max_time
-        end
-
-        hours, minutes, seconds = time_part.split(':').map(&:to_i)
+        days, time = max_time.split('-')
+        hours, minutes, seconds = time.split(':')
 
         parts = []
 
-        parts << "#{days} days" if days.positive?
-        parts << "#{hours} hours" if hours.positive?
-        parts << "#{minutes} minutes" if minutes.positive?
-        parts << "#{seconds} seconds" if seconds.positive?
+        parts << "#{days.to_i} days" if days.to_i.positive?
+        parts << "#{hours.to_i} hours" if hours.to_i.positive?
+        parts << "#{minutes.to_i} minutes" if minutes.to_i.positive?
+        parts << "#{seconds.to_i} seconds" if seconds.to_i.positive?
 
-        parts.empty? ? '0 seconds' : parts.join(', ')
+        parts.join(', ')
       end
 
       def normalize_slurm_time(time_value)
@@ -220,10 +160,7 @@ module AlcesJob
 
         puts table
 
-        prompt = TTY::Prompt.new
-
-        partition_types = Array(@info[:partitions])
-        partition_types = prompt_for_partitions(prompt) if partition_types.empty?
+        partition_types = @info[:partitions]
 
         max_run_time = nil
 
@@ -235,8 +172,7 @@ module AlcesJob
           partition[:time_limit] = normalize_slurm_time(partition[:time_limit]) if partition[:time_limit].is_a?(Integer)
         end
 
-        nodes = Array(@info[:nodes])
-        nodes = prompt_for_nodes(prompt) if nodes.empty?
+        nodes = @info[:nodes]
 
         max_memory = 0
         max_cpu_cores = 0
@@ -250,6 +186,8 @@ module AlcesJob
         end
 
         human_readable_max_time = nil
+
+        prompt = TTY::Prompt.new
 
         types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
@@ -343,11 +281,6 @@ module AlcesJob
                 partition[:partition] == selected_partition
               end
 
-              unless selected_partition_info
-                puts "Could not find partition information for #{selected_partition}"
-                exit(1)
-              end
-
               max_run_time = selected_partition_info[:time_limit]
               human_readable_max_time = wizard.human_readable_time(max_run_time)
 
@@ -370,10 +303,10 @@ module AlcesJob
                 end
                 q.messages[:valid?] = 'Please enter a whole number'
                 q.validate do |input|
-                  input.to_i.between?(1, max_memory)
+                  input.to_i <= max_memory
                 end
 
-                q.messages[:valid?] = "Please enter a whole number from 1 to #{max_memory} MB"
+                q.messages[:valid?] = 'Value cannot be greater than maximum memory.'
 
                 q.convert :int
               end
@@ -385,10 +318,10 @@ module AlcesJob
                 q.validate(/\A\d+\z/)
                 q.messages[:valid?] = 'Please enter a whole number'
                 q.validate do |input|
-                  input.to_i.between?(1, max_cpu_cores)
+                  input.to_i <= max_cpu_cores
                 end
 
-                q.messages[:valid?] = "Please enter a whole number between 1 and #{max_cpu_cores}"
+                q.messages[:valid?] = 'Value cannot be greater than maximum cpu cores.'
                 q.convert :int
               end
 
@@ -397,17 +330,7 @@ module AlcesJob
               key(item).ask(question, default: defaults[item])
 
             when :job_name
-              key(item).ask(question, default: defaults[item]) do |q|
-                q.modify :strip
-                q.convert ->(input) { input.gsub(/\s+/, '_') }
-
-                q.validate do |input|
-                  cleaned = input.strip.gsub(/\s+/, '_')
-                  cleaned.match?(/\A[a-zA-Z0-9_.-]+\z/) && !cleaned.empty?
-                end
-
-                q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
-              end
+              key(item).ask(question, default: defaults[item])
 
             else
               key(item).ask(question)
@@ -509,8 +432,11 @@ module AlcesJob
 
             key(item).ask(question, default: defaults[item]) do |q|
               q.validate do |input|
-                input.match?(/\A\d+\z/) &&
-                  input.to_i.between?(1, max_memory)
+                requested_memory_mb = MemoryConverter.to_mb(input)
+
+                !requested_memory_mb.nil? &&
+                  requested_memory_mb >= 1 &&
+                  requested_memory_mb <= max_memory
               end
 
               q.messages[:valid?] =
@@ -530,7 +456,8 @@ module AlcesJob
             ) do |q|
               q.validate do |input|
                 input.match?(/\A\d+\z/) &&
-                  input.to_i.between?(1, max_cpu_cores)
+                  input.to_i >= 1 &&
+                  input.to_i <= max_cpu_cores
               end
 
               q.messages[:valid?] = "Please enter a whole number between 1 and #{max_cpu_cores}"
@@ -550,17 +477,7 @@ module AlcesJob
             result[:job_name] = prompt.ask(
               questions[:job_name],
               default: result[:job_name]
-            ) do |q|
-              q.modify :strip
-              q.convert ->(input) { input.gsub(/\s+/, '_') }
-
-              q.validate do |input|
-                cleaned = input.strip.gsub(/\s+/, '_')
-                cleaned.match?(/\A[a-zA-Z0-9_.-]+\z/) && !cleaned.empty?
-              end
-
-              q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
-            end
+            )
 
           else
             result[field] = prompt.ask(
