@@ -48,15 +48,21 @@ module AlcesJob
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
           if File.exist?(@admin_config_path)
-            data = YAML.load_file(@admin_config_path)
+            begin
+              data = YAML.load_file(@admin_config_path)
 
-            unless data.nil?
-              spinner.error(pastel.red('(config exists)'))
-              puts pastel.green("\nA config already exists\n")
+              unless data.nil?
+                spinner.error(pastel.red('(config exists)'))
+                puts pastel.green("\nA config already exists\n")
+                exit(1)
+              end
+
+              spinner.success(pastel.green('(empty config)'))
+            rescue StandardError
+              spinner.error(pastel.red('(failed to read)'))
+              puts pastel.red("\nAn error occurred while loading the admin config file\n")
               exit(1)
             end
-
-            spinner.success(pastel.green('(empty config)'))
           else
             spinner.success(pastel.green('(no config)'))
           end
@@ -76,6 +82,11 @@ module AlcesJob
             puts pastel.red("\nFailed to write config file: #{e.message}\n")
             exit(1)
           end
+        rescue StandardError => e
+          spinner.error('(command error)')
+          puts pastel.red("\nAn error occurred while running the command\n")
+          warn e.message
+          exit(1)
         end
       end
     end
