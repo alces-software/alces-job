@@ -12,7 +12,14 @@ module AlcesJob
         '--partition',
         '--job-name',
         '--output',
-        '--error'
+        '--error',
+        '--gres',
+        '--array',
+        '--dependency',
+        '--account',
+        '--mail-type',
+        '--mail-user'
+
       ].freeze # immutable array of valid directives for now
 
       def self.validate_directives(sbatch_lines, errors)
