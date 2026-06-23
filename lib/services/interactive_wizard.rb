@@ -12,12 +12,32 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
-        @info = AlcesJob::Services::SysInfo.load_info(config['system_info_file'])
+        config_path = File.expand_path('../../config/config.yaml', __dir__)
 
-        return unless @info[:nodes].empty? && @info[:partitions].empty? && @info[:packages].empty? && @info[:gpu_total].zero?
+        config = YAML.safe_load_file(config_path, symbolize_names: true)
+
+        @info = AlcesJob::Services::SysInfo.load_info(config[:system_info_file])
+        @info = self.class.deep_symbolize_keys(@info)
+
+        return unless @info[:nodes].empty? &&
+                      @info[:partitions].empty? &&
+                      @info[:packages].empty? &&
+                      @info[:gpu_total].zero?
 
         @info = prompt_for_system_info
+      end
+
+      def self.deep_symbolize_keys(value)
+        case value
+        when Hash
+          value.each_with_object({}) do |(key, val), result|
+            result[key.to_sym] = deep_symbolize_keys(val)
+          end
+        when Array
+          value.map { |item| deep_symbolize_keys(item) }
+        else
+          value
+        end
       end
 
       def prompt_for_system_info
@@ -27,6 +47,7 @@ module AlcesJob
 
         partitions = prompt_for_partitions(prompt)
         nodes = prompt_for_nodes(prompt)
+
         gpu_total = prompt.ask('How many GPUs are available in total?', default: '0') do |q|
           q.validate(/\A\d+\z/)
           q.messages[:valid?] = 'Please enter a whole number.'
@@ -79,60 +100,72 @@ module AlcesJob
         [{ node: 'local', cpus: max_cpu_cores, memory: max_memory }]
       end
 
-      def valid_slurm_time?(time_string, max_time = '7-00:00:00')
-        return false if time_string.nil?
-        return false if time_string.strip.empty?
-
-        match = time_string.match(/^(\d+)-(\d{2}):(\d{2}):(\d{2})$/)
-
-        return false unless match
-
-        return false unless match
-
-        days = match[1].to_i
-        hours = match[2].to_i
-        minutes = match[3].to_i
-        seconds = match[4].to_i
-
-        return false if hours > 23
-        return false if minutes > 59
-        return false if seconds > 59
-
-        total_seconds =
-          (days * 86_400) +
-          (hours * 3600) +
-          (minutes * 60) +
-          seconds
-
+      def valid_slurm_time?(input, max_time)
+        input_seconds = slurm_time_to_seconds(input)
         max_seconds = slurm_time_to_seconds(max_time)
 
-        return true if max_seconds.zero?
+        return false if input_seconds.nil?
+        return false if max_seconds.nil?
 
-        total_seconds <= max_seconds
+        input_seconds.positive? && input_seconds <= max_seconds
+      end
+
+      def slurm_time_to_seconds(time)
+        return nil if time.nil?
+
+        time = time.strip
+        return nil if time.empty?
+
+        days = 0
+
+        if time.include?('-')
+          day_part, time_part = time.split('-', 2)
+
+          return nil unless day_part.match?(/\A\d+\z/)
+
+          days = day_part.to_i
+        else
+          time_part = time
+        end
+
+        parts = time_part.split(':')
+
+        return nil unless parts.length == 3
+        return nil unless parts.all? { |part| part.match?(/\A\d+\z/) }
+
+        hours, minutes, seconds = parts.map(&:to_i)
+
+        return nil unless hours.between?(0, 23)
+        return nil unless minutes.between?(0, 59)
+        return nil unless seconds.between?(0, 59)
+
+        (days * 86_400) + (hours * 3_600) + (minutes * 60) + seconds
       end
 
       def human_readable_time(max_time)
-        days, time = max_time.split('-')
-        hours, minutes, seconds = time.split(':')
+        return 'unknown' if max_time.nil?
+
+        max_time = max_time.strip
+
+        days = 0
+
+        if max_time.include?('-')
+          day_part, time_part = max_time.split('-', 2)
+          days = day_part.to_i
+        else
+          time_part = max_time
+        end
+
+        hours, minutes, seconds = time_part.split(':').map(&:to_i)
 
         parts = []
 
-        parts << "#{days.to_i} days" if days.to_i.positive?
-        parts << "#{hours.to_i} hours" if hours.to_i.positive?
-        parts << "#{minutes.to_i} minutes" if minutes.to_i.positive?
-        parts << "#{seconds.to_i} seconds" if seconds.to_i.positive?
+        parts << "#{days} days" if days.positive?
+        parts << "#{hours} hours" if hours.positive?
+        parts << "#{minutes} minutes" if minutes.positive?
+        parts << "#{seconds} seconds" if seconds.positive?
 
-        parts.join(', ')
-      end
-
-      def slurm_time_to_seconds(time_string)
-        days, time = time_string.split('-')
-        hours, minutes, seconds = time.split(':')
-
-        (days.to_i * 86_400) +
-          (hours.to_i * 3600) +
-          (minutes.to_i * 60) +
-          seconds.to_i
+        parts.empty? ? '0 seconds' : parts.join(', ')
       end
 
       def normalize_slurm_time(time_value)
@@ -180,7 +213,10 @@ module AlcesJob
 
         puts table
 
-        partition_types = @info[:partitions]
+        prompt = TTY::Prompt.new
+
+        partition_types = Array(@info[:partitions])
+        partition_types = prompt_for_partitions(prompt) if partition_types.empty?
 
         max_run_time = nil
 
@@ -192,7 +228,8 @@ module AlcesJob
           partition[:time_limit] = normalize_slurm_time(partition[:time_limit]) if partition[:time_limit].is_a?(Integer)
         end
 
-        nodes = @info[:nodes]
+        nodes = Array(@info[:nodes])
+        nodes = prompt_for_nodes(prompt) if nodes.empty?
 
         max_memory = 0
         max_cpu_cores = 0
@@ -203,8 +240,6 @@ module AlcesJob
         end
 
         human_readable_max_time = nil
-
-        prompt = TTY::Prompt.new
 
         types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
@@ -298,6 +333,11 @@ module AlcesJob
                 partition[:partition] == selected_partition
               end
 
+              unless selected_partition_info
+                puts "Could not find partition information for #{selected_partition}"
+                exit(1)
+              end
+
               max_run_time = selected_partition_info[:time_limit]
               human_readable_max_time = wizard.human_readable_time(max_run_time)
 
@@ -318,10 +358,10 @@ module AlcesJob
                 q.validate(/\A\d+\z/)
                 q.messages[:valid?] = 'Please enter a whole number'
                 q.validate do |input|
-                  input.to_i <= max_memory
+                  input.to_i.between?(1, max_memory)
                 end
 
-                q.messages[:valid?] = 'Value cannot be greater than maximum memory.'
+                q.messages[:valid?] = "Please enter a whole number from 1 to #{max_memory} MB"
 
                 q.convert :int
               end
@@ -333,10 +373,10 @@ module AlcesJob
                 q.validate(/\A\d+\z/)
                 q.messages[:valid?] = 'Please enter a whole number'
                 q.validate do |input|
-                  input.to_i <= max_cpu_cores
+                  input.to_i.between?(1, max_cpu_cores)
                 end
 
-                q.messages[:valid?] = 'Value cannot be greater than maximum cpu cores.'
+                q.messages[:valid?] = "Please enter a whole number between 1 and #{max_cpu_cores}"
                 q.convert :int
               end
 
@@ -345,7 +385,17 @@ module AlcesJob
               key(item).ask(question, default: defaults[item])
 
             when :job_name
-              key(item).ask(question, default: defaults[item])
+              key(item).ask(question, default: defaults[item]) do |q|
+                q.modify :strip
+                q.convert ->(input) { input.gsub(/\s+/, '_') }
+
+                q.validate do |input|
+                  cleaned = input.strip.gsub(/\s+/, '_')
+                  cleaned.match?(/\A[a-zA-Z0-9_.-]+\z/) && !cleaned.empty?
+                end
+
+                q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
+              end
 
             else
               key(item).ask(question)
@@ -357,7 +407,7 @@ module AlcesJob
         loop do
           job_type = 'default' if job_type == 'serial'
 
-          generator = AlcesJob::Services::Generator.new(
+          generator = AlcesJob::Services::ScriptGenerator.new(
             result.merge(template: job_type)
           )
 
@@ -451,8 +501,7 @@ module AlcesJob
             ) do |q|
               q.validate do |input|
                 input.match?(/\A\d+\z/) &&
-                  input.to_i >= 1 &&
-                  input.to_i <= max_memory
+                  input.to_i.between?(1, max_memory)
               end
 
               q.messages[:valid?] = "Please enter a whole number between 1 and #{max_memory} MB"
@@ -469,8 +518,7 @@ module AlcesJob
             ) do |q|
               q.validate do |input|
                 input.match?(/\A\d+\z/) &&
-                  input.to_i >= 1 &&
-                  input.to_i <= max_cpu_cores
+                  input.to_i.between?(1, max_cpu_cores)
               end
 
               q.messages[:valid?] = "Please enter a whole number between 1 and #{max_cpu_cores}"
@@ -490,7 +538,17 @@ module AlcesJob
             result[:job_name] = prompt.ask(
               questions[:job_name],
               default: result[:job_name]
-            )
+            ) do |q|
+              q.modify :strip
+              q.convert ->(input) { input.gsub(/\s+/, '_') }
+
+              q.validate do |input|
+                cleaned = input.strip.gsub(/\s+/, '_')
+                cleaned.match?(/\A[a-zA-Z0-9_.-]+\z/) && !cleaned.empty?
+              end
+
+              q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
+            end
 
           else
             result[field] = prompt.ask(
@@ -504,7 +562,7 @@ module AlcesJob
 
         job_type = 'default' if job_type == 'serial'
 
-        generator = AlcesJob::Services::Generator.new(
+        generator = AlcesJob::Services::ScriptGenerator.new(
           result.merge(template: job_type)
         )
 
