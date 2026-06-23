@@ -30,6 +30,8 @@ module AlcesJob
         IntegerDirectiveValidator.validate(sbatch_lines, errors)
         validate_memory(sbatch_lines)
         validate_time(sbatch_lines)
+        validate_output(sbatch_lines)
+        validate_error(sbatch_lines)
         errors.empty?
       end
 
@@ -98,6 +100,34 @@ module AlcesJob
         else
           warnings << 'No --time directive found.'
         end
+      end
+
+      # Does not check stuff such as %N yet
+      def validate_output(sbatch_lines)
+        validate_file_path(sbatch_lines, '--output', 'Output')
+      end
+
+      def validate_error(sbatch_lines)
+        validate_file_path(sbatch_lines, '--error', 'Error')
+      end
+
+      def validate_file_path(sbatch_lines, directive, label)
+        file_path = directive_value(sbatch_lines, directive)
+
+        return if file_path.nil?
+
+        if file_path.empty?
+          errors << "#{label} path cannot be empty."
+          return
+        end
+
+        directory = File.dirname(file_path)
+
+        return if directory == '.'
+
+        return if Dir.exist?(directory)
+
+        warnings << "#{label} directory does not currently exist: #{directory}."
       end
 
       def directive_value(sbatch_lines, directive)

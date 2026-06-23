@@ -22,7 +22,7 @@ module AlcesJob
             exit(1)
           end
 
-          validator = SlurmScriptValidator.new(file_path)
+          validator = AlcesJob::Services::SlurmScriptValidator.new(file_path)
 
           if validator.validate?
             puts pastel.green("\nValidation passed\n")
