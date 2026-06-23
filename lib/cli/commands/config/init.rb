@@ -58,9 +58,9 @@ module AlcesJob
               end
 
               spinner.success(pastel.green('(empty config)'))
-            rescue StandardError
+            rescue StandardError => e
               spinner.error(pastel.red('(failed to read)'))
-              puts pastel.red("\nAn error occurred while loading the admin config file\n")
+              puts pastel.red("\nAn error occurred while loading the admin config file:\n#{e.message}\n")
               exit(1)
             end
           else
@@ -79,13 +79,12 @@ module AlcesJob
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))
-            puts pastel.red("\nFailed to write config file: #{e.message}\n")
+            puts pastel.red("\nFailed to write config file:\n#{e.message}\n")
             exit(1)
           end
         rescue StandardError => e
           spinner.error('(command error)')
-          puts pastel.red("\nAn error occurred while running the command\n")
-          warn e.message
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

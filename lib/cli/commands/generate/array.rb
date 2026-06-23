@@ -52,8 +52,7 @@ module AlcesJob
             end
           rescue StandardError => e
             spinner.error('(failed to load)')
-            puts pastel.red("\nAn error occurred while accessing the admin config\n")
-            warn e.message
+            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
             exit(1)
           end
 
@@ -83,8 +82,7 @@ module AlcesJob
             end
           rescue StandardError => e
             spinner.error('(failed to load)')
-            puts pastel.red("\nAn error occurred while accessing the specified profile\n")
-            warn e.message
+            puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
             exit(1)
           end
 
@@ -120,8 +118,7 @@ module AlcesJob
             end
           rescue StandardError => e
             spinner.error('(failed to overwrite)')
-            puts pastel.red("\nFailed to check if a script already exits with that name\n")
-            warn e.message
+            puts pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
             exit(1)
           end
 
@@ -152,8 +149,7 @@ module AlcesJob
             stdout, status = generator.submit(script_path)
           rescue StandardError => e
             spinner.error(pastel.red('(failed to submit)'))
-            puts pastel.red("\nAn error occurred while submitting to sbatch\n")
-            warn e.message
+            puts pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
             exit(1)
           end
 
@@ -169,8 +165,7 @@ module AlcesJob
           exit(0)
         rescue StandardError => e
           spinner.error('(command error)')
-          puts pastel.red("\nAn error occurred while running the command\n")
-          warn e.message
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end
