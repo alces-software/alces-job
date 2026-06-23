@@ -37,7 +37,6 @@ module AlcesJob
                          desc: 'Does not save the file if set to true'
 
         def call(**options)
-          paths = AlcesJob::Paths.new
           paths = Services::Paths.new
           pastel = Pastel.new
 
