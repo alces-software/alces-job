@@ -7,6 +7,8 @@ require 'yaml'
 require 'erb'
 
 require_relative 'sys_info/sys_info'
+require_relative 'converters/time_converter'
+require_relative 'converters/memory_converter'
 
 module AlcesJob
   module Services
@@ -27,6 +29,7 @@ module AlcesJob
 
         partitions = prompt_for_partitions(prompt)
         nodes = prompt_for_nodes(prompt)
+
         gpu_total = prompt.ask('How many GPUs are available in total?', default: '0') do |q|
           q.validate(/\A\d+\z/)
           q.messages[:valid?] = 'Please enter a whole number.'
@@ -51,8 +54,8 @@ module AlcesJob
 
         partition_names.map.with_index do |name, index|
           time_limit = prompt.ask("Max time for partition #{name}", default: '0-07:00:00') do |q|
-            q.validate(/^\d+-\d{2}:\d{2}:\d{2}$/)
-            q.messages[:valid?] = 'Time must be in format D-HH:MM:SS.'
+            q.validate { |input| !TimeConverter.to_seconds(input).nil? }
+            q.messages[:valid?] = 'time must be in format HH:MM:SS or D-HH:MM:SS'
           end
 
           {
@@ -71,44 +74,31 @@ module AlcesJob
         end
 
         max_memory = prompt.ask('Maximum memory per node (MB)', default: '5000') do |q|
-          q.validate(/\A\d+\z/)
-          q.messages[:valid?] = 'Please enter a whole number.'
-          q.convert :int
+          q.validate do |input|
+            !MemoryConverter.to_mb(input).nil?
+          end
+          q.messages[:valid?] = 'Please enter memory using M, MB, G, GB e.g. 5000M or 4G'
+          q.convert do |input|
+            MemoryConverter.to_mb(input)
+          end
         end
 
         [{ node: 'local', cpus: max_cpu_cores, memory: max_memory }]
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')
-        return false if time_string.nil?
-        return false if time_string.strip.empty?
+        requested_seconds = TimeConverter.to_seconds(time_string)
+        return false if requested_seconds.nil?
 
-        match = time_string.match(/^(\d+)-(\d{2}):(\d{2}):(\d{2})$/)
+        max_seconds = TimeConverter.to_seconds(max_time)
 
-        return false unless match
-
-        return false unless match
-
-        days = match[1].to_i
-        hours = match[2].to_i
-        minutes = match[3].to_i
-        seconds = match[4].to_i
-
-        return false if hours > 23
-        return false if minutes > 59
-        return false if seconds > 59
-
-        total_seconds =
-          (days * 86_400) +
-          (hours * 3600) +
-          (minutes * 60) +
-          seconds
-
-        max_seconds = slurm_time_to_seconds(max_time)
+        warn "DEBUG: #{time_string.inspect} -> #{requested_seconds.inspect}"
+        warn "DEBUG max: #{max_time.inspect} -> #{max_seconds.inspect}"
+        return false if max_seconds.nil?
 
         return true if max_seconds.zero?
 
-        total_seconds <= max_seconds
+        requested_seconds <= max_seconds
       end
 
       def human_readable_time(max_time)
@@ -123,16 +113,6 @@ module AlcesJob
         parts << "#{seconds.to_i} seconds" if seconds.to_i.positive?
 
         parts.join(', ')
-      end
-
-      def slurm_time_to_seconds(time_string)
-        days, time = time_string.split('-')
-        hours, minutes, seconds = time.split(':')
-
-        (days.to_i * 86_400) +
-          (hours.to_i * 3600) +
-          (minutes.to_i * 60) +
-          seconds.to_i
       end
 
       def normalize_slurm_time(time_value)
@@ -198,7 +178,10 @@ module AlcesJob
         max_cpu_cores = 0
 
         nodes.each do |node|
-          max_memory = node[:memory] if node[:memory] > max_memory
+          node_memory = MemoryConverter.to_mb((node[:memory] || node ['memory']).to_s)
+          node_cpus = (node[:cpu] || node['cpus']).to_i
+
+          max_memory = node_memory if node_memory && node_memory > max_memory
           max_cpu_cores = node[:cpus] if node[:cpus] > max_cpu_cores
         end
 
@@ -315,7 +298,9 @@ module AlcesJob
             when :mem
               puts "Max memory: #{max_memory} MB"
               key(item).ask(question, default: defaults[item]) do |q|
-                q.validate(/\A\d+\z/)
+                q.validate do |input|
+                  !MemoryConverter.to_mb(input).nil?
+                end
                 q.messages[:valid?] = 'Please enter a whole number'
                 q.validate do |input|
                   input.to_i <= max_memory
@@ -357,7 +342,7 @@ module AlcesJob
         loop do
           job_type = 'default' if job_type == 'serial'
 
-          generator = AlcesJob::Services::Generator.new(
+          generator = AlcesJob::Services::ScriptGenerator.new(
             result.merge(template: job_type)
           )
 
@@ -445,19 +430,21 @@ module AlcesJob
           when :mem
             puts "Max memory: #{max_memory} MB"
 
-            result[:mem] = prompt.ask(
-              questions[:mem],
-              default: result[:mem].to_s
-            ) do |q|
+            key(item).ask(question, default: defaults[item]) do |q|
               q.validate do |input|
-                input.match?(/\A\d+\z/) &&
-                  input.to_i >= 1 &&
-                  input.to_i <= max_memory
+                requested_memory_mb = MemoryConverter.to_mb(input)
+
+                !requested_memory_mb.nil? &&
+                  requested_memory_mb >= 1 &&
+                  requested_memory_mb <= max_memory
               end
 
-              q.messages[:valid?] = "Please enter a whole number between 1 and #{max_memory} MB"
+              q.messages[:valid?] =
+                "Enter memory between 1 MB and #{max_memory} MB, such as 500, 500M, or 2G."
 
-              q.convert :int
+              q.convert do |input|
+                MemoryConverter.to_mb(input)
+              end
             end
 
           when :cpus_per_task
@@ -504,7 +491,7 @@ module AlcesJob
 
         job_type = 'default' if job_type == 'serial'
 
-        generator = AlcesJob::Services::Generator.new(
+        generator = AlcesJob::Services::ScriptGenerator.new(
           result.merge(template: job_type)
         )
 
