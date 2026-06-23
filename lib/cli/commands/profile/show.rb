@@ -22,11 +22,15 @@ module AlcesJob
             exit(1)
           end
 
-          profile_name = profile_name.strip
-          profile_path = Dir.glob(Services::Paths.new.user_profile_path(profile_name))
+          profile_path = Dir.glob(Services::Paths.new.user_profile_path(profile_name.strip))
 
-          unless File.exist?(profile_path)
-            puts pastel.red("\nProfile #{profile_name} not found\n")
+          begin
+            unless File.exist?(profile_path)
+              puts pastel.red("\nThe profile doesn't exist\n")
+              exit(1)
+            end
+          rescue StandardError => e
+            puts pastel.red("\nAn error occurred while checking if the profile exits:\n#{e.message}\n")
             exit(1)
           end
 

@@ -40,7 +40,7 @@ module AlcesJob
             exit(1)
           end
 
-          # Load and parse config.yaml
+          # Load and parse system-info.yaml
           puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
@@ -51,17 +51,29 @@ module AlcesJob
           spinner.update(title: 'loading system info')
           spinner.auto_spin
 
-          unless File.exist?(system_info_file_path)
-            spinner.error(pastel.red('(no system info)'))
-            puts pastel.red("\nThere is no config file currently present use config init to create one\n")
+          begin
+            unless File.exist?(system_info_file_path)
+              spinner.error(pastel.red('(no system info)'))
+              puts pastel.red("\nThere is no system info file currently present use sysinfo init to create one\n")
+              exit(1)
+            end
+          rescue StandardError => e
+            spinner.error('(check failed)')
+            puts pastel.red("\nFailed to check if a system information file exists:\n#{e.message}\n")
             exit(1)
           end
 
-          system_data = YAML.load_file(system_info_file_path)
+          begin
+            system_data = YAML.load_file(system_info_file_path)
+          rescue StandardError => e
+            spinner.error('(load failed)')
+            puts pastel.red("\nFailed to load the system information file:\n#{e.message}\n")
+            exit(1)
+          end
 
           if system_data.nil?
             spinner.error(pastel.red('(blank system info)'))
-            puts pastel.red("\nThe config you have contains no data generate a new one using config init\n")
+            puts pastel.red("\nThe system info you have contains no data generate a new one using sysinfo init\n")
             exit(1)
           end
 
@@ -70,21 +82,27 @@ module AlcesJob
           spinner.update(title: 'collecting system info')
           spinner.auto_spin
 
-          if filtered_options[:all].nil?
-            filtered_options.each_pair do |key, _value|
-              case key
-              when :node
-                system_data[:nodes] = Services::SysInfo.node_info
-              when :partition
-                system_data[:partitions] = Services::SysInfo.partition_info
-              when :package
-                system_data[:packages] = Services::SysInfo.package_info
-              when :gpu
-                system_data[:gpu_total] = Services::SysInfo.gpu_info
+          begin
+            if filtered_options[:all].nil?
+              filtered_options.each_pair do |key, _value|
+                case key
+                when :node
+                  system_data[:nodes] = Services::SysInfo.node_info
+                when :partition
+                  system_data[:partitions] = Services::SysInfo.partition_info
+                when :package
+                  system_data[:packages] = Services::SysInfo.package_info
+                when :gpu
+                  system_data[:gpu_total] = Services::SysInfo.gpu_info
+                end
               end
+            else
+              system_data = Services::SysInfo.all_info
             end
-          else
-            system_data = Services::SysInfo.all_info
+          rescue StandardError => e
+            spinner.error('(failed to collect)')
+            puts pastel.red("\nFailed to collect system information:\n#{e.message}\n")
+            exit(1)
           end
 
           spinner.success(pastel.green('(successful)'))
@@ -101,9 +119,13 @@ module AlcesJob
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))
-            puts pastel.red("\nFailed to update system info file: #{e.message}\n")
+            puts pastel.red("\nFailed to update system info file:\n#{e.message}\n")
             exit(1)
           end
+        rescue StandardError => e
+          spinner&.error('(command error)')
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
       end
     end

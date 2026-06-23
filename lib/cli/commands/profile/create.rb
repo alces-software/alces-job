@@ -98,28 +98,35 @@ module AlcesJob
           spinner.update(title: 'generating profile')
           spinner.auto_spin
 
-          if File.exist?(profile_path)
-            spinner.error(pastel.red('(profile exists)'))
-
-            exit(0) unless prompt.yes?("\nA profile with that name was found do you want to overwrite it?", default: false)
-
-            puts
-            spinner.update(title: 'overwriting profile')
-            spinner.auto_spin
+          begin
+            if File.exist?(profile_path)
+              spinner.error(pastel.red('(profile exists)'))
+              exit(0) unless prompt.yes?("\nA profile with that name was found do you want to overwrite it?", default: false)
+              puts
+              spinner.update(title: 'overwriting profile')
+              spinner.auto_spin
+            end
+          rescue StandardError => e
+            spinner.error('(failed to check profile)')
+            puts pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
+            exit(1)
           end
 
           begin
             FileUtils.mkdir_p(File.dirname(profile_path))
             File.write(profile_path, options.to_yaml)
             spinner.success(pastel.green('(successful)'))
-
             puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
             exit(0)
           rescue StandardError => e
-            spinner.error(pastel.red('(writing error)'))
-            puts pastel.green("\nFailed to create your profile: #{e.message}\n")
+            spinner.error(pastel.red('(write error)'))
+            puts pastel.red("\nFailed to create your profile:\n#{e.message}\n")
             exit(1)
           end
+        rescue StandardError => e
+          spinner&.error('(command error)')
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
       end
     end

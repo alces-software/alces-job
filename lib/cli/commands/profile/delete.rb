@@ -28,8 +28,13 @@ module AlcesJob
           profile_name = profile.strip
           profile_path = Services::Paths.new.user_profile_path(profile_name)
 
-          unless File.exist?(profile_path)
-            puts pastel.red("\nThe profile you're trying to delete doesn't exist\n")
+          begin
+            unless File.exist?(profile_path)
+              puts pastel.red("\nThe profile doesn't exist\n")
+              exit(1)
+            end
+          rescue StandardError => e
+            puts pastel.red("\nAn error occurred while checking if the profile exits:\n#{e.message}\n")
             exit(1)
           end
 
@@ -50,10 +55,14 @@ module AlcesJob
             puts pastel.green("\nSuccessfully deleted the profile\n")
             exit(0)
           rescue StandardError => e
-            spinner.error(pastel.red('(failed)'))
-            puts pastel.red("\nFailed to delete the profile: #{e.message}\n")
+            spinner.error(pastel.red('(delete error)'))
+            puts pastel.red("\nFailed to delete the profile:\n#{e.message}\n")
             exit(1)
           end
+        rescue StandardError => e
+          spinner&.error('(command error)')
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
       end
     end
