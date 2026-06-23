@@ -70,52 +70,51 @@ module AlcesJob
           options[:template] = 'serial'
 
           generator = Services::ScriptGenerator.new(options)
-          if options[:dry_run].nil? || !options[:dry_run]
-            if File.exist?(generator.file_path)
-              spinner.error(pastel.red('(file exists)'))
-              exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
+          script_contents = generator.generate
 
-              puts
-              spinner.update(title: 'Overwriting SBATCH script')
-              spinner.auto_spin
-            end
-
-            file_path = generator.save
-
+          if options[:dry_run]
             spinner.success(pastel.green('(successful)'))
-
-            puts pastel.green("\nThe SBTACH script has been generated and saved to #{file_path}\n")
-
-            # Submit the sbatch file to sbatch if user adds submit flag
-            exit(0) unless options[:submit]
-
-            unless options[:yes] || TTY::Prompt.new.yes?("\nWould you like to submit this script?", default: false)
-              puts pastel.yellow("\nSkipping submission\n")
-              exit(0)
-            end
-
-            spinner.update(title: 'submitting script')
-            spinner.auto_spin
-
-            stdout, status = generator.submit(file_path)
-
-            unless status.success?
-              spinner.error(pastel.red('(error)'))
-              puts pastel.red("\nAn error occurred\n")
-              exit(1)
-            end
-
-            spinner.success(pastel.grren('(submitted)'))
-
-            puts "#{stdout}\n"
-          else
-            output = generator.generate
-
-            spinner.success(pastel.green('(successful)'))
-
             puts pastel.green("\nThe SBTACH script has been generated and looks as follows:")
-            puts output
+            puts script_contents
+            exit(0)
           end
+
+          if File.exist?(generator.file_path)
+            spinner.error(pastel.red('(file exists)'))
+            exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
+            puts
+            spinner.update(title: 'Overwriting SBATCH script')
+            spinner.auto_spin
+          end
+
+          script_path = generator.save(script_contents)
+
+          spinner.success(pastel.green('(successful)'))
+
+          puts pastel.green("\nThe SBTACH script has been generated and saved to #{script_path}\n")
+
+          # Submit the sbatch file to sbatch if user adds submit flag
+          exit(0) unless options[:submit]
+
+          unless options[:yes] || TTY::Prompt.new.yes?("\nWould you like to submit this script?", default: false)
+            puts pastel.yellow("\nSkipping submission\n")
+            exit(0)
+          end
+
+          spinner.update(title: 'submitting script')
+          spinner.auto_spin
+
+          stdout, status = generator.submit(script_path)
+
+          unless status.success?
+            spinner.error(pastel.red('(error)'))
+            puts pastel.red("\nAn error occurred\n")
+            exit(1)
+          end
+
+          spinner.success('(submitted)')
+
+          puts "\n#{stdout}\n"
           exit(0)
         rescue Errno::ENOENT
           spinner.error(pastel.red('(error)'))
