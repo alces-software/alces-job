@@ -46,11 +46,17 @@ module AlcesJob
       # The template to be used to generate the script
       # @return [String]
       def template
+<<<<<<< HEAD
         paths = Services::Paths.new
 
         built_in_path = File.join(__dir__, '../../../templates', "#{@template}.erb")
         user_path = paths.user_template_path(@template.strip)
         admin_file = paths.admin_template_path(@template.strip)
+=======
+        built_in_path = File.join(__dir__, '../../../templates', "#{@template}.erb")
+        user_path = File.join(File.expand_path('~/.alces-job/templates'), "#{@template}.erb")
+        admin_file = File.join(File.expand_path(@admin_path), "#{@template}.erb")
+>>>>>>> main
 
         if File.exist?(user_path)
           File.read(user_path)
