@@ -2,7 +2,6 @@
 
 require 'dry/cli'
 
-# Import subcommands like this
 require_relative '../../services/modify_script'
 
 module AlcesJob
@@ -83,6 +82,8 @@ module AlcesJob
           ).call
         end
 
+        private
+
         def extract_modules(argv)
           modules = []
 
@@ -102,6 +103,7 @@ module AlcesJob
               .reject(&:empty?)
               .each { |mod| modules << mod }
           end
+
           modules
         end
       end

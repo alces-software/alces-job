@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
-require 'yaml'
+require 'pastel'
+
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -10,20 +12,14 @@ module AlcesJob
         AlcesJob::CLI.register 'template list', self
         desc 'Lists available templates from built-in, admin, and user locations'
 
-        def initialize
-          config = YAML.load_file(File.expand_path('../../../../config/config.yaml', __dir__))
-          @admin_templates_folder = File.expand_path(config['admin_templates_folder'])
-          @user_templates_folder = File.expand_path('~/.alces-job/templates')
-          @builtin_templates_folder = File.expand_path('../../../../templates', __dir__)
-        end
-
         def call(*)
+          paths = Services::Paths.new
           pastel = Pastel.new
           templates = {}
 
-          scan_templates(@builtin_templates_folder, 'built-in', templates)
-          scan_templates(@admin_templates_folder, 'admin', templates)
-          scan_templates(@user_templates_folder, 'user', templates)
+          scan_templates(File.expand_path('../../../../templates', __dir__), 'built-in', templates)
+          scan_templates(paths.admin_config_path, 'admin', templates)
+          scan_templates(paths.user_template_dir, 'user', templates)
 
           if templates.empty?
             puts pastel.red("\nNo templates found\n")
