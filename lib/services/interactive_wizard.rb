@@ -237,10 +237,10 @@ module AlcesJob
 
         nodes.each do |node|
           node_memory = MemoryConverter.to_mb((node[:memory] || node['memory']).to_s)
-          (node[:cpu] || node['cpus']).to_i
+          node_cpus = (node[:cpus] || node['cpus']).to_i
 
           max_memory = node_memory if node_memory && node_memory > max_memory
-          max_cpu_cores = node[:cpus] if node[:cpus] > max_cpu_cores
+          max_cpu_cores = node_cpus if node_cpus > max_cpu_cores
         end
 
         human_readable_max_time = nil
@@ -360,16 +360,19 @@ module AlcesJob
               puts "Max memory: #{max_memory} MB"
               key(item).ask(question, default: defaults[item]) do |q|
                 q.validate do |input|
-                  !MemoryConverter.to_mb(input).nil?
-                end
-                q.messages[:valid?] = 'Please enter a whole number'
-                q.validate do |input|
-                  input.to_i.between?(1, max_memory)
+                  requested_memory_mb = MemoryConverter.to_mb(input)
+
+                  !requested_memory_mb.nil? &&
+                    requested_memory_mb >= 1 &&
+                    requested_memory_mb <= max_memory
                 end
 
-                q.messages[:valid?] = "Please enter a whole number from 1 to #{max_memory} MB"
+                q.messages[:valid?] =
+                  "Enter memory between 1 MB and #{max_memory} MB, such as 500, 500M, or 2G."
 
-                q.convert :int
+                q.convert do |input|
+                  MemoryConverter.to_mb(input)
+                end
               end
 
             when :cpus_per_task
@@ -501,7 +504,10 @@ module AlcesJob
           when :mem
             puts "Max memory: #{max_memory} MB"
 
-            key(item).ask(question, default: defaults[item]) do |q|
+            result[:mem] = prompt.ask(
+              questions[:mem],
+              default: result[:mem].to_s
+            ) do |q|
               q.validate do |input|
                 requested_memory_mb = MemoryConverter.to_mb(input)
 
