@@ -18,8 +18,9 @@ cd alces-job
 
 - `bin/`
   - `alces-job` — executable CLI entrypoint script.
-- `config/`
-  - `config.yaml` — default site configuration used by the CLI and generator. Stores paths to relevent files.
+- `lib/services/paths/paths.rb` — path resolution helper used by the CLI. `Services::Paths` determines
+  where user profiles and templates live (XDG config home, e.g. `~/.config/alces-job/`), and where
+  admin files are expected on the system (under `/etc/alces-job/`, e.g. `/etc/alces-job/admin-config.yaml`).
 - `lib/`
   - `cli/cli.rb` — registers commands with `dry-cli`.
   - `cli/commands/` — command definitions for generate, interactive, profile, config, sysinfo, template, validate, modify, version.
@@ -49,18 +50,23 @@ The generator workflow is primarily implemented in:
 - `lib/cli/commands/generate/universal.rb`
 - `lib/services/script_generator/script_generator.rb`
 
-When the user runs a generate command, the CLI command:
-- reads `config/config.yaml`
-- optionally merges in the admin config from `admin_config_file`
-- optionally loads a user profile from `~/.alces-job/profiles/`
+- When the user runs a generate command, the CLI command uses `Services::Paths` (`lib/services/paths/paths.rb`)
+  to locate site and user resources:
+
+- `Services::Paths#admin_config_path` — typically `/etc/alces-job/admin-config.yaml`
+- `Services::Paths#system_info_path` — typically `/etc/alces-job/system-info.yaml`
+- `Services::Paths#user_profile_path` and `#user_profile_dir` — user profiles under the XDG config home, e.g. `~/.config/alces-job/profiles/`
+
+- the command optionally merges in the admin config from the admin config file (if present)
+- the command optionally loads a user profile from the XDG user profile directory
 - creates `Services::ScriptGenerator` with the final options
 - writes the generated script to disk
 - optionally submits it to Slurm using `sbatch`
 
 The actual template content is loaded from one of:
-- user templates: `~/.alces-job/templates/*.erb`
-- admin templates: path set by `admin_templates_folder` in `config/config.yaml`
-- built-in templates: `templates/*.erb`
+- user templates: `~/.config/alces-job/templates/*.erb` (XDG config home)
+- admin templates: `/etc/alces-job/templates/*.erb` (admin template directory)
+- built-in templates: `templates/*.erb` (packaged with the gem)
 
 The generator supports a `--template` option to choose the template name.
 
@@ -79,7 +85,7 @@ The interactive wizard also exposes these job types and helps construct options 
 
 `lib/services/interactive_wizard.rb` implements interactive mode.
 
-It loads cluster metadata from the `system_info_file` path in `config/config.yaml` and falls back to a prompt-driven configuration if Slurm environment data is unavailable.
+It loads cluster metadata from the system info path returned by `Services::Paths#system_info_path` (typically `/etc/alces-job/system-info.yaml`) and falls back to a prompt-driven configuration if Slurm environment data is unavailable.
 
 The wizard uses:
 - `TTY::Prompt` for interactive questions
@@ -88,13 +94,11 @@ The wizard uses:
 
 ### Profiles and site configuration
 
-Profiles are YAML files stored in the user's home directory under `~/.alces-job/profiles/`.
+Profiles are YAML files stored under the user's XDG config directory (e.g. `~/.config/alces-job/profiles/`).
 
 The generator command can load a profile via `--profile <name>`.
 
-The site admin can provide a global config file at the location configured by `config/config.yaml` under `admin_config_file`.
-
-If `--site-config` is enabled, the site config values are merged into generated options and warnings are printed when user flags overwrite admin-defined keys.
+The site admin can provide a global admin config file at `/etc/alces-job/admin-config.yaml` which is merged when `--site-config` is enabled; the CLI will print warnings when user flags overwrite admin-defined keys.
 
 ### Template and validation commands
 
@@ -175,8 +179,8 @@ Jobs:
 
 To add a new job template, create an ERB file and place it in one of the template locations (priority order):
 
-- `~/.alces-job/templates/<name>.erb` (user templates)
-- admin templates directory defined by `admin_templates_folder` in `config/config.yaml` (e.g. `/etc/alces-job/templates/`)
+- `~/.config/alces-job/templates/<name>.erb` (user templates, XDG config home)
+- admin templates directory: `/etc/alces-job/templates/`
 - built-in templates in the repository: `templates/<name>.erb`
 
 Templates are evaluated by `Services::ScriptGenerator` with an OpenStruct `@context` containing the CLI options passed to the generator. Use `@context` to access flags set by the user or profile. Example minimal template:

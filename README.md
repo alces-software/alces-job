@@ -39,4 +39,4 @@ $ alces-job interactive
 
 ## Further Help
 
-For more specific guidance, look at the relevant guide.md file in the root of the repo
+For more specific guidance, see `UserGuide.md`, `DeveloperGuide.md`, or `AdminGuide.md` in the repository root.
