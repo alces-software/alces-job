@@ -30,7 +30,7 @@ module AlcesJob
                       desc: 'Specifies generic resources such as GPUs'
 
         def call(**options)
-          paths = AlcesJob::Paths.new
+          paths = Services::Paths.new
           pastel = Pastel.new
 
           if options[:site_config]

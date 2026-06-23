@@ -25,7 +25,7 @@ module AlcesJob
                      aliases: ['-a']
 
         def call(**options)
-          system_info_file_path = AlcesJob::Paths.new.system_info_path
+          system_info_file_path = Services::Paths.new.system_info_path
           pastel = Pastel.new
 
           if Process.uid != 0

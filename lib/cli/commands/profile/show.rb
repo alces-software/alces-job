@@ -23,7 +23,7 @@ module AlcesJob
           end
 
           profile_name = profile_name.strip
-          profile_path = Dir.glob(AlcesJob::Paths.new.user_profile_path(profile_name))
+          profile_path = Dir.glob(Services::Paths.new.user_profile_path(profile_name))
 
           unless File.exist?(profile_path)
             puts pastel.red("\nProfile #{profile_name} not found\n")

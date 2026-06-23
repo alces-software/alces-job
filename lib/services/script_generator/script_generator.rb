@@ -46,7 +46,7 @@ module AlcesJob
       # The template to be used to generate the script
       # @return [String]
       def template
-        paths = AlcesJob::Paths.new
+        paths = Services::Paths.new
 
         built_in_path = File.join(__dir__, '../../../templates', "#{@template}.erb")
         user_path = paths.user_template_path(@template.strip)

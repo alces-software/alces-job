@@ -21,7 +21,7 @@ module AlcesJob
                          desc: 'Specifies the Slurm account to charge'
 
         def initialize
-          @admin_config_path = AlcesJob::Paths.new.admin_config_path
+          @admin_config_path = Services::Paths.new.admin_config_path
         end
 
         def call(**options)
@@ -47,8 +47,8 @@ module AlcesJob
 
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
-          if File.exist?(@config_path)
-            data = YAML.load_file(@config_path)
+          if File.exist?(@admin_config_path)
+            data = YAML.load_file(@admin_config_path)
 
             unless data.nil?
               spinner.error(pastel.red('(config exists)'))

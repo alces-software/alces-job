@@ -13,7 +13,7 @@ module AlcesJob
         desc 'Lists available templates from built-in, admin, and user locations'
 
         def call(*)
-          paths = AlcesJob::Paths.new
+          paths = Services::Paths.new
           pastel = Pastel.new
           templates = {}
 

@@ -35,7 +35,7 @@ module AlcesJob
                             desc: 'Sets a Slurm dependency string for the job'
 
         def call(**options)
-          paths = AlcesJob::Paths.new
+          paths = Services::Paths.new
           pastel = Pastel.new
 
           if options[:site_config]

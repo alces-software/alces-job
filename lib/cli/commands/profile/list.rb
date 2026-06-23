@@ -15,7 +15,7 @@ module AlcesJob
         def call(*)
           pastel = Pastel.new
 
-          profile_files = Dir.glob(AlcesJob::Paths.new.user_profile_path('*'))
+          profile_files = Dir.glob(Services::Paths.new.user_profile_path('*'))
 
           if profile_files.empty?
             puts pastel.red("\nNo profiles found\n")

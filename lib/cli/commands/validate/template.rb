@@ -23,7 +23,7 @@ module AlcesJob
             exit(1)
           end
 
-          validator = TemplateValidator.new(AlcesJob::Paths.new.user_template_path(name.strip))
+          validator = TemplateValidator.new(Services::Paths.new.user_template_path(name.strip))
 
           if validator.validate?
             puts pastel.green("\nTemplate validation passed\n")

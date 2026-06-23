@@ -68,6 +68,7 @@ module AlcesJob
           end
 
           profile_path = AlcesJob::Paths.new.user_profile_path(profile_name.strip)
+          profile_path = Services::Paths.new.user_profile_path(profile_name.strip)
           options.reject! { |_, value| value == [] }
 
           if options.empty?

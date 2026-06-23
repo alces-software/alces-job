@@ -27,7 +27,7 @@ module AlcesJob
                                desc: 'Specifies CPU cores per task'
 
         def call(**options)
-          paths = AlcesJob::Paths.new
+          paths = Services::Paths.new
           pastel = Pastel.new
 
           if options[:site_config]

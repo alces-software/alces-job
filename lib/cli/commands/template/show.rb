@@ -15,7 +15,7 @@ module AlcesJob
         option :name, type: :string, desc: 'The name of the template to display'
 
         def initialize
-          paths = AlcesJob::Paths.new
+          paths = Services::Paths.new
           @admin_templates_folder = paths.admin_template_dir
           @user_templates_folder = paths.user_template_dir
           @builtin_templates_folder = File.expand_path('../../../../templates', __dir__)

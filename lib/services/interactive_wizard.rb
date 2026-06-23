@@ -12,7 +12,7 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def system_info
-        @info = AlcesJob::Services::SysInfo.load_info(AlcesJob::Paths.new.system_info_path)
+        @info = AlcesJob::Services::SysInfo.load_info(Services::Paths.new.system_info_path)
 
         return unless @info[:nodes].empty? && @info[:partitions].empty? && @info[:packages].empty? && @info[:gpu_total].zero?
 

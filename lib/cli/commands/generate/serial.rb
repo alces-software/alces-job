@@ -18,7 +18,7 @@ module AlcesJob
         desc 'Creates a serial sbatch script'
 
         def call(**options)
-          paths = AlcesJob::Paths.new
+          paths = Services::Paths.new
           pastel = Pastel.new
 
           if options[:site_config]

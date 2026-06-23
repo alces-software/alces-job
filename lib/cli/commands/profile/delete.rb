@@ -26,7 +26,7 @@ module AlcesJob
           end
 
           profile_name = profile.strip
-          profile_path = AlcesJob::Paths.new.user_profile_path(profile_name)
+          profile_path = Services::Paths.new.user_profile_path(profile_name)
 
           unless File.exist?(profile_path)
             puts pastel.red("\nThe profile you're trying to delete doesn't exist\n")
