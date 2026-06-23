@@ -5,9 +5,9 @@
 Ensure ruby is installed with
 
 ```
-$ ruby --version`
+$ ruby --version
 
-$ gem --version`
+$ gem --version
 ```
 
 If it is not, install ruby.
