@@ -14,7 +14,7 @@ class SlurmScriptValidator
     @file_path = file_path
     @errors = []
     @warnings = []
-    config = YAML.load_file(File.expand_path('../../config/config.yaml', __dir__))
+    config = YAML.load_file(File.expand_path('../../../config/config.yaml', __dir__))
     @system_info = AlcesJob::Services::SysInfo.load_info(config['system_info_file'])
   end
 

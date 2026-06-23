@@ -7,6 +7,7 @@ require 'yaml'
 require 'erb'
 
 require_relative 'sys_info/sys_info'
+require_relative 'converters/time_converter'
 
 module AlcesJob
   module Services
@@ -52,17 +53,19 @@ module AlcesJob
 
         partition_names.map.with_index do |name, index|
           time_limit = prompt.ask("Max time for partition #{name}", default: '0-07:00:00') do |q|
-            q.validate(/^\d+-\d{2}:\d{2}:\d{2}$/)
-            q.messages[:valid?] = 'Time must be in format D-HH:MM:SS.'
+            q.validate do |input|
+              !TimeConverter.to_seconds(input).nil?
           end
+          q.messages[:valid?] = 'time must be in format HH:MM:SS or D-HH:MM:SS'
+        end
 
           {
             partition: name,
             time_limit: time_limit,
             default: index.zero?
           }
-        end
       end
+    end
 
       def prompt_for_nodes(prompt)
         max_cpu_cores = prompt.ask('Maximum CPU cores per node', default: '4') do |q|
@@ -81,35 +84,18 @@ module AlcesJob
       end
 
       def valid_slurm_time?(time_string, max_time = '7-00:00:00')
-        return false if time_string.nil?
-        return false if time_string.strip.empty?
+        requested_seconds = TimeConverter.to_seconds(time_string)
+        return false if requested_seconds.nil?
 
-        match = time_string.match(/^(\d+)-(\d{2}):(\d{2}):(\d{2})$/)
+        max_seconds = TimeConverter.to_seconds(max_time)
 
-        return false unless match
-
-        return false unless match
-
-        days = match[1].to_i
-        hours = match[2].to_i
-        minutes = match[3].to_i
-        seconds = match[4].to_i
-
-        return false if hours > 23
-        return false if minutes > 59
-        return false if seconds > 59
-
-        total_seconds =
-          (days * 86_400) +
-          (hours * 3600) +
-          (minutes * 60) +
-          seconds
-
-        max_seconds = slurm_time_to_seconds(max_time)
+        warn "DEBUG: #{time_string.inspect} -> #{requested_seconds.inspect}"
+        warn "DEBUG max: #{max_time.inspect} -> #{max_seconds.inspect}"
+        return false if max_seconds.nil?
 
         return true if max_seconds.zero?
 
-        total_seconds <= max_seconds
+        requested_seconds <= max_seconds
       end
 
       def human_readable_time(max_time)
@@ -124,16 +110,6 @@ module AlcesJob
         parts << "#{seconds.to_i} seconds" if seconds.to_i.positive?
 
         parts.join(', ')
-      end
-
-      def slurm_time_to_seconds(time_string)
-        days, time = time_string.split('-')
-        hours, minutes, seconds = time.split(':')
-
-        (days.to_i * 86_400) +
-          (hours.to_i * 3600) +
-          (minutes.to_i * 60) +
-          seconds.to_i
       end
 
       def normalize_slurm_time(time_value)
