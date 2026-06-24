@@ -1,50 +1,78 @@
 #!/bin/bash
+
 <% if @context.job_name -%>
+# Name shown for this job in the Slurm queue
 #SBATCH --job-name=<%= @context.job_name %>
 <% end -%>
+
 <% if @context.nodes -%>
+# Number of nodes/machines requested
 #SBATCH --nodes=<%= @context.nodes %>
 <% end -%>
+
 <% if @context.ntasks -%>
+# Number of tasks/processes to run
 #SBATCH --ntasks=<%= @context.ntasks %>
 <% end -%>
+
 <% if @context.cpus_per_task -%>
+# CPU cores available to each task
 #SBATCH --cpus-per-task=<%= @context.cpus_per_task %>
 <% end -%>
+
 <% if @context.mem -%>
+# Amount of memory requested for the job
 #SBATCH --mem=<%= @context.mem %>
 <% end -%>
+
 <% if @context.time -%>
+# Maximum runtime before Slurm stops the job
 #SBATCH --time=<%= @context.time %>
 <% end -%>
+
 <% if @context.partition -%>
+# Partition/queue where the job should run
 #SBATCH --partition=<%= @context.partition %>
 <% end -%>
+
 <% if @context.account -%>
+# Account/project to charge the job to
 #SBATCH --account=<%= @context.account %>
 <% end -%>
+
 <% if @context.gres -%>
+# Generic resources, commonly used for GPUs, e.g. gpu:1
 #SBATCH --gres=<%= @context.gres %>
 <% end -%>
+
 <% if @context.mail_user -%>
+# Email address for Slurm job notifications
 #SBATCH --mail-user=<%= @context.mail_user %>
 <% end -%>
+
 <% if @context.mail_type -%>
+# When to send emails, e.g. BEGIN, END, FAIL, ALL
 #SBATCH --mail-type=<%= @context.mail_type %>
 <% end -%>
+
 <% if @context.array -%>
+# Run as an array job; each task gets a SLURM_ARRAY_TASK_ID
 #SBATCH --array=<%= @context.array %>
 <% end -%>
+
 <% if @context.dependency -%>
+# Start this job only after another job condition is met
 #SBATCH --dependency=<%= @context.dependency %>
 <% end -%>
+
 <% Array(@context.modules).each do |mod| -%>
-module load <%= mod %>
+module load <%= mod %>                             # Load required software/module before running
 <% end -%>
+
 <% if @context.workdir -%>
-cd <%= @context.workdir %>
+cd <%= @context.workdir %>                         # Move to the working directory
 <% end -%>
 
-echo "Running job<% if @context.job_name %>: '<%= @context.job_name %>'<% end %>"
+echo "Running job<% if @context.job_name %>: '<%= @context.job_name %>'<% end %>"  # Print which job is running
 
-<%= @context.command || "echo 'No command provided'" %>
+<%= @context.command || "echo 'No command provided'" %>  # Run the user's command
