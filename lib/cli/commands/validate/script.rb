@@ -24,9 +24,6 @@ module AlcesJob
             exit(1)
           end
 
-<<<<<<< HEAD
-          validator = AlcesJob::Services::SlurmScriptValidator.new(file_path)
-=======
           puts
           spinner = TTY::Spinner.new(
             '[:spinner] validating script ...',
@@ -36,14 +33,13 @@ module AlcesJob
 
           spinner.auto_spin
           begin
-            validator = SlurmScriptValidator.new(Services::Paths.new.user_template_path(template_name.strip))
+            validator = AlcesJob::Services::SlurmScriptValidator.new(file_path)
           rescue StandardError => e
             spinner.error('(failed to validate)')
             puts pastel.red("\nAn error occurred while validating the template:\n#{e.message}\n")
             exit(1)
           end
           spinner.success('(validation complete)')
->>>>>>> main
 
           if validator.validate?
             puts pastel.green("\nValidation passed\n")
