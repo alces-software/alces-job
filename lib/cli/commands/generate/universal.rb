@@ -5,7 +5,9 @@ require 'pastel'
 require 'tty-spinner'
 require 'tty-prompt'
 require 'yaml'
+require 'tempfile'
 
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative 'command_templates/generate_command_template'
 require_relative '../../../services/script_generator/script_generator'
 require_relative '../../../services/paths/paths'
@@ -85,12 +87,12 @@ module AlcesJob
           spinner.auto_spin
 
           generator = Services::ScriptGenerator.new(options)
-          script_contents = generator.generate
+          script = generator.generate
 
           if options[:dry_run]
             spinner.success(pastel.green('(successful)'))
-            puts pastel.green("\nThe SBTACH script has been generated and looks as follows:")
-            puts script_contents
+            puts pastel.green("\nThe SBATCH script has been generated and looks as follows:")
+            puts script
             exit(0)
           end
 
@@ -102,11 +104,29 @@ module AlcesJob
             spinner.auto_spin
           end
 
-          script_path = generator.save(script_contents)
+          Tempfile.create(['generated_script', '.slurm']) do |tempfile|
+            tempfile.write(script)
+            tempfile.flush
+
+            validator = Services::SlurmScriptValidator.new(tempfile.path)
+
+            unless validator.validate?
+              spinner.error(pastel.red('(invalid)'))
+
+              puts pastel.bold.red("\nGenerated script may not be valid:\n")
+              validator.errors.each { |error| puts pastel.red("ERROR: #{error}") }
+              validator.warnings.each { |warning| puts pastel.yellow("WARNING: #{warning}") }
+
+              puts pastel.yellow("\nScript was not saved.\n")
+              exit(1)
+            end
+          end
+
+          script_path = generator.save(script)
 
           spinner.success(pastel.green('(successful)'))
 
-          puts pastel.green("\nThe SBTACH script has been generated and saved to #{script_path}\n")
+          puts pastel.green("\nThe SBATCH script has been generated and saved to #{script_path}\n")
 
           # Submit the sbatch file to sbatch if user adds submit flag
           exit(0) unless options[:submit]

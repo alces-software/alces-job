@@ -1,24 +1,34 @@
 #!/bin/bash
-#SBATCH --job-name=<%= @context.job_name %>
-#SBATCH --array=<%= @context.array %>
+
+# Name shown for this job in the Slurm queue
+#SBATCH --job-name=<%= @context.job_name %>     
+
+# Run as an array job; each task gets its own SLURM_ARRAY_TASK_ID
+#SBATCH --array=<%= @context.array %>          
+
 <% if @context.partition -%>
-#SBATCH --partition=<%= @context.partition %>
+# Partition/queue where the job should run
+#SBATCH --partition=<%= @context.partition %>   
 <% end -%>
+
 <% if @context.time -%>
-#SBATCH --time=<%= @context.time %>
+# Maximum runtime before Slurm stops the job
+#SBATCH --time=<%= @context.time %>             
 <% end -%>
+
 <% if @context.mem -%>
-#SBATCH --mem=<%= @context.mem %>
+# Amount of memory requested for the job
+#SBATCH --mem=<%= @context.mem %>               
 <% end -%>
 
 <% Array(@context.modules).each do |mod| -%>
-module load <%= mod %>
+module load <%= mod %>                          # Load required software/module before running
 <% end -%>
+
 <% if @context.workdir -%>
-
-cd <%= @context.workdir %>
-
+cd <%= @context.workdir %>                      # Move to the working directory
 <% end -%>
-echo "Task ID: $SLURM_ARRAY_TASK_ID"
 
-<%= @context.command %>
+echo "Task ID: $SLURM_ARRAY_TASK_ID"            # Print this array task's ID
+
+<%= @context.command || "echo 'No command provided'" %>  # Run the user's command
