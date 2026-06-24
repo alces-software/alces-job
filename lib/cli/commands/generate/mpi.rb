@@ -103,6 +103,14 @@ module AlcesJob
                 spinner.success('(loaded)')
               end
             end
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            spinner.error('(file or directory not found)')
+            puts pastel.red("\nThe admin config file or directory could not be found.\n")
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error('(permission denied)')
+            puts pastel.red("\nYou do not have permission to read the admin config.\n")
+            exit(1)
           rescue StandardError => e
             spinner.error('(failed to load)')
             puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
@@ -133,6 +141,13 @@ module AlcesJob
                 puts pastel.red("\nA profile with that name was not found\n")
               end
             end
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            spinner.error('(file or director not found)')
+            puts pastel.red("\nThe profile file or directory could not be found \n")
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error('(permission denied)')
+            puts pastel.red("\nyou do not have permissin to read the specified profile. \n")
           rescue StandardError => e
             spinner.error('(failed to load)')
             puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
@@ -163,6 +178,12 @@ module AlcesJob
               spinner.update(title: 'Overwriting SBATCH script')
               spinner.auto_spin
             end
+          rescue Errno::EACCES
+            spinner.error('(permission denied)')
+            puts pastel.red("\nYou do not have permission to acess the output location. \n")
+          rescue Errno::ENOTDIR
+            spinner.error('(invalid path)')
+            puts pastel.red("\nThe output path is invalid. \n")
           rescue StandardError => e
             spinner.error('(failed to overwrite)')
             puts pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
