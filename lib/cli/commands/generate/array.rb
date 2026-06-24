@@ -48,11 +48,11 @@ module AlcesJob
               end
             end
           rescue Errno::EACCES
-            spinner.error('(permission denied)')
+            spinner.error('(Permission denied)')
             puts pastel.red("\nYou do not have permission to read the admin config.\n")
             exit(1)
           rescue StandardError => e
-            spinner.error('(failed to load)')
+            spinner.error('(Failed to load)')
             puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
             exit(1)
           end
@@ -127,7 +127,7 @@ module AlcesJob
               validator = Services::SlurmScriptValidator.new(tempfile.path)
 
               unless validator.validate?
-                spinner.error(pastel.red('(invalid)'))
+                spinner.error(pastel.red('(Invalid)'))
 
                 puts pastel.bold.red("\nGenerated script may not be valid:\n")
                 validator.errors.each { |error| puts pastel.red("ERROR: #{error}") }
@@ -146,14 +146,14 @@ module AlcesJob
             script_path = generator.save(script)
           rescue Errno::ENOSPC
             spinner.error('(Disk full)')
-            puts pastel.red("\nUnalbe to validate the generated script because the disk is full.\n")
+            puts pastel.red("\nUnable to validate the generated script because the disk is full.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error('(Permissions issue)')
             puts pastel.red("\nUnable to create or write the temporary validating file due to permissions or a read-only filesystem")
             exit(1)
           rescue StandardError => e
-            spinner.error('(failed to save)')
+            spinner.error('(Failed to save)')
             puts pastel.red("\nAn error occurred while saving the script\n")
             warn e.message
             exit(1)

@@ -74,8 +74,16 @@ module AlcesJob
 
             puts pastel.green("\nThe config file has been written to #{path}\n")
             exit(0)
+          rescue Errno::ENOSPC
+            spinner.error('(Disk full)')
+            puts pastel.red("\nUnable to write the config file to disk as it's too full.\n")
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error('(Permissions issue)')
+            puts pastel.red("\nUnable to create or write the temporary validating file due to permissions or a read-only filesystem")
+            exit(1)
           rescue StandardError => e
-            spinner.error(pastel.red('(writing error)'))
+            spinner.error(pastel.red('(Writing error)'))
             puts pastel.red("\nFailed to write config file:\n#{e.message}\n")
             exit(1)
           end
