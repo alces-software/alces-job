@@ -122,7 +122,7 @@ module AlcesJob
               validator = Services::SlurmScriptValidator.new(tempfile.path)
 
               unless validator.validate?
-                spinner.error(pastel.red('(invalid)'))
+                spinner.error(pastel.red('(Invalid)'))
 
                 puts pastel.bold.red("\nGenerated script may not be valid:\n")
                 validator.errors.each { |error| puts pastel.red("ERROR: #{error}") }

@@ -141,11 +141,11 @@ module AlcesJob
               end
             end
           rescue Errno::ENOSPC
-            spinner.error(pastel.red('disk full'))
-            puts pastel.red("\Unable to validate the script becasue the temporary filesystem is full. \n")
+            spinner.error(pastel.red('Disk full'))
+            puts pastel.red("\Unable to validate the script because the temporary filesystem is full. \n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
-            spinner.error(pastel.red('permission denied'))
+            spinner.error(pastel.red('Permission denied'))
             puts pastel.rec("\nUnable to create the temporary validation file due to permissions or a read-only filesystem. \n")
             exit(1)
           rescue StandardError => e
@@ -156,12 +156,12 @@ module AlcesJob
           begin
             script_path = generator.save(script)
           rescue Errno::ENOSPC
-            spinner.error('disk full')
-            puts pastel.red("\nUnable to save the generated script becasue the disk is full.\n")
+            spinner.error('Disk full')
+            puts pastel.red("\nUnable to save the generated script because the disk is full.\n")
             exit(1)
           rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error('(invalid path)')
-            puts pastel.red("\nInable to save the generated script becasue the output path is invalid or missing. \n")
+            spinner.error('(Invalid path)')
+            puts pastel.red("\nEnable to save the generated script because the output path is invalid or missing. \n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error('(permission denied)')
