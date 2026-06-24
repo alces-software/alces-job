@@ -10,7 +10,7 @@ module AlcesJob
         @system_root = '/etc/alces-job'
         @system_info_file_name = 'system-info'
         @admin_config_file_name = 'admin-config'
-        @user_config_file_name = 'config'
+        @user_config_file_name = 'user-config'
       end
 
       # Gets the path to the users templates dir
@@ -35,7 +35,7 @@ module AlcesJob
       # Gets the path to the users config file
       # @return [String]
       def user_config_path
-        File.join(@xdg.config_home, 'alces-job', "#{@user_config_file_name}.yaml")
+        @xdg.config_home.join('alces-job', "#{@user_config_file_name}.yaml").to_s
       end
 
       # Gets the path to a user specific profile

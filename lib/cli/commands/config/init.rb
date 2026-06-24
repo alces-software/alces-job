@@ -13,54 +13,23 @@ module AlcesJob
     module Commands
       class ConfigInit < Dry::CLI::Command
         AlcesJob::CLI.register 'config init', self
-        desc 'This command generates the initial admin config'
+        desc 'This command generates the initial user or admin config'
 
-        option :job_name, type: :string, aliases: ['-J'],
-                          desc: 'Sets the Slurm job name for the generated Serial script'
-
-        option :mem, type: :string,
-                     desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
-
-        option :time, type: :string, aliases: ['-t'],
-                      desc: 'Sets the walltime limit for the Serial job'
-
-        option :partition, type: :string, aliases: ['-p'],
-                           desc: 'Specifies the Slurm partition or queue to use'
-
-        option :module, type: :array, default: [],
-                        desc: 'Loads environment modules before running the job'
-
-        option :workdir, type: :string,
-                         desc: 'Changes to the specified working directory in the job script'
-
-        option :command, type: :string,
-                         desc: 'Specifies the shell command to execute in the script'
-
-        option :account, type: :string, aliases: ['-A'],
-                         desc: 'Specifies the Slurm account to charge'
-
-        option :output_file, type: :string, aliases: ['-o'],
-                             desc: 'Writes the generated script to this output filename'
-
-        option :error, type: :string, aliases: ['-e'],
-                       desc: 'Sets the Slurm stderr file path in the generated script'
-
-        option :mail_user, type: :string,
-                           desc: 'Sets the email address for Slurm notifications'
-
-        option :mail_type, type: :string,
-                           desc: 'Sets the Slurm mail notification type (BEGIN, END, FAIL, etc.)'
-
-        option :submit, type: :boolean, default: false,
-                        desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
-
-        def initialize
-          @admin_config_path = Services::Paths.new.admin_config_path
-          @user_config_path = Services::Paths.new.user_config_path
-        end
+        option :job_name, type: :string, aliases: ['-J'], desc: 'Sets the Slurm job name for the generated Serial script'
+        option :mem, type: :string, desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
+        option :time, type: :string, aliases: ['-t'], desc: 'Sets the walltime limit for the Serial job'
+        option :partition, type: :string, aliases: ['-p'], desc: 'Specifies the Slurm partition or queue to use'
+        option :module, type: :array, default: [], desc: 'Loads environment modules before running the job'
+        option :workdir, type: :string, desc: 'Changes to the specified working directory in the job script'
+        option :command, type: :string, desc: 'Specifies the shell command to execute in the script'
+        option :account, type: :string, aliases: ['-A'], desc: 'Specifies the Slurm account to charge'
+        option :output_file, type: :string, aliases: ['-o'], desc: 'Writes the generated script to this output filename'
+        option :error, type: :string, aliases: ['-e'], desc: 'Sets the Slurm stderr file path in the generated script'
+        option :mail_user, type: :string, desc: 'Sets the email address for Slurm notifications'
+        option :mail_type, type: :string, desc: 'Sets the Slurm mail notification type (BEGIN, END, FAIL, etc.)'
+        option :submit, type: :boolean, default: false, desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
 
         def call(**options)
-          admin_config_path = Services::Paths.new.admin_config_path
           pastel = Pastel.new
 
           if options.empty?
@@ -68,10 +37,10 @@ module AlcesJob
             exit(1)
           end
 
-          path = if Process.uid == 0
-                   @admin_config_path
+          path = if Process.uid.zero?
+                   Services::Paths.new.admin_config_path
                  else
-                   @user_config_path
+                   Services::Paths.new.user_config_path
                  end
 
           # Check config file
