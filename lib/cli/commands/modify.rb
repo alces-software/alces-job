@@ -1,8 +1,13 @@
 # frozen_string_literal: true
 
 require 'dry/cli'
+require 'pastel'
+require 'open3'
+require 'tty-prompt'
+require 'tty-spinner'
 
-require_relative '../../services/modify_script'
+require_relative '../../services/validators/slurm_script_validator'
+require_relative '../../services/module_extractor/module_extractor'
 
 module AlcesJob
   module CLI
@@ -13,73 +18,267 @@ module AlcesJob
 
         argument :script, required: true, desc: 'The script to modify'
 
-        option :job_name, aliases: ['-j'], type: :string,
-                          desc: 'Sets the Slurm job name'
+        option :job_name, aliases: ['-j'], type: :string, desc: 'Sets the Slurm job name'
+        option :nodes, aliases: ['-N'], type: :integer, desc: 'Requests the number of compute nodes'
+        option :ntasks, aliases: ['-n'], type: :integer, desc: 'Specifies the total number of tasks'
+        option :cpus_per_task, aliases: ['-c'], type: :integer, desc: 'Specifies CPU cores per task'
+        option :mem, type: :string, desc: 'Sets the memory requirement for the job, e.g. 4G or 2000M'
+        option :time, aliases: ['-t'], type: :string, desc: 'Sets the job walltime limit, e.g. 02:00:00 or 1-00:00:00'
+        option :partition, aliases: ['-p'], type: :string, desc: 'Specifies the Slurm partition or queue to use'
+        option :account, aliases: ['-A'], type: :string, desc: 'Specifies the Slurm account to charge'
+        option :gres, type: :string, desc: 'Specifies generic resources such as GPUs, e.g. gpu:1'
+        option :output, type: :string, desc: 'Sets the Slurm stdout file path'
+        option :error, aliases: ['-e'], type: :string, desc: 'Sets the Slurm stderr file path'
+        option :mail_user, type: :string, desc: 'Sets the email address for Slurm notifications'
+        option :mail_type, type: :string, desc: 'Sets the Slurm mail notification type, e.g. BEGIN, END, FAIL'
+        option :array, type: :string, desc: 'Sets a Slurm array task specification'
+        option :dependency, type: :string, desc: 'Sets a Slurm dependency string'
+        option :module, aliases: ['-m'], type: :array, default: [], desc: 'Loads one or more environment modules before running the job'
+        option :workdir, type: :string, desc: 'Changes to the specified working directory in the job script'
+        option :command, type: :string, desc: 'Specifies the shell command to execute in the script'
+        option :output_file, aliases: ['-o'], type: :string, desc: 'Writes the modified script to this output filename'
+        option :submit, type: :boolean, default: false, desc: 'Submits the script to Slurm automatically'
 
-        option :nodes, aliases: ['-N'], type: :integer,
-                       desc: 'Requests the number of compute nodes'
-
-        option :ntasks, aliases: ['-n'], type: :integer,
-                        desc: 'Specifies the total number of tasks'
-
-        option :cpus_per_task, aliases: ['-c'], type: :integer,
-                               desc: 'Specifies CPU cores per task'
-
-        option :mem, type: :string,
-                     desc: 'Sets the memory requirement for the job, e.g. 4G or 2000M'
-
-        option :time, aliases: ['-t'], type: :string,
-                      desc: 'Sets the job walltime limit, e.g. 02:00:00 or 1-00:00:00'
-
-        option :partition, aliases: ['-p'], type: :string,
-                           desc: 'Specifies the Slurm partition or queue to use'
-
-        option :account, aliases: ['-A'], type: :string,
-                         desc: 'Specifies the Slurm account to charge'
-
-        option :gres, type: :string,
-                      desc: 'Specifies generic resources such as GPUs, e.g. gpu:1'
-
-        option :output, type: :string,
-                        desc: 'Sets the Slurm stdout file path'
-
-        option :error, aliases: ['-e'], type: :string,
-                       desc: 'Sets the Slurm stderr file path'
-
-        option :mail_user, type: :string,
-                           desc: 'Sets the email address for Slurm notifications'
-
-        option :mail_type, type: :string,
-                           desc: 'Sets the Slurm mail notification type, e.g. BEGIN, END, FAIL'
-
-        option :array, type: :string,
-                       desc: 'Sets a Slurm array task specification'
-
-        option :dependency, type: :string,
-                            desc: 'Sets a Slurm dependency string'
-
-        option :module, type: :array, default: [],
-                        desc: 'Loads one or more environment modules before running the job'
-
-        option :workdir, type: :string,
-                         desc: 'Changes to the specified working directory in the job script'
-
-        option :command, type: :string,
-                         desc: 'Specifies the shell command to execute in the script'
-
-        option :output_file, aliases: ['-o'], type: :string,
-                             desc: 'Writes the modified script to this output filename'
-
-        option :submit, type: :boolean, default: false,
-                        desc: 'Submits the script to Slurm automatically'
+        def initialize
+          @sbatch_options = {
+            job_name: 'job-name',
+            nodes: 'nodes',
+            ntasks: 'ntasks',
+            cpus_per_task: 'cpus-per-task',
+            mem: 'mem',
+            time: 'time',
+            partition: 'partition',
+            account: 'account',
+            gres: 'gres',
+            output: 'output',
+            error: 'error',
+            mail_user: 'mail-user',
+            mail_type: 'mail-type',
+            array: 'array',
+            dependency: 'dependency'
+          }.freeze
+        end
 
         def call(script:, **options)
-          options[:module] = extract_modules(ARGV)
+          options[:module] = AlcesJob::Services.module_extractor(ARGV)
+          script = File.expand_path(script, Dir.pwd)
+          pastel = Pastel.new
 
-          AlcesJob::Services::ModifyScript.new(
-            script: script,
-            options: options
-          ).call
+          if script.to_s.strip.empty?
+            puts pastel.red("\nNo script path was provided\n")
+            exit(1)
+          end
+
+          puts
+          spinner = TTY::Spinner.new(
+            '[:spinner] :title ...',
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
+          )
+
+          spinner.update(title: 'checking script exists')
+          spinner.auto_spin
+
+          begin
+            unless File.exist?(script)
+              spinner.error('(unable to find)')
+              puts pastel.red("\nScript can't be found\n")
+              exit(1)
+            end
+          rescue StandardError => e
+            spinner.error('(failed to find)')
+            puts pastel.red("\nAn error occurred while checking if the file exists:\n#{e.message}\n")
+            exit(1)
+          end
+
+          spinner.success('(script found)')
+          spinner.update(title: 'reading script')
+          spinner.auto_spin
+
+          begin
+            old_content = File.read(script)
+            lines = old_content.lines(chomp: true)
+          rescue StandardError => e
+            spinner.error('(failed to read)')
+            puts pastel.red("\nFailed to read file:\n#{e.message}\n")
+            exit(1)
+          end
+
+          spinner.success('(successful)')
+          spinner.update(title: 'generating new script')
+          spinner.auto_spin
+
+          edited_script = []
+          found_options = []
+
+          lines.each do |line|
+            if line.start_with?('#!')
+              edited_script << line
+
+            elsif line.start_with?('#SBATCH')
+              parts = line.split[1]
+
+              unless parts&.start_with?('--') && parts.include?('=')
+                edited_script << line
+                next
+              end
+
+              name, _old_value = parts.split('=', 2)
+
+              option_key = name.tr('-', '_').delete_prefix('__').to_sym
+              found_options << option_key
+
+              if options.key?(option_key) && !options[option_key].nil?
+                new_value = options[option_key]
+                edited_script << "#SBATCH #{name}=#{new_value}"
+
+              else
+                edited_script << line
+              end
+            end
+          end
+
+          options.each do |key, value|
+            next if found_options.include?(key)
+            next unless @sbatch_options.key?(key)
+            next if value.nil?
+            next if value == false
+            next if value.respond_to?(:empty?) && value.empty?
+
+            sbatch_name = @sbatch_options[key]
+            edited_script << "#SBATCH --#{sbatch_name}=#{value}"
+          end
+
+          job_name = options[:job_name] || find_existing_job_name(lines) || 'slurm_job'
+          edited_script << ''
+
+          existing_cd_line = lines.find { |line| line.strip.start_with?('cd ') }
+          existing_modules = lines.select { |line| line.strip.start_with?('module load ') }.map { |line| line.strip.sub(/^module load\s+/, '') }
+
+          if options[:workdir] && !options[:workdir].to_s.empty?
+            edited_script << "cd #{options[:workdir]}\n"
+          elsif existing_cd_line
+            edited_script << "#{existing_cd_line}\n"
+          end
+
+          modules_to_write =
+            if options[:module]&.any?
+              options[:module]
+            else
+              existing_modules
+            end
+
+          used_modules = []
+
+          modules_to_write.each do |m|
+            m = m.to_s.strip
+            next if m.empty?
+            next if used_modules.include?(m)
+
+            edited_script << "module load #{m}"
+            used_modules << m
+          end
+
+          edited_script << ''
+          edited_script << %(echo "Running job '#{job_name}'") if job_name
+          edited_script << ''
+
+          if options[:command]
+
+            edited_script << options[:command]
+          else
+            lines.each do |line|
+              next if line.start_with?('#!')
+              next if line.start_with?('#SBATCH')
+              next if line.strip.start_with?('module load ')
+              next if line.strip.start_with?('cd ')
+              next if line.strip.start_with?('echo "Running job ')
+              next if line.empty? && edited_script.last == ''
+
+              edited_script << line
+            end
+          end
+
+          spinner.success('(successful)')
+
+          puts pastel.green("\n--- ORIGINAL SCRIPT ---")
+          puts old_content
+          puts pastel.green("\n--- MODIFIED SCRIPT ---")
+          puts edited_script.join("\n")
+
+          unless TTY::Prompt.new.yes?("\nWould you like to save this script?", default: false)
+            puts 'Aborting...'
+            puts
+            exit(0)
+          end
+
+          spinner.update(title: 'saving script')
+          spinner.auto_spin
+
+          file_path = if options[:output_file]
+                        File.join(Dir.pwd, options[:output_file])
+                      else
+                        script
+                      end
+
+          begin
+            File.write(file_path, "#{edited_script.join("\n")}\n")
+          rescue StandardError => e
+            spinner.error('(failed to write)')
+            puts pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
+            exit(1)
+          end
+
+          spinner.success('(successful)')
+          spinner.update(title: 'validating script')
+          spinner.auto_spin
+
+          begin
+            validator = Services::SlurmScriptValidator.new(file_path)
+          rescue StandardError => e
+            spinner.error('(failed to validate)')
+            puts pastel.red("\nAn error occurred while validating the script:\n#{e.message}\n")
+            exit(1)
+          end
+
+          spinner.success('(finished validating)')
+
+          if validator.validate?
+            if options[:submit] == true
+              begin
+                stdout, _, status = Open3.capture3("sbatch #{file_path}")
+                puts 'sbatch finished.'
+                puts "Exit status: #{status.exitstatus}"
+                unless stdout.empty?
+                  puts 'STDOUT:'
+                  puts stdout
+                end
+              rescue StandardError => e
+                puts pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
+                exit(1)
+              end
+            end
+            puts pastel.green("\nScript updated successfully\n")
+          else
+            begin
+              File.write(file_path, old_content)
+            rescue StandardError => e
+              puts pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
+              exit(1)
+            end
+
+            puts pastel.red("\n'Changes were invalid, so the script was reverted'\n")
+            validator.errors.each do |error|
+              puts "#{pastel.red('ERROR:')} #{error}"
+            end
+
+          end
+
+          puts
+          validator.warnings.each do |warning|
+            puts "#{pastel.yellow('WARNING:')} #{warning}"
+          end
+          exit(0)
         rescue StandardError => e
           puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
@@ -87,30 +286,14 @@ module AlcesJob
 
         private
 
-        # Takes in the options and combines all the module options into one
-        # @param [Hash] argv
-        # @return [hash]
-        def extract_modules(argv)
-          modules = []
+        # Finds the existing job nma in the file
+        # @param [Array<String>] lines
+        # @return [String]
+        def find_existing_job_name(lines)
+          job_line = lines.find { |line| line.start_with?('#SBATCH --job-name=') }
+          return nil unless job_line
 
-          argv.each_with_index do |arg, index|
-            value =
-              if ['--module', '-m'].include?(arg)
-                argv[index + 1]
-              elsif arg.start_with?('--module=', '-m=')
-                arg.split('=', 2).last
-              end
-
-            next unless value
-
-            value
-              .split(',')
-              .map(&:strip)
-              .reject(&:empty?)
-              .each { |mod| modules << mod }
-          end
-
-          modules
+          job_line.split('=', 2).last
         end
       end
     end

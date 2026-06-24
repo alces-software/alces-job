@@ -7,10 +7,13 @@ require 'tty-prompt'
 require 'yaml'
 require 'tempfile'
 
-require_relative '../../../services/validators/slurm_script_validator'
 require_relative 'command_templates/generate_command_template'
+
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
-require_relative '../../../services/paths/paths'
+require_relative '../../../services/module_extractor/module_extractor'
+require_relative '../../../services/config_manager/config_manager'
+require_relative '../../../services/profile_manager/profile_manager'
 
 module AlcesJob
   module CLI
@@ -19,19 +22,64 @@ module AlcesJob
         AlcesJob::CLI.register 'generate mpi', self
         desc 'Creates a MPI sbatch script'
 
-        option :nodes, type: :integer, aliases: ['-N'],
-                       desc: 'Requests the number of compute nodes for the MPI job'
-
-        option :ntasks, type: :integer, aliases: ['-n'],
-                        desc: 'Specifies the total number of MPI tasks'
-
-        option :cpus_per_task, type: :integer, aliases: ['-c'],
-                               desc: 'Specifies CPU cores per task'
+        option :nodes, type: :integer, aliases: ['-N'], desc: 'Requests the number of compute nodes for the MPI job'
+        option :ntasks, type: :integer, aliases: ['-n'], desc: 'Specifies the total number of MPI tasks'
+        option :cpus_per_task, type: :integer, aliases: ['-c'], desc: 'Specifies CPU cores per task'
 
         def call(**options)
+          options[:module] = AlcesJob::Services.module_extractor(ARGV)
           paths = Services::Paths.new
           pastel = Pastel.new
 
+          # Generate sbatch file bases on user inputs
+          puts
+          spinner = TTY::Spinner.new(
+            '[:spinner] :title ...',
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
+          )
+
+          begin
+            if options[:site_config]
+              spinner.update(title: 'Loading admin config')
+              spinner.auto_spin
+              config_manager = Services::ConfigManager.new(options)
+              options = config_manager.config
+              spinner.success('(loaded)')
+              config_manager.output.each do |line|
+                puts line
+              end
+            end
+          rescue StandardError => e
+            spinner.error('(failed to load)')
+            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
+            exit(1)
+          end
+
+          begin
+            unless options[:profile].nil?
+              puts
+              spinner.update(title: 'loading profile')
+              spinner.auto_spin
+              profile_manager = Services::ProfileManager.new(options[:profile], options)
+              options = profile_manager.profile
+              options.delete(:profile)
+              spinner.success('(loaded profile)')
+              profile_manager.output.each do |line|
+                puts line
+              end
+            end
+          rescue Errno::ENOENT
+            spinner.error('(failed to load)')
+            puts pastel.yellow("\nA profile with that name doesn't exist\n")
+          rescue StandardError => e
+            spinner.error('(failed to load)')
+            puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
+            exit(1)
+          end
+
+          # Generate sbatch file bases on user flags
+          puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),

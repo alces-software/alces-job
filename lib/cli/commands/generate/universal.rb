@@ -7,10 +7,13 @@ require 'tty-prompt'
 require 'yaml'
 require 'tempfile'
 
-require_relative '../../../services/validators/slurm_script_validator'
 require_relative 'command_templates/generate_command_template'
+
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
-require_relative '../../../services/paths/paths'
+require_relative '../../../services/module_extractor/module_extractor'
+require_relative '../../../services/config_manager/config_manager'
+require_relative '../../../services/profile_manager/profile_manager'
 
 module AlcesJob
   module CLI
@@ -19,25 +22,15 @@ module AlcesJob
         AlcesJob::CLI.register 'generate universal', self
         desc 'Creates a universal sbatch script'
 
-        option :nodes, type: :integer, aliases: ['-N'],
-                       desc: 'Requests the number of compute nodes for the job'
-
-        option :ntasks, type: :integer, aliases: ['-n'],
-                        desc: 'Specifies the total number of tasks for the job'
-
-        option :cpus_per_task, type: :integer, aliases: ['-c'],
-                               desc: 'Specifies CPU cores per task'
-        option :gres, type: :string,
-                      desc: 'Specifies generic resources such as GPUs or MICs'
-
-        option :array, type: :string,
-                       desc: 'Sets a Slurm array specification for multiple jobs'
-
-        option :dependency, type: :string,
-                            desc: 'Sets a Slurm dependency string for the job'
+        option :nodes, type: :integer, aliases: ['-N'], desc: 'Requests the number of compute nodes for the job'
+        option :ntasks, type: :integer, aliases: ['-n'], desc: 'Specifies the total number of tasks for the job'
+        option :cpus_per_task, type: :integer, aliases: ['-c'], desc: 'Specifies CPU cores per task'
+        option :gres, type: :string, desc: 'Specifies generic resources such as GPUs or MICs'
+        option :array, type: :string, desc: 'Sets a Slurm array specification for multiple jobs'
+        option :dependency, type: :string, desc: 'Sets a Slurm dependency string for the job'
 
         def call(**options)
-          paths = Services::Paths.new
+          Services::Paths.new
           pastel = Pastel.new
 
           spinner = TTY::Spinner.new(
@@ -48,19 +41,13 @@ module AlcesJob
 
           begin
             if options[:site_config]
-              admin_path = paths.admin_config_path
-              if File.exist?(admin_path)
-                spinner.update(title: 'Loading admin config')
-                spinner.auto_spin
-                admin = YAML.load_file(admin_path)
-                admin_keys = admin.keys
-                puts
-                options.each_key do |key|
-                  puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
-                end
-
-                options = admin.merge(options)
-                spinner.success('(loaded)')
+              spinner.update(title: 'Loading admin config')
+              spinner.auto_spin
+              config_manager = Services::ConfigManager.new(options)
+              options = config_manager.config
+              spinner.success('(loaded)')
+              config_manager.output.each do |line|
+                puts line
               end
             end
           rescue StandardError => e
@@ -71,28 +58,20 @@ module AlcesJob
 
           begin
             unless options[:profile].nil?
-              profile_path = paths.user_profile_path(options[:profile].strip)
+              puts
+              spinner.update(title: 'loading profile')
+              spinner.auto_spin
+              profile_manager = Services::ProfileManager.new(options[:profile], options)
+              options = profile_manager.profile
               options.delete(:profile)
-              if File.exist?(profile_path)
-                spinner.update(title: 'loading profile')
-                spinner.auto_spin
-                profile = YAML.load_file(profile_path)
-                options_keys = options.keys
-                puts
-                profile.each_key do |key|
-                  if options_keys.include?(key)
-                    puts pastel.yellow("Ignoring profile flag #{key}")
-                  else
-                    puts pastel.green("Loaded profile flag #{key}")
-                  end
-                end
-
-                options = profile.merge(options)
-                spinner.success('(loaded profile)')
-              else
-                puts pastel.red("\nA profile with that name was not found\n")
+              spinner.success('(loaded profile)')
+              profile_manager.output.each do |line|
+                puts line
               end
             end
+          rescue Errno::ENOENT
+            spinner.error('(failed to load)')
+            puts pastel.yellow("\nA profile with that name doesn't exist\n")
           rescue StandardError => e
             spinner.error('(failed to load)')
             puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
@@ -150,7 +129,7 @@ module AlcesJob
           end
 
           begin
-            script_path = generator.save(script_contents)
+            script_path = generator.save(script)
           rescue StandardError => e
             spinner.error('(failed to save)')
             puts pastel.red("\nAn error occurred while saving the script\n")

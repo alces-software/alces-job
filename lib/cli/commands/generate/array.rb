@@ -7,10 +7,13 @@ require 'tty-prompt'
 require 'yaml'
 require 'tempfile'
 
-require_relative '../../../services/validators/slurm_script_validator'
 require_relative 'command_templates/generate_command_template'
+
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
-require_relative '../../../services/paths/paths'
+require_relative '../../../services/module_extractor/module_extractor'
+require_relative '../../../services/config_manager/config_manager'
+require_relative '../../../services/profile_manager/profile_manager'
 
 module AlcesJob
   module CLI
@@ -19,14 +22,12 @@ module AlcesJob
         AlcesJob::CLI.register 'generate array', self
         desc 'Creates an array sbatch script'
 
-        option :nodes, type: :integer, aliases: ['-N'],
-                       desc: 'Requests the number of compute nodes for the array job'
-
-        option :array, type: :string,
-                       desc: 'Sets the Slurm array task specification for the job'
+        option :nodes, type: :integer, aliases: ['-N'], desc: 'Requests the number of compute nodes for the array job'
+        option :array, type: :string, desc: 'Sets the Slurm array task specification for the job'
 
         def call(**options)
-          paths = Services::Paths.new
+          options[:module] = AlcesJob::Services.module_extractor(ARGV)
+          Services::Paths.new
           pastel = Pastel.new
 
           spinner = TTY::Spinner.new(
@@ -37,19 +38,13 @@ module AlcesJob
 
           begin
             if options[:site_config]
-              admin_path = paths.admin_config_path
-              if File.exist?(admin_path)
-                spinner.update(title: 'Loading admin config')
-                spinner.auto_spin
-                admin = YAML.load_file(admin_path)
-                admin_keys = admin.keys
-                puts
-                options.each_key do |key|
-                  puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
-                end
-
-                options = admin.merge(options)
-                spinner.success('(loaded)')
+              spinner.update(title: 'Loading admin config')
+              spinner.auto_spin
+              config_manager = Services::ConfigManager.new(options)
+              options = config_manager.config
+              spinner.success('(loaded)')
+              config_manager.output.each do |line|
+                puts line
               end
             end
           rescue Errno::ENOENT, Errno::ENOTDIR
@@ -68,26 +63,15 @@ module AlcesJob
 
           begin
             unless options[:profile].nil?
-              profile_path = paths.user_profile_path(options[:profile].strip)
+              puts
+              spinner.update(title: 'loading profile')
+              spinner.auto_spin
+              profile_manager = Services::ProfileManager.new(options[:profile], options)
+              options = profile_manager.profile
               options.delete(:profile)
-              if File.exist?(profile_path)
-                spinner.update(title: 'loading profile')
-                spinner.auto_spin
-                profile = YAML.load_file(profile_path)
-                options_keys = options.keys
-                puts
-                profile.each_key do |key|
-                  if options_keys.include?(key)
-                    puts pastel.yellow("Ignoring profile flag #{key}")
-                  else
-                    puts pastel.green("Loaded profile flag #{key}")
-                  end
-                end
-
-                options = profile.merge(options)
-                spinner.success('(loaded profile)')
-              else
-                puts pastel.red("\nA profile with that name was not found\n")
+              spinner.success('(loaded profile)')
+              profile_manager.output.each do |line|
+                puts line
               end
             end
           rescue Errno::ENOENT, Errno::ENOTDIR

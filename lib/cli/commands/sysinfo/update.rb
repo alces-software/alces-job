@@ -16,13 +16,10 @@ module AlcesJob
         desc 'This command is used to update the system info file'
 
         option :node, type: :boolean, default: false, desc: 'Update nodes info', aliases: ['-n']
-        option :partition, type: :boolean, default: false, desc: 'Update partitions info',
-                           aliases: ['-p']
-        option :package, type: :boolean, default: false, desc: 'Update packages info',
-                         aliases: ['-k']
+        option :partition, type: :boolean, default: false, desc: 'Update partitions info', aliases: ['-p']
+        option :package, type: :boolean, default: false, desc: 'Update packages info', aliases: ['-k']
         option :gpu, type: :boolean, default: false, desc: 'Update GPU count', aliases: ['-g']
-        option :all, type: :boolean, default: false, desc: 'Update all the system information',
-                     aliases: ['-a']
+        option :all, type: :boolean, default: false, desc: 'Update all the system information', aliases: ['-a']
 
         def call(**options)
           system_info_file_path = Services::Paths.new.system_info_path
