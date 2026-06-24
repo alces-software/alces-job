@@ -17,32 +17,48 @@ module AlcesJob
           pastel = Pastel.new
           templates = {}
 
-          scan_templates(File.expand_path('../../../../templates', __dir__), 'built-in', templates)
-          scan_templates(paths.admin_config_path, 'admin', templates)
-          scan_templates(paths.user_template_dir, 'user', templates)
+          begin
+            scan_templates(File.expand_path('../../../../templates', __dir__), 'built-in', templates)
+            scan_templates(paths.admin_config_path, 'admin', templates)
+            scan_templates(paths.user_template_dir, 'user', templates)
+          rescue StandardError => e
+            puts pastel.red("\nAn error occurred while scanning the directories:\n#{e.message}\n")
+            exit(1)
+          end
 
           if templates.empty?
             puts pastel.red("\nNo templates found\n")
             exit(0)
           end
 
-          templates.each do |name, source|
-            puts "#{name} (#{source})"
+          puts pastel.green("\nAvailable profiles:")
+          templates.each do |name, path|
+            puts "#{name} ~ #{path}"
           end
+          puts
+
           exit(0)
+        rescue StandardError => e
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
 
         private
 
+        # Searches through a directory and and adds the available templates to an array
+        # @param [String] folder
+        # @param [String] source
+        # @param [Hash] templates
+        # @return [Hash]
         def scan_templates(folder, source, templates)
-          return unless File.directory?(folder)
+          return templates unless File.directory?(folder)
 
           Dir.glob(File.join(folder, '*.erb')).each do |path|
             name = File.basename(path, '.erb')
             templates[name] ||= source
           end
         rescue Errno::ENOENT
-          nil
+          templates
         end
       end
     end

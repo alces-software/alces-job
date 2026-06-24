@@ -20,11 +20,8 @@ module AlcesJob
         option :account, type: :string,
                          desc: 'Specifies the Slurm account to charge'
 
-        def initialize
-          @admin_config_path = Services::Paths.new.admin_config_path
-        end
-
         def call(**options)
+          admin_config_path = Services::Paths.new.admin_config_path
           pastel = Pastel.new
 
           if Process.uid != 0
@@ -47,35 +44,26 @@ module AlcesJob
 
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
-          if File.exist?(@admin_config_path)
-            data = YAML.load_file(@admin_config_path)
-
-            unless data.nil?
-              spinner.error(pastel.red('(config exists)'))
-              puts pastel.green("\nA config already exists\n")
-              exit(1)
-            end
-
-            spinner.success(pastel.green('(empty config)'))
-          else
-            spinner.success(pastel.green('(no config)'))
-          end
 
           # Writing to config file
           spinner.update(title: 'writing config file')
           spinner.auto_spin
           begin
-            FileUtils.mkdir_p(File.dirname(@admin_config_path))
-            File.write(@admin_config_path, options.to_yaml)
+            FileUtils.mkdir_p(File.dirname(admin_config_path))
+            File.write(admin_config_path, options.to_yaml)
             spinner.success(pastel.green('(successful)'))
 
-            puts pastel.green("\nThe config file has been written to #{@admin_config_path}\n")
+            puts pastel.green("\nThe config file has been written to #{admin_config_path}\n")
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))
-            puts pastel.red("\nFailed to write config file: #{e.message}\n")
+            puts pastel.red("\nFailed to write config file:\n#{e.message}\n")
             exit(1)
           end
+        rescue StandardError => e
+          spinner&.error('(command error)')
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
       end
     end
