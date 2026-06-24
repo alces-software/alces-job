@@ -26,24 +26,7 @@ module AlcesJob
       end
 
       def call
-        pastel = Pastel.new
-
         system('clear')
-
-        rows = [
-          ['serial', 'Single-node CPU job'],
-          ['mpi',    'Distributed job using MPI across nodes'],
-          ['gpu',    'GPU-accelerated workload'],
-          ['array',  'Many similar jobs run as a job array']
-        ]
-
-        # table = Terminal::Table.new do |t|
-        #   t.title = 'Available Job Types'
-        #   t.headings = %w[Type Description]
-        #   t.rows = rows
-        # end
-
-        # puts table
 
         partition_types = Array(@info[:partitions])
         partition_types = prompt_for_partitions(prompt) if partition_types.empty?

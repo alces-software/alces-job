@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module AlcesJob
   module Services
     # Merges two hashes at a deep level
