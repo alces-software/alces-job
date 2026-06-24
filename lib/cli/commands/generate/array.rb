@@ -7,10 +7,12 @@ require 'tty-prompt'
 require 'yaml'
 require 'tempfile'
 
-require_relative '../../../services/validators/slurm_script_validator'
 require_relative 'command_templates/generate_command_template'
+
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
 require_relative '../../../services/paths/paths'
+require_relative '../../../services/module_extractor/module_extractor'
 
 module AlcesJob
   module CLI
@@ -19,13 +21,11 @@ module AlcesJob
         AlcesJob::CLI.register 'generate array', self
         desc 'Creates an array sbatch script'
 
-        option :nodes, type: :integer, aliases: ['-N'],
-                       desc: 'Requests the number of compute nodes for the array job'
-
-        option :array, type: :string,
-                       desc: 'Sets the Slurm array task specification for the job'
+        option :nodes, type: :integer, aliases: ['-N'], desc: 'Requests the number of compute nodes for the array job'
+        option :array, type: :string, desc: 'Sets the Slurm array task specification for the job'
 
         def call(**options)
+          options[:module] = AlcesJob::Services.module_extractor(ARGV)
           paths = Services::Paths.new
           pastel = Pastel.new
 
