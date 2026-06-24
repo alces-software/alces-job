@@ -80,10 +80,16 @@ module AlcesJob
             script: script,
             options: options
           ).call
+        rescue StandardError => e
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
 
         private
 
+        # Takes in the options and combines all the module options into one
+        # @param [Hash] argv
+        # @return [hash]
         def extract_modules(argv)
           modules = []
 

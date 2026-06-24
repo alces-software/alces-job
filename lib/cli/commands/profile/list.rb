@@ -15,19 +15,27 @@ module AlcesJob
         def call(*)
           pastel = Pastel.new
 
-          profile_files = Dir.glob(Services::Paths.new.user_profile_path('*'))
+          begin
+            profile_files = Dir.glob(Services::Paths.new.user_profile_path('*'))
+          rescue StandardError => e
+            puts pastel.red("\nAn error occurred while getting all the profiles names:\n#{e.message}\n")
+            exit(1)
+          end
 
           if profile_files.empty?
             puts pastel.red("\nNo profiles found\n")
             exit(0)
           end
 
+          puts pastel.green("\nAvailable profiles:")
           profile_files.each do |path|
-            puts File.basename(path, '.yaml')
+            puts "#{File.basename(path, '.yaml')} ~ #{path}"
           end
+          puts
+
           exit(0)
-        rescue Errno::ENOENT
-          puts pastel.red("\nNo profile directory exists\n")
+        rescue StandardError => e
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

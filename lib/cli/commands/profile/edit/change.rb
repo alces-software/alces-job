@@ -84,20 +84,37 @@ module AlcesJob
           spinner.update(title: 'loading profile')
           spinner.auto_spin
 
-          unless File.exist?(profile_path)
-            spinner.error(pastel.red('(no profile)'))
-
-            puts pastel.red("\nNo profile can be found with that name\n")
+          begin
+            unless File.exist?(profile_path)
+              spinner.error(pastel.red('(no profile)'))
+              puts pastel.red("\nNo profile can be found with that name\n")
+              exit(1)
+            end
+          rescue StandardError => e
+            spinner.error('(failed to check profile)')
+            puts pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
             exit(1)
           end
 
-          profile_data = YAML.load_file(profile_path)
+          begin
+            profile_data = YAML.load_file(profile_path)
+          rescue StandardError => e
+            spinner.error('(failed to load profile)')
+            puts pastel.red("\nFailed to load profile:\n#{e.message}\n")
+            exit(1)
+          end
 
           spinner.success(pastel.green('(profile loaded)'))
           spinner.update(title: 'updating profile')
           spinner.auto_spin
 
-          profile_data = profile_data.merge(options)
+          begin
+            profile_data = profile_data.merge(options)
+          rescue StandardError => e
+            spinner.error('(failed to update)')
+            puts pastel.red("\nFailed to update the profile information:\n#{e.message}\n")
+            exit(1)
+          end
 
           spinner.success(pastel.green('(successful)'))
           spinner.update(title: 'writing to file')
@@ -106,14 +123,17 @@ module AlcesJob
           begin
             File.write(profile_path, profile_data.to_yaml)
             spinner.success(pastel.green('(written)'))
-
             puts pastel.green("\nSuccessfully updated the profile\n")
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(write error)'))
-            puts pastel.red("\nFailed to update the profile: #{e.message}\n")
+            puts pastel.red("\nFailed to update the profile:\n#{e.message}\n")
             exit(1)
           end
+        rescue StandardError => e
+          spinner&.error('(command error)')
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
       end
     end
