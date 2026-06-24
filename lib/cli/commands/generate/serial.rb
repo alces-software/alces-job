@@ -44,9 +44,11 @@ module AlcesJob
                 puts line
               end
             end
+            #
+            # spinner.error(pastel.red('(error)'))
           rescue StandardError => e
-            spinner.error('(failed to load)')
-            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
+            spinner.error(pastel.yellow('(error)'))
+            puts pastel.yellow("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
             exit(1)
           end
 
@@ -96,8 +98,14 @@ module AlcesJob
               spinner.update(title: 'Overwriting SBATCH script')
               spinner.auto_spin
             end
+          rescue Erno::EACCES
+            spinner.error(pastel.red('(permission denied)'))
+            puts pastel.red("\nYou do not have permission to access the output location. \n")
+            exit(1)
+          rescue Errno::ENOTDIR
+            spinnererro(pastel.red('(invalid path)'))
           rescue StandardError => e
-            spinner.error('(failed to overwrite)')
+            spinner.error(pastel.red('(failed to overwrite)'))
             puts pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
             exit(1)
           end
@@ -119,6 +127,14 @@ module AlcesJob
                 exit(1)
               end
             end
+          rescue Errno::ENOSPC
+            spinner.error(pastel.red('(disk full)'))
+            puts pastel.red("\nUnable to validate the script because the temporary file system is full")
+            exit(1)
+          rescue Errno::EACCESS, Errno::EROFS
+            spinner.error(pastel.red('(permission denieed)'))
+            puts pastel.red("\nUnable to create the temporary validation file due to permissions or a read-only filesystem. \n")
+            exit(1)
           rescue StandardError => e
             puts pastel.red("\nFailed to validate file before saving:\n#{e.message}\n")
             exit(1)
@@ -126,6 +142,16 @@ module AlcesJob
 
           begin
             script_path = generator.save(script)
+          rescue Errno::ENOSPC
+            spinner.error(pastel.red('(disk full)'))
+            puts pastel.red("\nUnable to save the generated script becasue the disk is full. \n")
+            exit(1)
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            spinner.error(pastel.red('(invalid path)'))
+            puts pastel.red("\nUnalbe to save the generated script becasue the output path is invalid or missin. \n")
+          rescue Errno::EACCESS, Errno::EROFS
+            spinner.error(pastel.red('(permission denied)'))
+            puts pastel.red("\nUnable to save the generated script due to permission or a read-only filesystem. \n")
           rescue StandardError => e
             spinner.error('(failed to save)')
             puts pastel.red("\nAn error occurred while saving the script\n")

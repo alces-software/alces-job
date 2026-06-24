@@ -47,14 +47,6 @@ module AlcesJob
                 puts line
               end
             end
-          rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error('(No such file or directory)')
-            puts 'The file or directory could not be found'
-            exit(1)
-          rescue Errno::EACCES
-            spinner.error('(permission denied)')
-            puts pastel.red("\nYou do not have permission to read the admin config. \n")
-            exit(1)
           rescue StandardError => e
             spinner.error('(failed to load)')
             puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
