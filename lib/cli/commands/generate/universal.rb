@@ -33,8 +33,6 @@ module AlcesJob
           Services::Paths.new
           pastel = Pastel.new
 
-          # Generate sbatch file bases on user inputs
-          puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),
@@ -107,7 +105,6 @@ module AlcesJob
             puts pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
             exit(1)
           end
-
           begin
             Tempfile.create(['generated_script', '.slurm']) do |tempfile|
               tempfile.write(script)
@@ -132,7 +129,7 @@ module AlcesJob
           end
 
           begin
-            script_path = generator.save(script)
+            script_path = generator.save(script_contents)
           rescue StandardError => e
             spinner.error('(failed to save)')
             puts pastel.red("\nAn error occurred while saving the script\n")

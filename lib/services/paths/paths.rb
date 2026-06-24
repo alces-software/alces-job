@@ -61,8 +61,7 @@ module AlcesJob
       # Gets the path to the admin config file
       # @return [String]
       def admin_config_path
-        File.join(@system_root, "#{@admin_config_file_name}.yaml")
-        # File.join(Dir.pwd, "#{@admin_config_file_name}.yaml")
+        File.join(@system_root, "#{@admin_config_file_name}.yaml").to_s
       end
 
       # Gets the path to the system info file

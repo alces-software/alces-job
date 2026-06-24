@@ -54,20 +54,6 @@ module AlcesJob
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
 
-          if File.exist?(path)
-            data = YAML.load_file(path)
-
-            unless data.nil?
-              spinner.error(pastel.red('(config exists)'))
-              puts pastel.green("\nA config already exists\n")
-              exit(1)
-            end
-
-            spinner.success(pastel.green('(empty config)'))
-          else
-            spinner.success(pastel.green('(no config)'))
-          end
-
           # Writing to config file
           spinner.update(title: 'writing config file')
           spinner.auto_spin
@@ -83,7 +69,7 @@ module AlcesJob
 
           begin
             FileUtils.mkdir_p(File.dirname(path))
-            File.write(path, config.to_yaml)
+            File.write(path, options.to_yaml)
             spinner.success(pastel.green('(successful)'))
 
             puts pastel.green("\nThe config file has been written to #{path}\n")
