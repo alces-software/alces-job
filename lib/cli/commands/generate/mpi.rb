@@ -105,7 +105,6 @@ module AlcesJob
             spinner.success(pastel.green('(successful)'))
             puts pastel.green("\nThe SBATCH script has been generated and looks as follows:")
             puts script
-            exit(0)
           end
 
           begin
