@@ -168,25 +168,16 @@ module AlcesJob
               existing_modules
             end
 
-          AlcesJob::Services::ModifyScript.new(
-            script: script,
-            options: options
-          ).call
-        rescue StandardError => e
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
-          exit(1)
-        end
+          used_modules = []
 
           modules_to_write.each do |m|
             m = m.to_s.strip
             next if m.empty?
             next if used_modules.include?(m)
 
-        # Takes in the options and combines all the module options into one
-        # @param [Hash] argv
-        # @return [hash]
-        def extract_modules(argv)
-          modules = []
+            edited_script << "module load #{m}"
+            used_modules << m
+          end
 
           edited_script << ''
           edited_script << %(echo "Running job '#{job_name}'") if job_name
