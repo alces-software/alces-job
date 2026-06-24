@@ -193,7 +193,7 @@ module AlcesJob
           end
 
           begin
-            script_path = generator.save(script_contents)
+            script_path = generator.save(script)
           rescue StandardError => e
             spinner.error('(failed to save)')
             puts pastel.red("\nAn error occurred while saving the script\n")
