@@ -41,15 +41,7 @@ module AlcesJob
 
           if options[:site_config]
             config_manager = Services::ConfigManager.new
-            config = config_manager.load_config
-            config_keys = config['values'].keys
-            puts
-            options.each_key do |key|
-              key_str = key.to_s
-              puts pastel.yellow("You are overwriting the system admin defined #{key_str}") if config_keys.include?(key_str) && config['values'][key_str]['warn']
-            end
-
-            options = config.merge(options)
+            options = config_manager.apply_options(options)
           end
 
           unless options[:profile].nil?

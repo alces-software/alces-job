@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'yaml'
+require 'pastel'
 
 require_relative 'paths/paths'
 
@@ -25,6 +26,19 @@ module AlcesJob
                       end
 
         deep_merge(admin_config, user_config)
+      end
+
+      def apply_options(options)
+        pastel = Pastel.new
+        config = load_config
+        config_keys = config['values'].keys
+        puts
+        options.each_key do |key|
+          key_str = key.to_s
+          puts pastel.yellow("You are overwriting the system admin defined #{key_str}") if config_keys.include?(key_str) && config['values'][key_str]['warn']
+        end
+
+        config.merge(options)
       end
 
       private

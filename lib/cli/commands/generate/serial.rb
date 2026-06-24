@@ -24,17 +24,8 @@ module AlcesJob
           pastel = Pastel.new
 
           if options[:site_config]
-            admin_path = paths.admin_config_path
-            if File.exist?(admin_path)
-              admin = YAML.load_file(admin_path)
-              admin_keys = admin.keys
-              puts
-              options.each_key do |key|
-                puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
-              end
-
-              options = admin.merge(options)
-            end
+            config_manager = Services::ConfigManager.new
+            options = config_manager.apply_options(options)
           end
 
           unless options[:profile].nil?
