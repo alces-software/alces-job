@@ -10,7 +10,7 @@ require 'tempfile'
 require_relative '../../../services/validators/slurm_script_validator'
 require_relative 'command_templates/generate_command_template'
 require_relative '../../../services/script_generator/script_generator'
-require_relative '../../../services/paths/paths'
+require_relative '../../../services/config'
 
 module AlcesJob
   module CLI
@@ -37,21 +37,19 @@ module AlcesJob
                             desc: 'Sets a Slurm dependency string for the job'
 
         def call(**options)
-          paths = Services::Paths.new
           pastel = Pastel.new
 
           if options[:site_config]
-            admin_path = paths.admin_config_path
-            if File.exist?(admin_path)
-              admin = YAML.load_file(admin_path)
-              admin_keys = admin.keys
-              puts
-              options.each_key do |key|
-                puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
-              end
-
-              options = admin.merge(options)
+            config_manager = Services::ConfigManager.new
+            config = config_manager.load_config
+            config_keys = config['values'].keys
+            puts
+            options.each_key do |key|
+              key_str = key.to_s
+              puts pastel.yellow("You are overwriting the system admin defined #{key_str}") if config_keys.include?(key_str) && config['values'][key_str]['warn']
             end
+
+            options = config.merge(options)
           end
 
           unless options[:profile].nil?

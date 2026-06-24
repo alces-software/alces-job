@@ -27,10 +27,10 @@ module AlcesJob
         def call(**options)
           pastel = Pastel.new
 
-          if Process.uid != 0
-            puts pastel.red("\nThis command must be ran with elevated privileges\n")
-            exit(1)
-          end
+          # if Process.uid != 0
+          # puts pastel.red("\nThis command must be ran with elevated privileges\n")
+          # exit(1)
+          # end
 
           if options.empty?
             puts pastel.red("\nNo flags have been provided\n")
