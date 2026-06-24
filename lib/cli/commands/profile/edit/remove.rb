@@ -40,7 +40,7 @@ module AlcesJob
           pastel = Pastel.new
 
           if profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided\n")
+            puts pastel.red("\nNo profile name was provided.\n")
             exit(1)
           end
 
@@ -48,7 +48,7 @@ module AlcesJob
           options.select { |_key, value| value }
 
           if options.empty?
-            puts pastel.red("\nNo flags were provided that could be removed from the profile\n")
+            puts pastel.red("\nNo flags were provided that could be removed from the profile.\n")
             exit(1)
           end
 
@@ -63,12 +63,12 @@ module AlcesJob
 
           begin
             unless File.exist?(profile_path)
-              spinner.error(pastel.red('(no profile)'))
-              puts pastel.red("\nNo profile can be found with that name\n")
+              spinner.error(pastel.red('(No profile)'))
+              puts pastel.red("\nNo profile can be found with that name.\n")
               exit(1)
             end
           rescue StandardError => e
-            spinner.error('(failed to check profile)')
+            spinner.error(pastel.red('(Failed to check profile)'))
             puts pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
             exit(1)
           end
@@ -76,39 +76,39 @@ module AlcesJob
           begin
             profile_data = YAML.load_file(profile_path)
           rescue StandardError => e
-            spinner.error('(failed to load profile)')
+            spinner.error(pastel.red('(Failed to load profile)'))
             puts pastel.red("\nFailed to load profile:\n#{e.message}\n")
             exit(1)
           end
 
-          spinner.success(pastel.green('(profile loaded)'))
+          spinner.success(pastel.green('(Profile loaded)'))
           spinner.update(title: 'updating profile')
           spinner.auto_spin
 
           begin
             options.each_key { |key| profile_data.delete(key.to_sym) }
           rescue StandardError => e
-            spinner.error('(failed to remove flags)')
+            spinner.error(pastel.red('(Failed to remove flags)'))
             puts pastel.red("\nFailed to remove flags from the profile:\n#{e.message}\n")
             exit(1)
           end
 
-          spinner.success(pastel.green('(successful)'))
+          spinner.success(pastel.green('(Successful)'))
           spinner.update(title: 'writing to file')
           spinner.auto_spin
 
           begin
             File.write(profile_path, profile_data.to_yaml)
-            spinner.success(pastel.green('(written)'))
+            spinner.success(pastel.green('(Written)'))
             puts pastel.green("\nSuccessfully updated the profile\n")
             exit(0)
           rescue StandardError => e
-            spinner.error(pastel.red('(write error)'))
+            spinner.error(pastel.red('(Write error)'))
             puts pastel.red("\nFailed to update the profile:\n#{e.message}\n")
             exit(1)
           end
         rescue StandardError => e
-          spinner&.error('(command error)')
+          spinner&.error(pastel.red('(Command error)'))
           puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
