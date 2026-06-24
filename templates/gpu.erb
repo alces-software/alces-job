@@ -1,41 +1,57 @@
 #!/bin/bash
-#SBATCH --job-name=<%= @context.job_name %>
-#SBATCH --gres=<%= @context.gres || "gpu:1" %>
+
+# Name shown for this job in the Slurm queue
+#SBATCH --job-name=<%= @context.job_name %>   
+
+# Request GPU resources; default is 1 GPU
+#SBATCH --gres=<%= @context.gres || "gpu:1" %>         
+
+# Number of nodes/machines requested
 <% if @context.nodes -%>
-#SBATCH --nodes=<%= @context.nodes %>
+#SBATCH --nodes=<%= @context.nodes %>                  
 <% else -%>
-#SBATCH --nodes=1
+#SBATCH --nodes=1                                      
 <% end -%>
+
+# Number of tasks/processes to run
 <% if @context.ntasks -%>
-#SBATCH --ntasks=<%= @context.ntasks %>
+#SBATCH --ntasks=<%= @context.ntasks %>                
 <% else -%>
-#SBATCH --ntasks=1
+#SBATCH --ntasks=1                                     
 <% end -%>
+
+# CPU cores available to each task
 <% if @context.cpus_per_task -%>
-#SBATCH --cpus-per-task=<%= @context.cpus_per_task %>
+#SBATCH --cpus-per-task=<%= @context.cpus_per_task %>  
 <% else -%>
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=4                              
 <% end -%>
+
 <% if @context.mem -%>
-#SBATCH --mem=<%= @context.mem %>
+# Amount of memory requested for the job
+#SBATCH --mem=<%= @context.mem %>                      
 <% end -%>
+
 <% if @context.time -%>
-#SBATCH --time=<%= @context.time %>
-<% else -%>
-#SBATCH --time=04:00:00
+ # Maximum runtime before Slurm stops the job
+#SBATCH --time=<%= @context.time %>                   
 <% end -%>
+
 <% if @context.partition -%>
-#SBATCH --partition=<%= @context.partition %>
+  # Partition/queue where the job should run
+#SBATCH --partition=<%= @context.partition %>        
 <% end -%>
 
-module load cuda
+module load cuda                                          # Load CUDA for GPU support
+
 <% Array(@context.modules).each do |mod| -%>
-module load <%= mod %>
+module load <%= mod %>                                    # Load extra user-requested module
 <% end -%>
+
 <% if @context.workdir -%>
-cd <%= @context.workdir %>
+cd <%= @context.workdir %>                                # Move to the working directory
 <% end -%>
 
-nvidia-smi
+nvidia-smi                                                # Show GPU status and confirm the GPU is available
 
-<%= @context.command %>
+<%= @context.command || "echo 'No command provided'" %>   # Run the user's command
