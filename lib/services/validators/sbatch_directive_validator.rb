@@ -14,11 +14,11 @@ module AlcesJob
         '--output',
         '--error',
         '--gres',
-        '--account',
-        '--mail-user',
-        '--mail-type',
         '--array',
-        '--dependency'
+        '--dependency',
+        '--account',
+        '--mail-type',
+        '--mail-user'
       ].freeze # immutable array of valid directives for now
 
       def self.validate_directives(sbatch_lines, errors)

@@ -12,7 +12,7 @@ module AlcesJob
         AlcesJob::CLI.register 'template show', self
         desc 'Displays the contents of an available template'
 
-        option :name, type: :string, desc: 'The name of the template to display'
+        argument :template_name, require: true, type: :string, desc: 'The name of the template to display'
 
         def initialize
           paths = Services::Paths.new
@@ -21,28 +21,37 @@ module AlcesJob
           @builtin_templates_folder = File.expand_path('../../../../templates', __dir__)
         end
 
-        def call(**options)
+        def call(template_name:, **)
           pastel = Pastel.new
-          if options[:name].nil?
+
+          if template_name.to_s.strip.empty?
             puts pastel.red("\nNo template name supplied\n")
             exit(1)
           end
 
-          path = template_path(options[:name])
+          path = template_path(template_name)
 
           unless path
-            puts pastel.red("\nTemplate #{options[:name]} not found\n")
+            puts pastel.red("\nTemplate #{template_name} not found\n")
             exit(1)
           end
 
-          puts "# Template: #{options[:name]}"
-          puts "# Source: #{template_source(path)}"
-          puts
-          puts File.read(path)
+          begin
+            puts
+            puts "# Template: #{template_name}"
+            puts "# Source: #{template_source(path)}"
+            puts
+            puts File.read(path)
+            puts
+          rescue StandardError => e
+            puts pastel.red("\nAn error occurred while reading the template:\n#{e.message}\n")
+            exit(1)
+          end
+
           exit(0)
-        rescue Errno::ENOENT
-          puts pastel.red("\nNo template directory exists\n")
-          exit(0)
+        rescue StandardError => e
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
 
         private

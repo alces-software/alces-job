@@ -60,6 +60,7 @@ module AlcesJob
         end
 
         def call(**options)
+          admin_config_path = Services::Paths.new.admin_config_path
           pastel = Pastel.new
 
           if options.empty?
@@ -83,6 +84,7 @@ module AlcesJob
 
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
+
           if File.exist?(path)
             data = YAML.load_file(path)
 
@@ -119,9 +121,13 @@ module AlcesJob
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))
-            puts pastel.red("\nFailed to write config file: #{e.message}\n")
+            puts pastel.red("\nFailed to write config file:\n#{e.message}\n")
             exit(1)
           end
+        rescue StandardError => e
+          spinner&.error('(command error)')
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
       end
     end

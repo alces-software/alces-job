@@ -7,10 +7,12 @@ require 'tty-prompt'
 require 'yaml'
 require 'tempfile'
 
-require_relative '../../../services/validators/slurm_script_validator'
 require_relative 'command_templates/generate_command_template'
+
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
 require_relative '../../../services/config'
+require_relative '../../../services/module_extractor/module_extractor'
 
 module AlcesJob
   module CLI
@@ -19,51 +21,16 @@ module AlcesJob
         AlcesJob::CLI.register 'generate universal', self
         desc 'Creates a universal sbatch script'
 
-        option :nodes, type: :integer, aliases: ['-N'],
-                       desc: 'Requests the number of compute nodes for the job'
-
-        option :ntasks, type: :integer, aliases: ['-n'],
-                        desc: 'Specifies the total number of tasks for the job'
-
-        option :cpus_per_task, type: :integer, aliases: ['-c'],
-                               desc: 'Specifies CPU cores per task'
-        option :gres, type: :string,
-                      desc: 'Specifies generic resources such as GPUs or MICs'
-
-        option :array, type: :string,
-                       desc: 'Sets a Slurm array specification for multiple jobs'
-
-        option :dependency, type: :string,
-                            desc: 'Sets a Slurm dependency string for the job'
+        option :nodes, type: :integer, aliases: ['-N'], desc: 'Requests the number of compute nodes for the job'
+        option :ntasks, type: :integer, aliases: ['-n'], desc: 'Specifies the total number of tasks for the job'
+        option :cpus_per_task, type: :integer, aliases: ['-c'], desc: 'Specifies CPU cores per task'
+        option :gres, type: :string, desc: 'Specifies generic resources such as GPUs or MICs'
+        option :array, type: :string, desc: 'Sets a Slurm array specification for multiple jobs'
+        option :dependency, type: :string, desc: 'Sets a Slurm dependency string for the job'
 
         def call(**options)
+          paths = Services::Paths.new
           pastel = Pastel.new
-
-          if options[:site_config]
-            config_manager = Services::ConfigManager.new
-            options = config_manager.apply_options(options)
-          end
-
-          unless options[:profile].nil?
-            profile_path = paths.user_profile_path(options[:profile].strip)
-            options.delete(:profile)
-            if File.exist?(profile_path)
-              profile = YAML.load_file(profile_path)
-              options_keys = options.keys
-              puts
-              profile.each_key do |key|
-                if options_keys.include?(key)
-                  puts pastel.yellow("Ignoring profile flag #{key}")
-                else
-                  puts pastel.green("Loaded profile flag #{key}")
-                end
-              end
-
-              options = profile.merge(options)
-            else
-              puts pastel.red("\nA profile with that name was not found\n")
-            end
-          end
 
           # Generate sbatch file bases on user inputs
           puts
@@ -73,6 +40,52 @@ module AlcesJob
             error_mark: pastel.red('✗')
           )
 
+          begin
+            if options[:site_config]
+              spinner.update(title: 'Loading admin config')
+              spinner.auto_spin
+              config_manager = Services::ConfigManager.new
+              options = config_manager.apply_options(options)
+              spinner.success('(loaded)')
+            end
+          rescue StandardError => e
+            spinner.error('(failed to load)')
+            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
+            exit(1)
+          end
+
+          begin
+            unless options[:profile].nil?
+              profile_path = paths.user_profile_path(options[:profile].strip)
+              options.delete(:profile)
+              if File.exist?(profile_path)
+                spinner.update(title: 'loading profile')
+                spinner.auto_spin
+                profile = YAML.load_file(profile_path)
+                options_keys = options.keys
+                puts
+                profile.each_key do |key|
+                  if options_keys.include?(key)
+                    puts pastel.yellow("Ignoring profile flag #{key}")
+                  else
+                    puts pastel.green("Loaded profile flag #{key}")
+                  end
+                end
+
+                options = profile.merge(options)
+                spinner.success('(loaded profile)')
+              else
+                puts pastel.red("\nA profile with that name was not found\n")
+              end
+            end
+          rescue StandardError => e
+            spinner.error('(failed to load)')
+            puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
+            exit(1)
+          end
+
+          # Generate sbatch file bases on user inputs
+          puts
           spinner.update(title: 'generating SBATCH script')
           spinner.auto_spin
 
@@ -83,36 +96,53 @@ module AlcesJob
             spinner.success(pastel.green('(successful)'))
             puts pastel.green("\nThe SBATCH script has been generated and looks as follows:")
             puts script
-            exit(0)
           end
 
-          if File.exist?(generator.file_path)
-            spinner.error(pastel.red('(file exists)'))
-            exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
-            puts
-            spinner.update(title: 'Overwriting SBATCH script')
-            spinner.auto_spin
-          end
-
-          Tempfile.create(['generated_script', '.slurm']) do |tempfile|
-            tempfile.write(script)
-            tempfile.flush
-
-            validator = Services::SlurmScriptValidator.new(tempfile.path)
-
-            unless validator.validate?
-              spinner.error(pastel.red('(invalid)'))
-
-              puts pastel.bold.red("\nGenerated script may not be valid:\n")
-              validator.errors.each { |error| puts pastel.red("ERROR: #{error}") }
-              validator.warnings.each { |warning| puts pastel.yellow("WARNING: #{warning}") }
-
-              puts pastel.yellow("\nScript was not saved.\n")
-              exit(1)
+          begin
+            if File.exist?(generator.file_path)
+              spinner.error(pastel.red('(file exists)'))
+              exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
+              puts
+              spinner.update(title: 'Overwriting SBATCH script')
+              spinner.auto_spin
             end
+          rescue StandardError => e
+            spinner.error('(failed to overwrite)')
+            puts pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
+            exit(1)
           end
 
-          script_path = generator.save(script)
+          begin
+            Tempfile.create(['generated_script', '.slurm']) do |tempfile|
+              tempfile.write(script)
+              tempfile.flush
+
+              validator = Services::SlurmScriptValidator.new(tempfile.path)
+
+              unless validator.validate?
+                spinner.error(pastel.red('(invalid)'))
+
+                puts pastel.bold.red("\nGenerated script may not be valid:\n")
+                validator.errors.each { |error| puts pastel.red("ERROR: #{error}") }
+                validator.warnings.each { |warning| puts pastel.yellow("WARNING: #{warning}") }
+
+                puts pastel.yellow("\nScript was not saved.\n")
+                exit(1)
+              end
+            end
+          rescue StandardError => e
+            puts pastel.red("\nFailed to validate file before saving:\n#{e.message}\n")
+            exit(1)
+          end
+
+          begin
+            script_path = generator.save(script)
+          rescue StandardError => e
+            spinner.error('(failed to save)')
+            puts pastel.red("\nAn error occurred while saving the script\n")
+            warn e.message
+            exit(1)
+          end
 
           spinner.success(pastel.green('(successful)'))
 
@@ -129,7 +159,13 @@ module AlcesJob
           spinner.update(title: 'submitting script')
           spinner.auto_spin
 
-          stdout, status = generator.submit(script_path)
+          begin
+            stdout, status = generator.submit(script_path)
+          rescue StandardError => e
+            spinner.error(pastel.red('(failed to submit)'))
+            puts pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
+            exit(1)
+          end
 
           unless status.success?
             spinner.error(pastel.red('(error)'))
@@ -141,9 +177,9 @@ module AlcesJob
 
           puts "\n#{stdout}\n"
           exit(0)
-        rescue Errno::ENOENT
-          spinner.error(pastel.red('(error)'))
-          puts pastel.red("\nAn error occurred\n")
+        rescue StandardError => e
+          spinner.error('(command error)')
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end
