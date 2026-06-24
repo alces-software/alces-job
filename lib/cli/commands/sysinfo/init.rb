@@ -62,7 +62,6 @@ module AlcesJob
           # Collecting system information
           spinner.update(title: 'collecting system info')
           spinner.auto_spin
-
           begin
             system_data = Services::SysInfo.all_info
           rescue StandardError => e
@@ -70,7 +69,6 @@ module AlcesJob
             puts pastel.red("\nThere was an error while grabbing system information:\n#{e.message}\n")
             exit(1)
           end
-
           spinner.success(pastel.green('(successful)'))
 
           # Writing to system info file
@@ -80,14 +78,14 @@ module AlcesJob
             FileUtils.mkdir_p(File.dirname(system_info_file_path))
             File.write(system_info_file_path, system_data.to_yaml)
             spinner.success(pastel.green('(successful)'))
-
             puts pastel.green("\nThe system info file has been written to #{system_info_file_path}\n")
-            exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))
             puts pastel.red("\nFailed to write system info file:\n#{e.message}\n")
             exit(1)
           end
+
+          exit(0)
         rescue StandardError => e
           spinner&.error('(command error)')
           puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")

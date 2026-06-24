@@ -16,7 +16,7 @@ module AlcesJob
 
         argument :profile_name, require: true, type: :string, desc: 'The name of the profile'
 
-        def call(profile_name:)
+        def call(profile_name:, **)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 

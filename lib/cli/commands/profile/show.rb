@@ -14,7 +14,7 @@ module AlcesJob
 
         argument :profile_name, require: true, type: :string, desc: 'The name of the profile to display'
 
-        def call(profile_name:)
+        def call(profile_name:, **)
           pastel = Pastel.new
 
           if profile_name.to_s.strip.empty?
@@ -22,7 +22,7 @@ module AlcesJob
             exit(1)
           end
 
-          profile_path = Dir.glob(Services::Paths.new.user_profile_path(profile_name.strip))
+          profile_path = Services::Paths.new.user_profile_path(profile_name.strip)
 
           begin
             unless File.exist?(profile_path)
@@ -34,10 +34,20 @@ module AlcesJob
             exit(1)
           end
 
-          puts File.read(profile_path)
+          begin
+            puts
+            puts "# Profile: #{profile_name}"
+            puts "# Path: #{profile_path}"
+            puts File.read(profile_path)
+            puts
+          rescue StandardError => e
+            puts pastel.red("\nFailed to read the profile:\n#{e.message}\n")
+            exit(1)
+          end
+
           exit(0)
-        rescue Errno::ENOENT
-          puts pastel.red("\nNo profile directory exists\n")
+        rescue StandardError => e
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end
