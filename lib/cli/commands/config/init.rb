@@ -53,6 +53,19 @@ module AlcesJob
 
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
+          if File.exist?(path)
+            data = YAML.load_file(path)
+
+            unless data.nil?
+              spinner.error(pastel.red('(Config exists)'))
+              puts pastel.green("\nA config already exists\n")
+              exit(1)
+            end
+
+            spinner.success(pastel.green('(Empty config)'))
+          else
+            spinner.success(pastel.green('(No config)'))
+          end
 
           # Writing to config file
           spinner.update(title: 'writing config file')
@@ -70,17 +83,17 @@ module AlcesJob
           begin
             FileUtils.mkdir_p(File.dirname(path))
             File.write(path, options.to_yaml)
-            spinner.success(pastel.green('(successful)'))
+            spinner.success(pastel.green('(Successful)'))
 
             puts pastel.green("\nThe config file has been written to #{path}\n")
             exit(0)
           rescue Errno::ENOSPC
-            spinner.error('(Disk full)')
+            spinner.error(pastel.red('(Disk full)'))
             puts pastel.red("\nUnable to write the config file to disk as it's too full.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
-            spinner.error('(Permissions issue)')
-            puts pastel.red("\nUnable to create or write the temporary validating file due to permissions or a read-only filesystem")
+            spinner.error(pastel.red('(Permissions issue)'))
+            puts pastel.red("\nUnable to create or write the temporary validating file due to permissions or a read-only filesystem\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Writing error)'))
@@ -88,7 +101,7 @@ module AlcesJob
             exit(1)
           end
         rescue StandardError => e
-          spinner&.error('(command error)')
+          spinner&.error(pastel.red('(Command error)'))
           puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end

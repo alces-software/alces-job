@@ -39,17 +39,16 @@ module AlcesJob
               spinner.auto_spin
               config_manager = Services::ConfigManager.new(options)
               options = config_manager.config
-              spinner.success('(loaded)')
+              spinner.success(pastel.green('(Loaded)'))
               config_manager.output.each do |line|
                 puts line
               end
             end
           rescue Errno::EACCES
-            spinner.error('(permission denied)')
-            puts pastel.red("\nYou do not have permission to read the admin config.\n")
-            exit(1)
+            spinner.error(pastel.yellow('(Permission denied)'))
+            puts pastel.yellow("\nYou do not have permission to read the admin config.\n")
           rescue StandardError => e
-            spinner.error('(failed to load)')
+            spinner.error(pastel.red('(Failed to load)'))
             puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
             exit(1)
           end
@@ -62,21 +61,20 @@ module AlcesJob
               profile_manager = Services::ProfileManager.new(options[:profile], options)
               options = profile_manager.profile
               options.delete(:profile)
-              spinner.success('(loaded profile)')
+              spinner.success(pastel.green('(Loaded profile)'))
               profile_manager.output.each do |line|
                 puts line
               end
             end
           rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error('(no such file or directory)')
-            puts 'The file or directory could not be found'
+            spinner.error(pastel.red('(No such file or directory)'))
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
-            spinner.error('(permission denied)')
+            spinner.error(pastel.red('(Permission denied)'))
             puts pastel.red("\nYou do not have permission to read the specified profile.\n")
             exit(1)
           rescue StandardError => e
-            spinner.error('(failed to load)')
+            spinner.error(pastel.red('(Failed to load)'))
             puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
             exit(1)
           end
@@ -92,21 +90,27 @@ module AlcesJob
           script = generator.generate
 
           if options[:dry_run]
-            spinner.success(pastel.green('(successful)'))
+            spinner.success(pastel.green('(Successful)'))
             puts pastel.green("\nThe SBATCH script has been generated and looks as follows:")
             puts script
           end
 
           begin
             if File.exist?(generator.file_path)
-              spinner.error(pastel.red('(file exists)'))
+              spinner.error(pastel.red('(File exists)'))
               exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
               puts
               spinner.update(title: 'Overwriting SBATCH script')
               spinner.auto_spin
             end
+          rescue Errno::EACCES
+            spinner.error(pastel.red('(permission denied)'))
+            puts pastel.red("\nYou do not have permission to access the output location. \n")
+            exit(1)
+          rescue Errno::ENOTDIR
+            spinner.error(pastel.red('(invalid path)'))
           rescue StandardError => e
-            spinner.error('(failed to overwrite)')
+            spinner.error(pastel.red('(Failed to overwrite)'))
             puts pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
             exit(1)
           end
@@ -118,7 +122,7 @@ module AlcesJob
               validator = Services::SlurmScriptValidator.new(tempfile.path)
 
               unless validator.validate?
-                spinner.error(pastel.red('(invalid)'))
+                spinner.error(pastel.red('(Invalid)'))
 
                 puts pastel.bold.red("\nGenerated script may not be valid:\n")
                 validator.errors.each { |error| puts pastel.red("ERROR: #{error}") }
@@ -128,6 +132,14 @@ module AlcesJob
                 exit(1)
               end
             end
+          rescue Errno::ENOSPC
+            spinner.error(pastel.red('(Disk full)'))
+            puts pastel.red("\nUnable to validate the script because the temporary file system is full")
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error(pastel.red('(Permission denied)'))
+            puts pastel.red("\nUnable to create the temporary validation file due to permissions or a read-only filesystem. \n")
+            exit(1)
           rescue StandardError => e
             puts pastel.red("\nFailed to validate file before saving:\n#{e.message}\n")
             exit(1)
@@ -135,14 +147,24 @@ module AlcesJob
 
           begin
             script_path = generator.save(script)
+          rescue Errno::ENOSPC
+            spinner.error(pastel.red('(Disk full)'))
+            puts pastel.red("\nUnable to save the generated script because the disk is full. \n")
+            exit(1)
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            spinner.error(pastel.red('(Invalid path)'))
+            puts pastel.red("\nUnable to save the generated script because the output path is invalid or mission. \n")
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error(pastel.red('(Permission denied)'))
+            puts pastel.red("\nUnable to save the generated script due to permission or a read-only filesystem. \n")
           rescue StandardError => e
-            spinner.error('(failed to save)')
+            spinner.error(pastel.red('(Failed to save)'))
             puts pastel.red("\nAn error occurred while saving the script\n")
             warn e.message
             exit(1)
           end
 
-          spinner.success(pastel.green('(successful)'))
+          spinner.success(pastel.green('(Successful)'))
 
           puts pastel.green("\nThe SBATCH script has been generated and saved to #{script_path}\n")
 
@@ -160,23 +182,23 @@ module AlcesJob
           begin
             stdout, status = generator.submit(script_path)
           rescue StandardError => e
-            spinner.error(pastel.red('(failed to submit)'))
+            spinner.error(pastel.red('(Failed to submit)'))
             puts pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
             exit(1)
           end
 
           unless status.success?
-            spinner.error(pastel.red('(error)'))
-            puts pastel.red("\nAn error occurred\n")
+            spinner.error(pastel.red('(Error)'))
+            puts pastel.red("\nAn error occurred.\n")
             exit(1)
           end
 
-          spinner.success('(submitted)')
+          spinner.success(pastel.green('(Submitted)'))
 
           puts "\n#{stdout}\n"
           exit(0)
         rescue StandardError => e
-          spinner.error('(command error)')
+          spinner.error(pastel.red('(Command error)'))
           puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end

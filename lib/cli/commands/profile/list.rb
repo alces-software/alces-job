@@ -23,7 +23,7 @@ module AlcesJob
           end
 
           if profile_files.empty?
-            puts pastel.red("\nNo profiles found\n")
+            puts pastel.red("\nNo profiles found.\n")
             exit(0)
           end
 
