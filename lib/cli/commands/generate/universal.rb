@@ -11,7 +11,7 @@ require_relative 'command_templates/generate_command_template'
 
 require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
-require_relative '../../../services/paths/paths'
+require_relative '../../../services/config'
 require_relative '../../../services/module_extractor/module_extractor'
 
 module AlcesJob
@@ -29,10 +29,11 @@ module AlcesJob
         option :dependency, type: :string, desc: 'Sets a Slurm dependency string for the job'
 
         def call(**options)
-          options[:module] = AlcesJob::Services.module_extractor(ARGV)
           paths = Services::Paths.new
           pastel = Pastel.new
 
+          # Generate sbatch file bases on user inputs
+          puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),
@@ -41,20 +42,11 @@ module AlcesJob
 
           begin
             if options[:site_config]
-              admin_path = paths.admin_config_path
-              if File.exist?(admin_path)
-                spinner.update(title: 'Loading admin config')
-                spinner.auto_spin
-                admin = YAML.load_file(admin_path)
-                admin_keys = admin.keys
-                puts
-                options.each_key do |key|
-                  puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
-                end
-
-                options = admin.merge(options)
-                spinner.success('(loaded)')
-              end
+              spinner.update(title: 'Loading admin config')
+              spinner.auto_spin
+              config_manager = Services::ConfigManager.new
+              options = config_manager.apply_options(options)
+              spinner.success('(loaded)')
             end
           rescue StandardError => e
             spinner.error('(failed to load)')
