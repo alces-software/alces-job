@@ -2,8 +2,10 @@
 
 require 'dry/cli'
 require 'pastel'
+require 'tty-spinner'
 
 require_relative '../../../services/validators/slurm_script_validator'
+require_relative '../../../services/paths/paths'
 
 module AlcesJob
   module CLI
@@ -22,7 +24,26 @@ module AlcesJob
             exit(1)
           end
 
+<<<<<<< HEAD
           validator = AlcesJob::Services::SlurmScriptValidator.new(file_path)
+=======
+          puts
+          spinner = TTY::Spinner.new(
+            '[:spinner] validating script ...',
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
+          )
+
+          spinner.auto_spin
+          begin
+            validator = SlurmScriptValidator.new(Services::Paths.new.user_template_path(template_name.strip))
+          rescue StandardError => e
+            spinner.error('(failed to validate)')
+            puts pastel.red("\nAn error occurred while validating the template:\n#{e.message}\n")
+            exit(1)
+          end
+          spinner.success('(validation complete)')
+>>>>>>> main
 
           if validator.validate?
             puts pastel.green("\nValidation passed\n")
@@ -37,6 +58,9 @@ module AlcesJob
           end
 
           exit(0)
+        rescue StandardError => e
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
       end
     end

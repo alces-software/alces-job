@@ -27,6 +27,9 @@ module AlcesJob
 
           puts pastel.decorate(art, :bright_blue, :bold)
           exit(0)
+        rescue StandardError => e
+          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          exit(1)
         end
       end
     end
