@@ -28,7 +28,6 @@ module AlcesJob
 
         def call(**options)
           options[:module] = AlcesJob::Services.module_extractor(ARGV)
-          paths = Services::Paths.new
           pastel = Pastel.new
 
           # Generate sbatch file bases on user inputs
@@ -50,6 +49,10 @@ module AlcesJob
                 puts line
               end
             end
+          rescue Errno::EACCES
+            spinner.error('(permission denied)')
+            puts pastel.red("\nYou do not have permission to read the admin config.\n")
+            exit(1)
           rescue StandardError => e
             spinner.error('(failed to load)')
             puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
@@ -69,85 +72,14 @@ module AlcesJob
                 puts line
               end
             end
-          rescue Errno::ENOENT
-            spinner.error('(failed to load)')
-            puts pastel.yellow("\nA profile with that name doesn't exist\n")
-          rescue StandardError => e
-            spinner.error('(failed to load)')
-            puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
-            exit(1)
-          end
-
-          # Generate sbatch file bases on user flags
-          puts
-          spinner = TTY::Spinner.new(
-            '[:spinner] :title ...',
-            success_mark: pastel.green('✓'),
-            error_mark: pastel.red('✗')
-          )
-
-          begin
-            if options[:site_config]
-              admin_path = paths.admin_config_path
-              if File.exist?(admin_path)
-                spinner.update(title: 'Loading admin config')
-                spinner.auto_spin
-                admin = YAML.load_file(admin_path)
-                admin_keys = admin.keys
-                puts
-                options.each_key do |key|
-                  puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
-                end
-
-                options = admin.merge(options)
-                spinner.success('(loaded)')
-              end
-            end
           rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error('(file or directory not found)')
-            puts pastel.red("\nThe admin config file or directory could not be found.\n")
+            spinner.error('(no such file or directory)')
+            puts 'The file or directory could not be found'
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error('(permission denied)')
-            puts pastel.red("\nYou do not have permission to read the admin config.\n")
+            puts pastel.red("\nYou do not have permission to read the specified profile.\n")
             exit(1)
-          rescue StandardError => e
-            spinner.error('(failed to load)')
-            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
-            exit(1)
-          end
-
-          begin
-            unless options[:profile].nil?
-              profile_path = paths.user_profile_path(options[:profile].strip)
-              options.delete(:profile)
-              if File.exist?(profile_path)
-                spinner.update(title: 'loading profile')
-                spinner.auto_spin
-                profile = YAML.load_file(profile_path)
-                options_keys = options.keys
-                puts
-                profile.each_key do |key|
-                  if options_keys.include?(key)
-                    puts pastel.yellow("Ignoring profile flag #{key}")
-                  else
-                    puts pastel.green("Loaded profile flag #{key}")
-                  end
-                end
-
-                options = profile.merge(options)
-                spinner.success('(loaded profile)')
-              else
-                puts pastel.red("\nA profile with that name was not found\n")
-              end
-            end
-          rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error('(file or director not found)')
-            puts pastel.red("\nThe profile file or directory could not be found \n")
-            exit(1)
-          rescue Errno::EACCES, Errno::EROFS
-            spinner.error('(permission denied)')
-            puts pastel.red("\nyou do not have permissin to read the specified profile. \n")
           rescue StandardError => e
             spinner.error('(failed to load)')
             puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
