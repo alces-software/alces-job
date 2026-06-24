@@ -44,7 +44,6 @@ module AlcesJob
 
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
-§
 
           # Writing to config file
           spinner.update(title: 'writing config file')
