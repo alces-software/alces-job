@@ -15,10 +15,8 @@ module AlcesJob
         AlcesJob::CLI.register 'config init', self
         desc 'This command generates the initial admin config'
 
-        option :partition, type: :string, desc: 'The default partition to be used'
-
-        option :account, type: :string,
-                         desc: 'Specifies the Slurm account to charge'
+        option :partition, type: :string, aliases: ['-p'], desc: 'The default partition to be used'
+        option :account, type: :string, aliases: ['-A'], desc: 'Specifies the Slurm account to charge'
 
         def call(**options)
           admin_config_path = Services::Paths.new.admin_config_path

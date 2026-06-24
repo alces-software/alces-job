@@ -7,10 +7,12 @@ require 'tty-prompt'
 require 'yaml'
 require 'tempfile'
 
-require_relative '../../../services/validators/slurm_script_validator'
 require_relative 'command_templates/generate_command_template'
+
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
 require_relative '../../../services/paths/paths'
+require_relative '../../../services/module_extractor/module_extractor'
 
 module AlcesJob
   module CLI
@@ -19,16 +21,12 @@ module AlcesJob
         AlcesJob::CLI.register 'generate mpi', self
         desc 'Creates a MPI sbatch script'
 
-        option :nodes, type: :integer, aliases: ['-N'],
-                       desc: 'Requests the number of compute nodes for the MPI job'
-
-        option :ntasks, type: :integer, aliases: ['-n'],
-                        desc: 'Specifies the total number of MPI tasks'
-
-        option :cpus_per_task, type: :integer, aliases: ['-c'],
-                               desc: 'Specifies CPU cores per task'
+        option :nodes, type: :integer, aliases: ['-N'], desc: 'Requests the number of compute nodes for the MPI job'
+        option :ntasks, type: :integer, aliases: ['-n'], desc: 'Specifies the total number of MPI tasks'
+        option :cpus_per_task, type: :integer, aliases: ['-c'], desc: 'Specifies CPU cores per task'
 
         def call(**options)
+          options[:module] = AlcesJob::Services.module_extractor(ARGV)
           paths = Services::Paths.new
           pastel = Pastel.new
 

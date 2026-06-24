@@ -7,10 +7,12 @@ require 'tty-prompt'
 require 'yaml'
 require 'tempfile'
 
-require_relative '../../../services/validators/slurm_script_validator'
 require_relative 'command_templates/generate_command_template'
+
+require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
 require_relative '../../../services/paths/paths'
+require_relative '../../../services/module_extractor/module_extractor'
 
 module AlcesJob
   module CLI
@@ -19,24 +21,15 @@ module AlcesJob
         AlcesJob::CLI.register 'generate universal', self
         desc 'Creates a universal sbatch script'
 
-        option :nodes, type: :integer, aliases: ['-N'],
-                       desc: 'Requests the number of compute nodes for the job'
-
-        option :ntasks, type: :integer, aliases: ['-n'],
-                        desc: 'Specifies the total number of tasks for the job'
-
-        option :cpus_per_task, type: :integer, aliases: ['-c'],
-                               desc: 'Specifies CPU cores per task'
-        option :gres, type: :string,
-                      desc: 'Specifies generic resources such as GPUs or MICs'
-
-        option :array, type: :string,
-                       desc: 'Sets a Slurm array specification for multiple jobs'
-
-        option :dependency, type: :string,
-                            desc: 'Sets a Slurm dependency string for the job'
+        option :nodes, type: :integer, aliases: ['-N'], desc: 'Requests the number of compute nodes for the job'
+        option :ntasks, type: :integer, aliases: ['-n'], desc: 'Specifies the total number of tasks for the job'
+        option :cpus_per_task, type: :integer, aliases: ['-c'], desc: 'Specifies CPU cores per task'
+        option :gres, type: :string, desc: 'Specifies generic resources such as GPUs or MICs'
+        option :array, type: :string, desc: 'Sets a Slurm array specification for multiple jobs'
+        option :dependency, type: :string, desc: 'Sets a Slurm dependency string for the job'
 
         def call(**options)
+          options[:module] = AlcesJob::Services.module_extractor(ARGV)
           paths = Services::Paths.new
           pastel = Pastel.new
 
@@ -126,6 +119,7 @@ module AlcesJob
             puts pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
             exit(1)
           end
+
           begin
             Tempfile.create(['generated_script', '.slurm']) do |tempfile|
               tempfile.write(script)
@@ -150,7 +144,7 @@ module AlcesJob
           end
 
           begin
-            script_path = generator.save(script_contents)
+            script_path = generator.save(script)
           rescue StandardError => e
             spinner.error('(failed to save)')
             puts pastel.red("\nAn error occurred while saving the script\n")
