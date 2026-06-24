@@ -22,20 +22,22 @@ module AlcesJob
 
         def initialize
           @admin_config_path = Services::Paths.new.admin_config_path
+          @user_config_path = Services::Paths.new.user_config_path
         end
 
         def call(**options)
           pastel = Pastel.new
 
-          # if Process.uid != 0
-          # puts pastel.red("\nThis command must be ran with elevated privileges\n")
-          # exit(1)
-          # end
-
           if options.empty?
             puts pastel.red("\nNo flags have been provided\n")
             exit(1)
           end
+
+          path = if Process.uid == 0
+                   @admin_config_path
+                 else
+                   @user_config_path
+                 end
 
           # Check config file
           puts
@@ -47,8 +49,8 @@ module AlcesJob
 
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
-          if File.exist?(@admin_config_path)
-            data = YAML.load_file(@admin_config_path)
+          if File.exist?(path)
+            data = YAML.load_file(path)
 
             unless data.nil?
               spinner.error(pastel.red('(config exists)'))
@@ -64,12 +66,22 @@ module AlcesJob
           # Writing to config file
           spinner.update(title: 'writing config file')
           spinner.auto_spin
+          config = { 'values' => {} }
+
+          options.each_key do |key|
+            key_str = key.to_s
+            config['values'][key_str] = {
+              'default' => options[key],
+              'warn' => false
+            }
+          end
+
           begin
-            FileUtils.mkdir_p(File.dirname(@admin_config_path))
-            File.write(@admin_config_path, options.to_yaml)
+            FileUtils.mkdir_p(File.dirname(path))
+            File.write(path, config.to_yaml)
             spinner.success(pastel.green('(successful)'))
 
-            puts pastel.green("\nThe config file has been written to #{@admin_config_path}\n")
+            puts pastel.green("\nThe config file has been written to #{path}\n")
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))
