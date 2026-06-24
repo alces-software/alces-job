@@ -59,26 +59,30 @@ module AlcesJob
         system_info[:gpu_total] || system_info['gpu_total'] || DEFAULT_GPUS_PER_NODE
       end
 
-      def self.nodes_from(system_info)
-        return [] if system_info.nil?
+      class << self
+        private
 
-        system_info[:nodes] || system_info['nodes'] || []
-      end
+        def nodes_from(system_info)
+          return [] if system_info.nil?
 
-      def self.partitions_from(system_info)
-        return [] if system_info.nil?
+          system_info[:nodes] || system_info['nodes'] || []
+        end
 
-        system_info[:partitions] || system_info['partitions'] || []
-      end
+        def partitions_from(system_info)
+          return [] if system_info.nil?
 
-      def self.find_partition(partitions, partition_name)
-        return partitions.first if partition_name.nil?
+          system_info[:partitions] || system_info['partitions'] || []
+        end
 
-        partitions.find do |partition|
-          name = partition[:partition] || partition['partition']
+        def find_partition(partitions, partition_name)
+          return partitions.first if partition_name.nil?
 
-          name == partition_name
-        end || partitions.first
+          partitions.find do |partition|
+            name = partition[:partition] || partition['partition']
+
+            name == partition_name
+          end || partitions.first
+        end
       end
     end
   end

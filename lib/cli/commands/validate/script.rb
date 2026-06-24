@@ -33,7 +33,7 @@ module AlcesJob
 
           spinner.auto_spin
           begin
-            validator = SlurmScriptValidator.new(Services::Paths.new.user_template_path(template_name.strip))
+            validator = AlcesJob::Services::SlurmScriptValidator.new(file_path)
           rescue StandardError => e
             spinner.error('(failed to validate)')
             puts pastel.red("\nAn error occurred while validating the template:\n#{e.message}\n")
