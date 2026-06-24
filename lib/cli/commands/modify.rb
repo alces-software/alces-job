@@ -4,6 +4,7 @@ require 'dry/cli'
 require 'pastel'
 require 'open3'
 require 'tty-prompt'
+require 'tty-spinner'
 
 require_relative '../../services/validators/slurm_script_validator'
 require_relative '../../services/module_extractor/module_extractor'
@@ -68,22 +69,46 @@ module AlcesJob
             exit(1)
           end
 
+          puts
+          spinner = TTY::Spinner.new(
+            '[:spinner] :title ...',
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
+          )
+
+          spinner.update(title: 'checking script exists')
+          spinner.auto_spin
+
           begin
             unless File.exist?(script)
-              puts "Script not found: #{script}"
+              spinner.error('(unable to find)')
+              puts pastel.red("\nScript can't be found\n")
               exit(1)
             end
           rescue StandardError => e
+            spinner.error('(failed to find)')
             puts pastel.red("\nAn error occurred while checking if the file exists:\n#{e.message}\n")
             exit(1)
           end
 
-          old_content = File.read(script)
+          spinner.success('(script found)')
+          spinner.update(title: 'reading script')
+          spinner.auto_spin
 
-          lines = File.readlines(script, chomp: true)
+          begin
+            old_content = File.read(script)
+            lines = old_content.lines(chomp: true)
+          rescue StandardError => e
+            spinner.error('(failed to read)')
+            puts pastel.red("\nFailed to read file:\n#{e.message}\n")
+            exit(1)
+          end
+
+          spinner.success('(successful)')
+          spinner.update(title: 'generating new script')
+          spinner.auto_spin
 
           edited_script = []
-
           found_options = []
 
           lines.each do |line|
@@ -143,25 +168,16 @@ module AlcesJob
               existing_modules
             end
 
-          AlcesJob::Services::ModifyScript.new(
-            script: script,
-            options: options
-          ).call
-        rescue StandardError => e
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
-          exit(1)
-        end
+          used_modules = []
 
           modules_to_write.each do |m|
             m = m.to_s.strip
             next if m.empty?
             next if used_modules.include?(m)
 
-        # Takes in the options and combines all the module options into one
-        # @param [Hash] argv
-        # @return [hash]
-        def extract_modules(argv)
-          modules = []
+            edited_script << "module load #{m}"
+            used_modules << m
+          end
 
           edited_script << ''
           edited_script << %(echo "Running job '#{job_name}'") if job_name
@@ -183,14 +199,21 @@ module AlcesJob
             end
           end
 
+          spinner.success('(successful)')
+
           puts pastel.green("\n--- ORIGINAL SCRIPT ---")
           puts old_content
           puts pastel.green("\n--- MODIFIED SCRIPT ---")
           puts edited_script.join("\n")
+
           unless TTY::Prompt.new.yes?("\nWould you like to save this script?", default: false)
             puts 'Aborting...'
+            puts
             exit(0)
           end
+
+          spinner.update(title: 'saving script')
+          spinner.auto_spin
 
           file_path = if options[:output_file]
                         File.join(Dir.pwd, options[:output_file])
@@ -201,39 +224,59 @@ module AlcesJob
           begin
             File.write(file_path, "#{edited_script.join("\n")}\n")
           rescue StandardError => e
+            spinner.error('(failed to write)')
             puts pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
             exit(1)
           end
 
+          spinner.success('(successful)')
+          spinner.update(title: 'validating script')
+          spinner.auto_spin
+
           begin
             validator = Services::SlurmScriptValidator.new(file_path)
           rescue StandardError => e
+            spinner.error('(failed to validate)')
             puts pastel.red("\nAn error occurred while validating the script:\n#{e.message}\n")
             exit(1)
           end
 
+          spinner.success('(finished validating)')
+
           if validator.validate?
             if options[:submit] == true
-              stdout, _, status = Open3.capture3("sbatch #{file_path}")
-              puts 'sbatch finished.'
-              puts "Exit status: #{status.exitstatus}"
-              unless stdout.empty?
-                puts 'STDOUT:'
-                puts stdout
+              begin
+                stdout, _, status = Open3.capture3("sbatch #{file_path}")
+                puts 'sbatch finished.'
+                puts "Exit status: #{status.exitstatus}"
+                unless stdout.empty?
+                  puts 'STDOUT:'
+                  puts stdout
+                end
+              rescue StandardError => e
+                puts pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
+                exit(1)
               end
-              [stdout, status]
             end
-            puts 'Script updated successfully.'
+            puts pastel.green("\nScript updated successfully\n")
           else
-            File.write(file_path, old_content)
-            puts 'Changes were invalid, so the script was reverted.'
+            begin
+              File.write(file_path, old_content)
+            rescue StandardError => e
+              puts pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
+              exit(1)
+            end
+
+            puts pastel.red("\n'Changes were invalid, so the script was reverted'\n")
             validator.errors.each do |error|
-              puts "ERROR: #{error}"
+              puts "#{pastel.red('ERROR:')} #{error}"
             end
 
           end
+
+          puts
           validator.warnings.each do |warning|
-            puts "WARNING: #{warning}"
+            puts "#{pastel.yellow('WARNING:')} #{warning}"
           end
           exit(0)
         rescue StandardError => e

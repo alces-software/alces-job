@@ -11,8 +11,9 @@ require_relative 'command_templates/generate_command_template'
 
 require_relative '../../../services/validators/slurm_script_validator'
 require_relative '../../../services/script_generator/script_generator'
-require_relative '../../../services/paths/paths'
 require_relative '../../../services/module_extractor/module_extractor'
+require_relative '../../../services/config_manager/config_manager'
+require_relative '../../../services/profile_manager/profile_manager'
 
 module AlcesJob
   module CLI
@@ -31,6 +32,55 @@ module AlcesJob
           paths = Services::Paths.new
           pastel = Pastel.new
 
+          # Generate sbatch file bases on user inputs
+          puts
+          spinner = TTY::Spinner.new(
+            '[:spinner] :title ...',
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
+          )
+
+          begin
+            if options[:site_config]
+              spinner.update(title: 'Loading admin config')
+              spinner.auto_spin
+              config_manager = Services::ConfigManager.new(options)
+              options = config_manager.config
+              spinner.success('(loaded)')
+              config_manager.output.each do |line|
+                puts line
+              end
+            end
+          rescue StandardError => e
+            spinner.error('(failed to load)')
+            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
+            exit(1)
+          end
+
+          begin
+            unless options[:profile].nil?
+              puts
+              spinner.update(title: 'loading profile')
+              spinner.auto_spin
+              profile_manager = Services::ProfileManager.new(options[:profile], options)
+              options = profile_manager.profile
+              options.delete(:profile)
+              spinner.success('(loaded profile)')
+              profile_manager.output.each do |line|
+                puts line
+              end
+            end
+          rescue Errno::ENOENT
+            spinner.error('(failed to load)')
+            puts pastel.yellow("\nA profile with that name doesn't exist\n")
+          rescue StandardError => e
+            spinner.error('(failed to load)')
+            puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
+            exit(1)
+          end
+
+          # Generate sbatch file bases on user inputs
+          puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),
