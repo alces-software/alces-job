@@ -39,26 +39,6 @@ module AlcesJob
         option :account, type: :string, aliases: ['-A'],
                          desc: 'Specifies the Slurm account to charge'
 
-        option :output_file, type: :string, aliases: ['-o'],
-                             desc: 'Writes the generated script to this output filename'
-
-        option :error, type: :string, aliases: ['-e'],
-                       desc: 'Sets the Slurm stderr file path in the generated script'
-
-        option :mail_user, type: :string,
-                           desc: 'Sets the email address for Slurm notifications'
-
-        option :mail_type, type: :string,
-                           desc: 'Sets the Slurm mail notification type (BEGIN, END, FAIL, etc.)'
-
-        option :submit, type: :boolean, default: false,
-                        desc: 'Makes it so the SBATCH script that is generated is submitted to slurm automatically'
-
-        def initialize
-          @admin_config_path = Services::Paths.new.admin_config_path
-          @user_config_path = Services::Paths.new.user_config_path
-        end
-
         def call(**options)
           admin_config_path = Services::Paths.new.admin_config_path
           pastel = Pastel.new
@@ -85,20 +65,6 @@ module AlcesJob
           spinner.update(title: 'checking for config file')
           spinner.auto_spin
 
-          if File.exist?(path)
-            data = YAML.load_file(path)
-
-            unless data.nil?
-              spinner.error(pastel.red('(config exists)'))
-              puts pastel.green("\nA config already exists\n")
-              exit(1)
-            end
-
-            spinner.success(pastel.green('(empty config)'))
-          else
-            spinner.success(pastel.green('(no config)'))
-          end
-
           # Writing to config file
           spinner.update(title: 'writing config file')
           spinner.auto_spin
@@ -113,11 +79,11 @@ module AlcesJob
           end
 
           begin
-            FileUtils.mkdir_p(File.dirname(path))
-            File.write(path, config.to_yaml)
+            FileUtils.mkdir_p(File.dirname(admin_config_path))
+            File.write(admin_config_path, options.to_yaml)
             spinner.success(pastel.green('(successful)'))
 
-            puts pastel.green("\nThe config file has been written to #{path}\n")
+            puts pastel.green("\nThe config file has been written to #{admin_config_path}\n")
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(writing error)'))

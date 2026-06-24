@@ -24,7 +24,7 @@ module AlcesJob
         def call(template_name:, **)
           pastel = Pastel.new
 
-          if template_name.to_s.strip.empty?
+          if template_name.nil?
             puts pastel.red("\nNo template name supplied\n")
             exit(1)
           end

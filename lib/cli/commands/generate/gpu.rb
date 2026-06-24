@@ -31,60 +31,6 @@ module AlcesJob
           paths = Services::Paths.new
           pastel = Pastel.new
 
-          # Generate sbatch file bases on user inputs
-          puts
-          spinner = TTY::Spinner.new(
-            '[:spinner] :title ...',
-            success_mark: pastel.green('✓'),
-            error_mark: pastel.red('✗')
-          )
-
-          begin
-            if options[:site_config]
-              spinner.update(title: 'Loading admin config')
-              spinner.auto_spin
-              config_manager = Services::ConfigManager.new
-              options = config_manager.apply_options(options)
-              spinner.success('(loaded)')
-            end
-          rescue StandardError => e
-            spinner.error('(failed to load)')
-            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
-            exit(1)
-          end
-
-          begin
-            unless options[:profile].nil?
-              profile_path = paths.user_profile_path(options[:profile].strip)
-              options.delete(:profile)
-              if File.exist?(profile_path)
-                spinner.update(title: 'loading profile')
-                spinner.auto_spin
-                profile = YAML.load_file(profile_path)
-                options_keys = options.keys
-                puts
-                profile.each_key do |key|
-                  if options_keys.include?(key)
-                    puts pastel.yellow("Ignoring profile flag #{key}")
-                  else
-                    puts pastel.green("Loaded profile flag #{key}")
-                  end
-                end
-
-                options = profile.merge(options)
-                spinner.success('(loaded profile)')
-              else
-                puts pastel.red("\nA profile with that name was not found\n")
-              end
-            end
-          rescue StandardError => e
-            spinner.error('(failed to load)')
-            puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
-            exit(1)
-          end
-
-          # Generate sbatch file bases on user inputs
-          puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),

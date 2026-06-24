@@ -26,8 +26,6 @@ module AlcesJob
           paths = Services::Paths.new
           pastel = Pastel.new
 
-          # Generate sbatch file bases on user inputs
-          puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),
@@ -36,11 +34,20 @@ module AlcesJob
 
           begin
             if options[:site_config]
-              spinner.update(title: 'Loading admin config')
-              spinner.auto_spin
-              config_manager = Services::ConfigManager.new
-              options = config_manager.apply_options(options)
-              spinner.success('(loaded)')
+              admin_path = paths.admin_config_path
+              if File.exist?(admin_path)
+                spinner.update(title: 'Loading admin config')
+                spinner.auto_spin
+                admin = YAML.load_file(admin_path)
+                admin_keys = admin.keys
+                puts
+                options.each_key do |key|
+                  puts pastel.yellow("You are overwriting the system admin defined #{key}") if admin_keys.include?(key)
+                end
+
+                options = admin.merge(options)
+                spinner.success('(loaded)')
+              end
             end
           rescue StandardError => e
             spinner.error('(failed to load)')
