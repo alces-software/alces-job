@@ -43,6 +43,7 @@ module AlcesJob
         validate_sbatch_capital(lines)
         validate_duplicate_shebang(lines)
         validate_directives_before_commands(lines)
+        validate_supported_shebang(lines)
         errors.empty?
       end
 
@@ -280,6 +281,15 @@ module AlcesJob
             next
           end
           command_seen = true
+        end
+      end
+
+      def validate_supported_shebang(lines)
+        lines.each do |line|
+          next unless line.start_with?('#!')
+          next if line == '#!/bin/bash'
+
+          errors << "Unsupported shebang found: #{line}. Only #!/bin/bash is supported"
         end
       end
 
