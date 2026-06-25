@@ -18,7 +18,7 @@ module AlcesJob
           pastel = Pastel.new
 
           if profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided\n")
+            puts pastel.red("\nNo profile name was provided.\n")
             exit(1)
           end
 
@@ -26,7 +26,7 @@ module AlcesJob
 
           begin
             unless File.exist?(profile_path)
-              puts pastel.red("\nThe profile doesn't exist\n")
+              puts pastel.red("\nThe profile doesn't exist.\n")
               exit(1)
             end
           rescue StandardError => e

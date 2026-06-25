@@ -20,7 +20,7 @@ module AlcesJob
           pastel = Pastel.new
 
           if template_name.to_s.strip.empty?
-            puts pastel.red("\nNo template name was provided\n")
+            puts pastel.red("\nNo template name was provided.\n")
             exit(1)
           end
 
@@ -34,14 +34,14 @@ module AlcesJob
           begin
             validator = TemplateValidator.new(Services::Paths.new.user_template_path(template_name.strip))
           rescue StandardError => e
-            spinner.error('(failed to validate)')
+            spinner.error(pastel.red('(Failed to validate)'))
             puts pastel.red("\nAn error occurred while validating the template:\n#{e.message}\n")
             exit(1)
           end
-          spinner.success('(validation complete)')
+          spinner.success(pastel.green('(Validation complete)'))
 
           if validator.validate?
-            puts pastel.green("\nTemplate validation passed\n")
+            puts pastel.green("\nTemplate validation passed.\n")
           else
             puts pastel.red("\nTemplate validation failed:")
             validator.errors.each { |error| puts "- #{error}" }
@@ -54,6 +54,7 @@ module AlcesJob
 
           exit(0)
         rescue StandardError => e
+          spinner&.error(pastel.red('(Command error)'))
           puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end

@@ -25,14 +25,14 @@ module AlcesJob
           pastel = Pastel.new
 
           if template_name.nil?
-            puts pastel.red("\nNo template name supplied\n")
+            puts pastel.red("\nNo template name supplied.\n")
             exit(1)
           end
 
           path = template_path(template_name)
 
           unless path
-            puts pastel.red("\nTemplate #{template_name} not found\n")
+            puts pastel.red("\nTemplate #{template_name} not found.\n")
             exit(1)
           end
 

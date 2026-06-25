@@ -44,7 +44,7 @@ module AlcesJob
           prompt = TTY::Prompt.new
 
           if profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided\n")
+            puts pastel.red("\nNo profile name was provided.\n")
             exit(1)
           end
 
@@ -52,7 +52,7 @@ module AlcesJob
           options.reject! { |_, value| value == [] }
 
           if options.empty?
-            puts pastel.red("\nNo flags were provided that could be saved to a profile\n")
+            puts pastel.red("\nNo flags were provided that could be saved to a profile.\n")
             exit(1)
           end
 
@@ -67,14 +67,14 @@ module AlcesJob
 
           begin
             if File.exist?(profile_path)
-              spinner.error(pastel.red('(profile exists)'))
+              spinner.error(pastel.red('(Profile exists)'))
               exit(0) unless prompt.yes?("\nA profile with that name was found do you want to overwrite it?", default: false)
               puts
               spinner.update(title: 'overwriting profile')
               spinner.auto_spin
             end
           rescue StandardError => e
-            spinner.error('(failed to check profile)')
+            spinner.error(pastel.red('(Failed to check profile)'))
             puts pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
             exit(1)
           end
@@ -82,16 +82,16 @@ module AlcesJob
           begin
             FileUtils.mkdir_p(File.dirname(profile_path))
             File.write(profile_path, options.to_yaml)
-            spinner.success(pastel.green('(successful)'))
+            spinner.success(pastel.green('(Successful)'))
             puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
             exit(0)
           rescue StandardError => e
-            spinner.error(pastel.red('(write error)'))
+            spinner.error(pastel.red('(Write error)'))
             puts pastel.red("\nFailed to create your profile:\n#{e.message}\n")
             exit(1)
           end
         rescue StandardError => e
-          spinner&.error('(command error)')
+          spinner&.error(pastel.red('(Command error)'))
           puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end

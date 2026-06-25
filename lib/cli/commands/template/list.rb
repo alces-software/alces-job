@@ -27,7 +27,7 @@ module AlcesJob
           end
 
           if templates.empty?
-            puts pastel.red("\nNo templates found\n")
+            puts pastel.red("\nNo templates found.\n")
             exit(0)
           end
 

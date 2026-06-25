@@ -65,7 +65,7 @@ module AlcesJob
           pastel = Pastel.new
 
           if script.to_s.strip.empty?
-            puts pastel.red("\nNo script path was provided\n")
+            puts pastel.red("\nNo script path was provided.\n")
             exit(1)
           end
 
@@ -81,17 +81,17 @@ module AlcesJob
 
           begin
             unless File.exist?(script)
-              spinner.error('(unable to find)')
-              puts pastel.red("\nScript can't be found\n")
+              spinner.error(pastel.red('(Unable to find)'))
+              puts pastel.red("\nScript can't be found.\n")
               exit(1)
             end
           rescue StandardError => e
-            spinner.error('(failed to find)')
+            spinner.error(pastel.red('(Failed to find)'))
             puts pastel.red("\nAn error occurred while checking if the file exists:\n#{e.message}\n")
             exit(1)
           end
 
-          spinner.success('(script found)')
+          spinner.success(pastel.green('(Script found)'))
           spinner.update(title: 'reading script')
           spinner.auto_spin
 
@@ -99,12 +99,12 @@ module AlcesJob
             old_content = File.read(script)
             lines = old_content.lines(chomp: true)
           rescue StandardError => e
-            spinner.error('(failed to read)')
+            spinner.error(pastel.red('(Failed to read)'))
             puts pastel.red("\nFailed to read file:\n#{e.message}\n")
             exit(1)
           end
 
-          spinner.success('(successful)')
+          spinner.success(pastel.green('(Successful)'))
           spinner.update(title: 'generating new script')
           spinner.auto_spin
 
@@ -199,7 +199,7 @@ module AlcesJob
             end
           end
 
-          spinner.success('(successful)')
+          spinner.success('(Successful)')
 
           puts pastel.green("\n--- ORIGINAL SCRIPT ---")
           puts old_content
@@ -224,24 +224,24 @@ module AlcesJob
           begin
             File.write(file_path, "#{edited_script.join("\n")}\n")
           rescue StandardError => e
-            spinner.error('(failed to write)')
+            spinner.error(pastel.red('(Failed to write)'))
             puts pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
             exit(1)
           end
 
-          spinner.success('(successful)')
+          spinner.success(pastel.green('(Successful)'))
           spinner.update(title: 'validating script')
           spinner.auto_spin
 
           begin
             validator = Services::SlurmScriptValidator.new(file_path)
           rescue StandardError => e
-            spinner.error('(failed to validate)')
+            spinner.error(pastel.red('(Failed to validate)'))
             puts pastel.red("\nAn error occurred while validating the script:\n#{e.message}\n")
             exit(1)
           end
 
-          spinner.success('(finished validating)')
+          spinner.success(pastel.green('(Finished validating)'))
 
           if validator.validate?
             if options[:submit] == true
@@ -258,7 +258,7 @@ module AlcesJob
                 exit(1)
               end
             end
-            puts pastel.green("\nScript updated successfully\n")
+            puts pastel.green("\nScript updated successfully.\n")
           else
             begin
               File.write(file_path, old_content)
@@ -267,7 +267,7 @@ module AlcesJob
               exit(1)
             end
 
-            puts pastel.red("\n'Changes were invalid, so the script was reverted'\n")
+            puts pastel.red("\nChanges were invalid, so the script was reverted.\n")
             validator.errors.each do |error|
               puts "#{pastel.red('ERROR:')} #{error}"
             end
@@ -280,6 +280,7 @@ module AlcesJob
           end
           exit(0)
         rescue StandardError => e
+          spinner&.error(pastel.red('(Command failed)'))
           puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
