@@ -15,6 +15,9 @@ $ sudo gem build alces-job.gemspec
 $ sudo gem install alces-job-0.5.0.gem
 ```
 
+### NOTE
+This will install the gem system wide, but running the command with `sudo` will not work as ruby is in the wrong environments. To make any changes to system configs, the program must be run as the root user, or with `sudo -E env "PATH=$PATH"`, which will preserve the environment variables. Optionally, the program can be run with `sudo` directly, such as `sudo /usr/local/bin/alces-job`
+
 ## System config
 
 The config can be initialised by running

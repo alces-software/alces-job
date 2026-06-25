@@ -1,45 +1,38 @@
 #!/bin/bash
 
-# Name shown for this job in the Slurm queue
-#SBATCH --job-name=<%= @context.job_name %>   
+#SBATCH --job-name=<%= @context.job_name %>     # Name shown for this job in the Slurm queue
 
-# Request GPU resources; default is 1 GPU
-#SBATCH --gres=<%= @context.gres || "gpu:1" %>         
+#SBATCH --gres=<%= @context.gres || "gpu:1" %>  # Request GPU resources; default is 1 GPU  
 
-# Number of nodes/machines requested
 <% if @context.nodes -%>
-#SBATCH --nodes=<%= @context.nodes %>                  
+#SBATCH --nodes=<%= @context.nodes %>           # Number of nodes/machines requested                 
 <% else -%>
-#SBATCH --nodes=1                                      
+#SBATCH --nodes=1                               # Number of nodes/machines requested                                      
 <% end -%>
 
 # Number of tasks/processes to run
 <% if @context.ntasks -%>
-#SBATCH --ntasks=<%= @context.ntasks %>                
+#SBATCH --ntasks=<%= @context.ntasks %>         # Number of tasks/processes to run          
 <% else -%>
-#SBATCH --ntasks=1                                     
+#SBATCH --ntasks=1                              # Number of tasks/processes to run                               
 <% end -%>
 
-# CPU cores available to each task
 <% if @context.cpus_per_task -%>
-#SBATCH --cpus-per-task=<%= @context.cpus_per_task %>  
+#SBATCH --cpus-per-task=<%= @context.cpus_per_task %> # CPU cores available to each task  
 <% else -%>
-#SBATCH --cpus-per-task=4                              
+#SBATCH --cpus-per-task=4                       # CPU cores available to each task                           
 <% end -%>
 
 <% if @context.mem -%>
-# Amount of memory requested for the job
-#SBATCH --mem=<%= @context.mem %>                      
+#SBATCH --mem=<%= @context.mem %>               # Amount of memory requested for the job           
 <% end -%>
 
 <% if @context.time -%>
- # Maximum runtime before Slurm stops the job
-#SBATCH --time=<%= @context.time %>                   
+#SBATCH --time=<%= @context.time %>             # Maximum runtime before Slurm stops the job         
 <% end -%>
 
 <% if @context.partition -%>
-  # Partition/queue where the job should run
-#SBATCH --partition=<%= @context.partition %>        
+#SBATCH --partition=<%= @context.partition %>   # Partition/queue where the job should run       
 <% end -%>
 
 module load cuda                                          # Load CUDA for GPU support

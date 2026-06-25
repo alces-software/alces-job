@@ -30,7 +30,6 @@ module AlcesJob
           options[:module] = AlcesJob::Services.module_extractor(ARGV)
           pastel = Pastel.new
 
-          # Generate sbatch file bases on user inputs
           puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',

@@ -75,7 +75,8 @@ module AlcesJob
 
         if mem_value
           requested_memory_mb = MemoryConverter.to_mb(mem_value)
-          max_memory_mb = AlcesJob::Services::SystemLimits.max_memory_mb(@system_info)
+          partition_name = directive_value(sbatch_lines, '--partition')
+          max_memory_mb = AlcesJob::Services::SystemLimits.max_memory_mb(@system_info, partition_name)
 
           if requested_memory_mb.nil?
             errors << "Invalid memory format: #{mem_value}. Expected formats like 4G, 500M, etc."
@@ -91,10 +92,7 @@ module AlcesJob
         time_value = directive_value(sbatch_lines, '--time')
         partition_name = directive_value(sbatch_lines, '--partition')
 
-        max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(
-          @system_info,
-          partition_name
-        )
+        max_time_seconds = AlcesJob::Services::SystemLimits.time_limit_seconds(@system_info, partition_name)
 
         if time_value
           requested_time_seconds = TimeConverter.to_seconds(time_value)
@@ -232,7 +230,7 @@ module AlcesJob
         return if dependency_value.nil?
 
         if dependency_value.empty?
-          errors << 'Depenedency value cannot be empty'
+          errors << 'Dependency value cannot be empty'
           return
         end
         job_id = dependency_value.split(':', -1).last
@@ -244,9 +242,10 @@ module AlcesJob
 
       def directive_value(sbatch_lines, directive)
         sbatch_lines.each do |line|
-          match = line.match(/\A#SBATCH\s+#{Regexp.escape(directive)}(?:=|\s+)(.*)\z/)
+          match = line.match(/\A#SBATCH\s+#{Regexp.escape(directive)}(?:=|\s+)(.*?)\s*(?:#.*)?\z/)
           return match[1].strip if match
         end
+
         nil
       end
     end

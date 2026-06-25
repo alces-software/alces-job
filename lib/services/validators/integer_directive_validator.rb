@@ -9,7 +9,7 @@ module AlcesJob
           line = sbatch_lines.find { |sbatch_line| sbatch_line.include?(directive.to_s) }
           next unless line
 
-          value = line.split(directive).last.strip
+          value = line.split(directive).last.split('#', 2).first.strip
 
           errors << "Invalid format for #{directive.chomp('=')}: #{value}. Expected a positive integer value." unless value.match?(/\A[1-9]\d*\z/)
         end
