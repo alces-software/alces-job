@@ -67,7 +67,7 @@ module AlcesJob
             info[:max_memory_mb] = [info[:max_memory_mb], memory.to_i].max
             info[:max_cpu_cores] = [info[:max_cpu_cores], cpus.to_i].max
 
-            next if gres.blank? || gres == '(null)'
+            next if gres == '(null)'
 
             gres.scan(/gpu:[^:,\s]+(?::(\d+))?/) do |count|
               info[:max_gpus] = [info[:max_gpus], (count.first || 1).to_i].max
