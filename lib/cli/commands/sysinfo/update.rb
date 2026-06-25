@@ -17,7 +17,6 @@ module AlcesJob
 
         option :partition, type: :boolean, default: false, desc: 'Update partitions info', aliases: ['-p']
         option :package, type: :boolean, default: false, desc: 'Update packages info', aliases: ['-k']
-        option :gpu, type: :boolean, default: false, desc: 'Update GPU count', aliases: ['-g']
         option :all, type: :boolean, default: false, desc: 'Update all the system information', aliases: ['-a']
 
         def call(**options)
@@ -84,8 +83,6 @@ module AlcesJob
                   system_data[:partitions] = Services::SysInfo.partition_info
                 when :package
                   system_data[:packages] = Services::SysInfo.package_info
-                when :gpu
-                  system_data[:gpu_total] = Services::SysInfo.gpu_info
                 end
               end
             else
