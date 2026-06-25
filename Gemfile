@@ -14,6 +14,9 @@ gem 'config', '~> 5.6'
 
 gem 'rake', '~> 13.4'
 
+gem 'tty-box'
+gem 'unicode-display_width', '< 3.0'
+
 gem 'tty-spinner'
 
 group :test do

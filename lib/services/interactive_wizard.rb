@@ -4,6 +4,7 @@ require 'tty-prompt'
 require 'terminal-table'
 require 'pastel'
 require 'erb'
+require 'tty-box'
 
 require_relative 'sys_info/sys_info'
 require_relative 'paths/paths'
@@ -69,7 +70,7 @@ module AlcesJob
         puts "\nDo not worry if you are unsure - sensible default values will be provided."
 
         puts
-        puts 'Tip: Enlarge your terminal screen for a better experience.'
+        puts pastel.yellow('Tip: Enlarge your terminal screen for a better experience.')
 
         puts "\nAt the end, you will be able to preview the generated script before saving it.\n\n"
 
@@ -90,9 +91,8 @@ module AlcesJob
 
         job_type = prompt.select(pastel.bold.magenta('What type of job would you like to run?'), types_of_job)
 
-        # To add in later?  nodes: 'How many nodes would you like to request?',
+        # To add in later?
         # array: 'What array range would you like to use (e.g. 1-100)?',
-        # max_concurrent_tasks: 'What is the maximum number of array tasks that may run simultaneously?',
         # gres: 'How many GPUs would you like to request?',
         # ntasks: 'How many MPI tasks would you like per node?',
 
@@ -109,10 +109,13 @@ module AlcesJob
           mpi: {
             job_name: 'What is your job name?',
             partition: 'Which partition would you like to use?',
+            nodes: 'How many nodes would you like to request?',
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores would each MPI task require?',
+
             mem: 'How much memory will your job use? (MB)',
             command: 'What MPI command would you like to run?'
+
           },
 
           gpu: {
@@ -139,6 +142,7 @@ module AlcesJob
           time: '00-01:00:00',
           cpus_per_task: '1',
           mem: '1024',
+          nodes: '1',
           command: 'echo "Hello, World!"'
         }
 
@@ -155,10 +159,11 @@ module AlcesJob
         result = prompt.collect do
           questions.each do |item, question|
             case item
+
             when :partition
               puts
               puts pastel.bold.cyan('Partition')
-              puts "\nA partition is a queue or #{pastel.underline('group of machines')} that your job can run on.\nDifferent partitions may have different time limits, hardware, or waiting times.\n"
+              puts "\nA partition is a queue or #{pastel.bold.underline('group of machines')} that your job can run on.\nDifferent partitions may have different time limits, hardware, or waiting times.\n"
 
               puts 'If you are unsure, choose the default partition.'
               puts
@@ -167,6 +172,7 @@ module AlcesJob
                 [
                   partition[:name],
                   TimeConverter.to_human_readable(partition[:time_limit]),
+                  partition[:node_count],
                   "#{partition[:max_memory_mb]} MB",
                   partition[:max_cpu_cores]
                 ]
@@ -177,6 +183,7 @@ module AlcesJob
                 headings: [
                   'Partition',
                   'Time Limit',
+                  'Node Count',
                   'Max Memory Per Node',
                   'Max CPU Cores Per Node'
                 ],
@@ -187,11 +194,31 @@ module AlcesJob
 
               selected_partition = key(item).select(pastel.bold.cyan(question), partition_list)
 
+            when :nodes
+              selected_partition_info = info[selected_partition]
+              node_count = selected_partition_info[:node_count].to_i
+              puts
+              puts pastel.bold.blue('Nodes')
+              puts "\nA node is a #{pastel.bold.underline('single machine/computer')} in the cluster. MPI jobs may use multiple nodes to run work in parallel across machines."
+              puts
+              puts "The total number of nodes for partition #{selected_partition} is #{node_count}"
+              puts
+
+              key(item).ask(pastel.bold.blue(question), default: defaults[item]) do |q|
+                q.validate(/\A\d+\z/)
+                q.messages[:valid?] = 'Please enter a whole number'
+                q.validate do |input|
+                  input.to_i.between?(1, node_count)
+                end
+                q.messages[:valid?] = "Please enter a whole number between 1 and #{node_count}"
+                q.convert :int
+              end
+
             when :time
               puts
               puts pastel.bold.magenta('Time')
               puts
-              puts "In Slurm, time specifies the #{pastel.underline('maximum time limit for a job')}. Choose enough time for your job to finish, but avoid asking for much more than you need. Shorter jobs can sometimes start sooner."
+              puts "In Slurm, time specifies the #{pastel.bold.underline('maximum time limit for a job')}. Choose enough time for your job to finish, but avoid asking for much more than you need. Shorter jobs can sometimes start sooner."
 
               selected_partition_info = info[selected_partition]
 
@@ -324,7 +351,20 @@ module AlcesJob
 
           script = generator.generate
 
-          puts script
+          # puts script
+          puts
+
+          box_width = script.lines.map { |line| line.chomp.length }.max + 4
+
+          puts TTY::Box.frame(
+            script,
+            title: {
+              top_center: pastel.bold.green(' Script Preview ')
+            },
+            padding: 1,
+            border: :thick,
+            width: box_width
+          )
 
           break unless prompt.yes?('Would you like to edit any of your inputs?')
 
@@ -347,6 +387,7 @@ module AlcesJob
               [
                 partition[:name],
                 TimeConverter.to_human_readable(partition[:time_limit]),
+                partition[:node_count],
                 "#{partition[:max_memory_mb]} MB",
                 partition[:max_cpu_cores]
               ]
@@ -357,6 +398,7 @@ module AlcesJob
               headings: [
                 'Partition',
                 'Time Limit',
+                'Node Count',
                 'Max Memory Per Node',
                 'Max CPU Cores Per Node'
               ],
@@ -385,11 +427,13 @@ module AlcesJob
             max_memory = selected_partition_info[:max_memory_mb].to_i
             max_cpu_cores = selected_partition_info[:max_cpu_cores].to_i
 
+            node_count = selected_partition_info[:node_count].to_i
+
             unless TimeConverter.valid_slurm_time?(result[:time], max_run_time)
 
               puts "\nThe max runtime for the partition #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
               puts
-              puts "Your current time value #{result[:time]} is too high for #{selected_partition}."
+              puts "Your current time value #{result[:time]} is #{pastel.bold('too high')} for #{selected_partition}."
               puts
 
               result[:time] = prompt.ask(
@@ -408,7 +452,7 @@ module AlcesJob
             if result[:mem].to_i > max_memory
               puts "\nThe max memory for the partition #{selected_partition} is #{max_memory} MB."
               puts
-              puts "Your current memory value #{result[:mem]} MB is too high for #{selected_partition}."
+              puts "Your current memory value #{result[:mem]} MB is #{pastel.bold('too high')} for #{selected_partition}."
               puts
 
               result[:mem] = prompt.ask(
@@ -435,7 +479,7 @@ module AlcesJob
             if result[:cpus_per_task] && result[:cpus_per_task].to_i > max_cpu_cores
               puts "\nThe max CPU cores for the partition #{selected_partition} is #{max_cpu_cores}."
               puts
-              puts "Your current CPU value #{result[:cpus_per_task]} is too high for #{selected_partition}."
+              puts "Your current CPU value #{result[:cpus_per_task]} is #{pastel.bold('too high')} for #{selected_partition}."
               puts
 
               result[:cpus_per_task] = prompt.ask(
@@ -452,6 +496,45 @@ module AlcesJob
 
                 q.convert :int
               end
+            end
+
+            if result[:nodes] && result[:nodes] > node_count
+
+              puts "\nThe total number of nodes for the partition #{selected_partition} is #{node_count}."
+              puts
+              puts "Your current selection of #{result[:nodes]} #{pastel.bold('exceeds')} the total node count for #{selected_partition}."
+              puts
+
+              result[:nodes] = prompt.ask(pastel.bold.blue(questions[:nodes]), default: result[:nodes]) do |q|
+                q.validate(/\A\d+\z/)
+                q.messages[:valid?] = 'Please enter a whole number'
+                q.validate do |input|
+                  input.to_i.between?(1, node_count)
+                end
+                q.messages[:valid?] = "Please enter a whole number between 1 and #{node_count}"
+                q.convert :int
+              end
+
+            end
+
+          when :nodes
+            selected_partition_info = info[selected_partition]
+            node_count = selected_partition_info[:node_count].to_i
+            puts
+            puts pastel.bold.blue('Nodes')
+            puts "\nA node is a #{pastel.bold.underline('single machine/computer')} in the cluster. MPI jobs may use multiple nodes to run work in parallel across machines."
+            puts
+            puts "The total number of nodes for partition #{selected_partition} is #{node_count}"
+            puts
+
+            result[:nodes] = prompt.ask(pastel.bold.blue(questions[:nodes]), default: result[:nodes]) do |q|
+              q.validate(/\A\d+\z/)
+              q.messages[:valid?] = 'Please enter a whole number'
+              q.validate do |input|
+                input.to_i.between?(1, node_count)
+              end
+              q.messages[:valid?] = "Please enter a whole number between 1 and #{node_count}"
+              q.convert :int
             end
 
           when :time

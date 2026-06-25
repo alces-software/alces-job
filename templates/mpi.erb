@@ -1,26 +1,20 @@
 #!/bin/bash
 
 #SBATCH --job-name=<%= @context.job_name %>     # Name shown for this job in the Slurm queue
-
 #SBATCH --nodes=<%= @context.nodes || 2 %>      # Number of nodes/machines requested; default is 2
-
 #SBATCH --ntasks=<%= @context.ntasks || 32 %>   # Total number of MPI tasks/processes; default is 32
-
 #SBATCH --cpus-per-task=<%= @context.cpus_per_task || 1 %>  # CPU cores per MPI task; default is 1
-
 <% if @context.partition -%>
 #SBATCH --partition=<%= @context.partition %>   # Partition/queue where the job should run
 <% end -%>
-
 <% if @context.time -%>
 #SBATCH --time=<%= @context.time %>             # Maximum runtime before Slurm stops the job
 <% end -%>
-
 <% if @context.mem -%>
 #SBATCH --mem=<%= @context.mem %>               # Amount of memory requested for the job
 <% end -%>
 
-module load openmpi                                          # Load OpenMPI so MPI programs can run
+module load openmpi         # Load OpenMPI so MPI programs can run
 
 <% Array(@context.modules).each do |mod| -%>
 module load <%= mod %>                                       # Load extra user-requested module
@@ -32,4 +26,4 @@ cd <%= @context.workdir %>                                   # Move to the worki
 
 echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"  # Print MPI resource information
 
-srun <%= @context.command %>                                 # Launch the MPI program using Slurm's task launcher
+srun <%= @context.command %>            # Launch the MPI program using Slurm's task launcher
