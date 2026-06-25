@@ -44,6 +44,7 @@ module AlcesJob
         validate_output(sbatch_lines)
         validate_account(sbatch_lines)
         validate_error(sbatch_lines)
+        validate_partition(sbatch_lines)
         validate_mail_type(sbatch_lines)
         validate_mail_user(sbatch_lines)
         validate_sbatch_capital(lines)
@@ -256,6 +257,14 @@ module AlcesJob
         return if job_name.match?(/\A[a-zA-Z0-9_-]+\z/)
 
         errors << "Invalid job-name: #{job_name} The program only allows for letters, numbers, hyphens and underscores. "
+      end
+
+      def validate_partition(sbatch_lines)
+        partition = directive_value(sbatch_lines, '--partition')
+
+        return if partition.nil?
+
+        errors << '--Partition cannot be empty.' if partition.empty?
       end
 
       def validate_dependency(sbatch_lines)
