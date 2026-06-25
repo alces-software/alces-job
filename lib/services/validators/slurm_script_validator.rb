@@ -41,6 +41,7 @@ module AlcesJob
         validate_mail_type(sbatch_lines)
         validate_mail_user(sbatch_lines)
         validate_sbatch_capital(lines)
+        validate_duplicate_shebang(lines)
         errors.empty?
       end
 
@@ -271,6 +272,14 @@ module AlcesJob
 
           errors << "Invalid SBATCH directive capitalisation: #{line}. Expected '#SBATCH'."
         end
+      end
+
+      def validate_duplicate_shebang(lines)
+        shebang_lines = lines.select { |line| line == '#!/bin/bash' }
+
+        return unless shebang_lines.length > 1
+
+        errors << 'Duplicate shebang found. Only one is allowed.'
       end
 
       def directive_value(sbatch_lines, directive)
