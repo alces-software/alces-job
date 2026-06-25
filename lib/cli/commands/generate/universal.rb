@@ -39,26 +39,26 @@ module AlcesJob
             error_mark: pastel.red('✗')
           )
 
-          begin
-            if options[:site_config]
-              spinner.update(title: 'Loading admin config')
-              spinner.auto_spin
-              config_manager = Services::ConfigManager.new(options)
-              options = config_manager.config
-              spinner.success(pastel.green('(Loaded)'))
-              config_manager.output.each do |line|
-                puts line
-              end
-            end
-          rescue Errno::EACCES
-            spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nYou do not have permission to read the admin config.\n")
-            exit(1)
-          rescue StandardError => e
-            spinner.error(pastel.red('(Failed to load)'))
-            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
-            exit(1)
-          end
+          # begin
+          #   if options[:site_config]
+          #     spinner.update(title: 'Loading admin config')
+          #     spinner.auto_spin
+          #     config_manager = Services::ConfigManager.new(options)
+          #     options = config_manager.config
+          #     spinner.success(pastel.green('(Loaded)'))
+          #     config_manager.output.each do |line|
+          #       puts line
+          #     end
+          #   end
+          # rescue Errno::EACCES
+          #   spinner.error(pastel.red('(Permission denied)'))
+          #   puts pastel.red("\nYou do not have permission to read the admin config.\n")
+          #   exit(1)
+          # rescue StandardError => e
+          #   spinner.error(pastel.red('(Failed to load)'))
+          #   puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
+          #   exit(1)
+          # end
 
           begin
             unless options[:profile].nil?

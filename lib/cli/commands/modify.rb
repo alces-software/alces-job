@@ -5,6 +5,7 @@ require 'pastel'
 require 'open3'
 require 'tty-prompt'
 require 'tty-spinner'
+require 'shellwords'
 
 require_relative '../../services/validators/slurm_script_validator'
 require_relative '../../services/module_extractor/module_extractor'
@@ -56,6 +57,18 @@ module AlcesJob
             mail_type: 'mail-type',
             array: 'array',
             dependency: 'dependency'
+          }.freeze
+
+          @short_options = {
+            '-J' => :job_name,
+            '-N' => :nodes,
+            '-n' => :ntasks,
+            '-c' => :cpus_per_task,
+            '-t' => :time,
+            '-p' => :partition,
+            '-A' => :account,
+            '-o' => :output,
+            '-e' => :error
           }.freeze
         end
 
@@ -114,35 +127,72 @@ module AlcesJob
           lines.each do |line|
             if line.start_with?('#!')
               edited_script << line
-
             elsif line.start_with?('#SBATCH')
-              parts = line.split[1]
+              match = line.match(/\A#SBATCH\s+(?<option>\S+)(?:\s+(?<spaced_value>.*))?\z/)
 
-              unless parts&.start_with?('--') && parts.include?('=')
+              unless match
                 edited_script << line
                 next
               end
 
-              name, _old_value = parts.split('=', 2)
+              option = match[:option]
+              spaced_value = match[:spaced_value]
 
-              option_key = name.tr('-', '_').delete_prefix('__').to_sym
-              found_options << option_key
+              option_key = nil
+              value = nil
 
-              if options.key?(option_key) && !options[option_key].nil?
-                new_value = options[option_key]
-                edited_script << "#SBATCH #{name}=#{new_value}"
+              if option.include?('=')
+                name, raw_value = option.split('=', 2)
+                long_name = name.delete_prefix('--')
+
+                option_key = @sbatch_options.find do |_key, sbatch_name|
+                  sbatch_name == long_name
+                end&.first
+
+                value = raw_value.to_s.sub(/\s+#.*\z/, '').strip
+
+              elsif option.start_with?('--')
+                long_name = option.delete_prefix('--')
+
+                option_key = @sbatch_options.find do |_key, sbatch_name|
+                  sbatch_name == long_name
+                end&.first
+
+                value = spaced_value.to_s.sub(/\s+#.*\z/, '').strip
 
               else
-                edited_script << line
+                short_name = option[0, 2]
+                option_key = @short_options[short_name]
+
+                compact_value = option.length > 2 ? option[2..] : nil
+                value = (compact_value || spaced_value).to_s.sub(/\s+#.*\z/, '').strip
               end
+
+              unless option_key
+                edited_script << line
+                next
+              end
+
+              found_options << option_key
+
+              if options.key?(option_key) &&
+                 !options[option_key].nil? &&
+                 options[option_key] != false &&
+                 !(options[option_key].respond_to?(:empty?) && options[option_key].empty?)
+
+                new_value = options[option_key]
+                edited_script << "#SBATCH --#{@sbatch_options.fetch(option_key)}=#{new_value}"
+              else
+                edited_script << "#SBATCH --#{@sbatch_options.fetch(option_key)}=#{value}"
+              end
+
             end
           end
 
           options.each do |key, value|
             next if found_options.include?(key)
             next unless @sbatch_options.key?(key)
-            next if value.nil?
-            next if value == false
+            next if value.nil? || value == false
             next if value.respond_to?(:empty?) && value.empty?
 
             sbatch_name = @sbatch_options[key]
@@ -156,7 +206,7 @@ module AlcesJob
           existing_modules = lines.select { |line| line.strip.start_with?('module load ') }.map { |line| line.strip.sub(/^module load\s+/, '') }
 
           if options[:workdir] && !options[:workdir].to_s.empty?
-            edited_script << "cd #{options[:workdir]}\n"
+            edited_script << "cd #{Shellwords.escape(options[:workdir])}\n"
           elsif existing_cd_line
             edited_script << "#{existing_cd_line}\n"
           end
@@ -192,6 +242,7 @@ module AlcesJob
               next if line.start_with?('#SBATCH')
               next if line.strip.start_with?('module load ')
               next if line.strip.start_with?('cd ')
+              next if line.strip.start_with?('#')
               next if line.strip.start_with?('echo "Running job ')
               next if line.empty? && edited_script.last == ''
 
@@ -246,12 +297,16 @@ module AlcesJob
           if validator.validate?
             if options[:submit] == true
               begin
-                stdout, _, status = Open3.capture3("sbatch #{file_path}")
+                stdout, stderr, status = Open3.capture3('sbatch', file_path)
                 puts 'sbatch finished.'
                 puts "Exit status: #{status.exitstatus}"
                 unless stdout.empty?
                   puts 'STDOUT:'
                   puts stdout
+                end
+                unless stderr.empty?
+                  puts pastel.red('STDERR:')
+                  puts stderr
                 end
               rescue StandardError => e
                 puts pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
