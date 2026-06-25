@@ -31,9 +31,14 @@ module AlcesJob
           end
         )
 
-        config_keys = config['values'].keys
-
         @output = []
+
+        if config.empty?
+          @config = {}
+          return
+        end
+
+        config_keys = config['values'].keys
 
         unless options.empty?
           options.each_key do |key|
