@@ -36,3 +36,10 @@ require_relative 'commands/validate'
 
 # Load modify command
 require_relative 'commands/modify'
+
+require_relative 'commands/completion'
+
+# AlcesJob::CLI.register(
+#  'completion',
+#  Dry::CLI::Completion::Command[AlcesJob::CLI]
+# )

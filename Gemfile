@@ -32,3 +32,5 @@ end
 gem 'open3', '~> 0.2.1'
 
 gem 'xdg', '~> 10.2'
+
+gem 'dry-cli-completion'
