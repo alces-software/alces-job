@@ -8,6 +8,8 @@ module AlcesJob
         '--cpus-per-task',
         '--nodes',
         '--mem',
+        '--mem-per-cpu',
+        '--ntasks-per-node',
         '--time',
         '--partition',
         '--job-name',

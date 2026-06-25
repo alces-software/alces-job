@@ -39,6 +39,7 @@ module AlcesJob
         validate_error(sbatch_lines)
         validate_mail_type(sbatch_lines)
         validate_mail_user(sbatch_lines)
+        validate_sbatch_capital(lines)
         errors.empty?
       end
 
@@ -207,6 +208,14 @@ module AlcesJob
         errors << 'Mail user cannot be empty' if mail_user.empty?
       end
 
+      def validate_mem_per_cpu(sbatch_lines)
+        
+      end
+
+      def validate_ntask_per_node(sbatch_lines)
+        
+      end
+
       def validate_job_name(sbatch_lines)
         job_name = directive_value(sbatch_lines, '--job-name')
 
@@ -238,6 +247,15 @@ module AlcesJob
         return if job_id.match?(/\A\d+\z/)
 
         errors << "Invalid dependency value: #{dependency_value}. Expected job ID after ':' "
+      end
+
+      def validate_sbatch_capital(lines)
+        lines.each do |line|
+          next unless line.match?(/\A#sbatch\b/i)
+          next if line.start_with?('#SBATCH')
+
+          errors << "Invalid SBATCH directive capitalisation: #{line}. Expected '#SBATCH'."
+        end
       end
 
       def directive_value(sbatch_lines, directive)
