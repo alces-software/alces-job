@@ -32,6 +32,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 4.0'
 
   spec.add_dependency 'dry-cli', '~> 1.4'
+  spec.add_dependency 'dry-cli-completion', '~> 2.0 '
   spec.add_dependency 'pastel', '~> 0.8.0'
   spec.add_dependency 'terminal-table', '~> 4.0'
   spec.add_dependency 'tty-prompt', '~> 0.23.1'
@@ -39,4 +40,16 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'xdg', '~> 10.2'
 
   spec.metadata['rubygems_mfa_required'] = 'true'
+
+  spec.post_install_message = <<~MSG
+    Thanks for installing Alces-Job!
+
+    To enable or update tab completion, run one of the following:
+
+      Global installation:
+        sudo alces-job completion
+
+      User-specific installation:
+        alces-job completion
+  MSG
 end
