@@ -1,33 +1,23 @@
 #!/bin/bash
 
 #SBATCH --job-name=<%= @context.job_name %>  # Name shown for this job in the Slurm queue
-
 #SBATCH --nodes=1                            # Serial jobs usually run on one node/machine
-
 #SBATCH --ntasks=1                           # Run one task/process
-
 #SBATCH --cpus-per-task=1                    # Use one CPU core for the task
-
 <% if @context.partition -%>
 #SBATCH --partition=<%= @context.partition %>   # Partition/queue where the job should run
 <% end -%>
-
 <% if @context.time -%>
 #SBATCH --time=<%= @context.time %>             # Maximum runtime before Slurm stops the job
 <% end -%>
-
 <% if @context.mem -%>
 #SBATCH --mem=<%= @context.mem %>               # Amount of memory requested for the job
 <% end -%>
-
 <% Array(@context.modules).each do |mod| -%>
 module load <%= mod %>                                       # Load required software/module before running
 <% end -%>
-
 <% if @context.workdir -%>
 cd <%= @context.workdir %>                                   # Move to the working directory
 <% end -%>
-
 echo "Running serial job: <%= @context.job_name %>"           # Print which job is running
-
 <%= @context.command || "echo 'No command provided'" %>       # Run the user's command
