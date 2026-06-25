@@ -89,6 +89,8 @@ module AlcesJob
         return false if input_seconds.nil?
         return false if max_seconds.nil?
 
+        return true if max_seconds == 0
+
         input_seconds.positive? && input_seconds <= max_seconds
       end
 
