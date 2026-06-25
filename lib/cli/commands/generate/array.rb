@@ -30,6 +30,7 @@ module AlcesJob
           Services::Paths.new
           pastel = Pastel.new
 
+          puts
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),

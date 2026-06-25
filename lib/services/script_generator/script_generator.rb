@@ -14,6 +14,7 @@ module AlcesJob
       def initialize(options)
         @context = OpenStruct.new(options)
         @template = @context.template || 'universal'
+        @context.job_name = 'default-job' if @context.job_name.nil?
         @file_path = File.join(Dir.pwd, @context.output_file.nil? ? "job-#{@context.job_name || 'default'}.slurm" : @context.output_file)
       end
 
