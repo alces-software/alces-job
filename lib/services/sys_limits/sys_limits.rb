@@ -12,39 +12,66 @@ module AlcesJob
       DEFAULT_CPUS_PER_NODE = 4
       DEFAULT_GPUS_PER_NODE = 1 # Hardcoded limits for now
 
-      def self.node_count(system_info)
-        nodes = nodes_from(system_info)
-        return DEFAULT_NODE_COUNT if nodes.empty?
+      # Get's the node count from a partition
+      # @param [Hash] system_info
+      # @param [String] partition_name
+      # @return [Integer]
+      def self.node_count(system_info, partition_name = nil)
+        partitions = partitions_from(system_info)
 
-        nodes.length
+        return DEFAULT_NODE_COUNT if partitions.empty?
+
+        partition = find_partition(partitions, partition_name)
+
+        partition[:node_count] || partition['node_count']
       end
 
-      def self.max_memory_mb(system_info)
-        nodes = nodes_from(system_info)
+      # Get's the max memory of a partition
+      # @param [Hash] system_info
+      # @param [String] partition_name
+      # @return [Integer]
+      def self.max_memory_mb(system_info, partition_name = nil)
+        partitions = partitions_from(system_info)
 
-        return DEFAULT_MEMORY_MB if nodes.empty?
+        return DEFAULT_MEMORY_MB if partitions.empty?
 
-        nodes.filter_map { |node| node[:memory] || node['memory'] }.max || DEFAULT_MEMORY_MB
+        partition = find_partition(partitions, partition_name)
+
+        partition[:max_memory_mb] || partition['max_memory_mb'] || DEFAULT_MEMORY_MB
       end
 
-      def self.max_cpus_per_node(system_info)
+      # Get's the max amount of cpus in a partition
+      # @param [Hash] system_info
+      # @param [String] partition_name
+      # @return [Integer]
+      def self.max_cpus(system_info, partition_name = nil)
         nodes = nodes_from(system_info)
+        partitions = partitions_from(system_info)
 
         return DEFAULT_CPUS_PER_NODE if nodes.empty?
 
-        nodes.filter_map { |node| node[:cpus] || node['cpus'] }.max || DEFAULT_CPUS_PER_NODE
+        partition = find_partition(partitions, partition_name)
+
+        partition[:max_cpu_cores] || partition['max_cpu_cores'] || DEFAULT_CPUS_PER_NODE
       end
 
+      # Get's all the valid partitions
+      # @param [Hash] system_info
+      # @return [Array]
       def self.valid_partitions(system_info)
         partitions = partitions_from(system_info)
 
         partitions.filter_map { |partition| partition[:partition] || partition['partition'] }
       end
 
+      # Get's the time limit for a partition
+      # @param [Hash] system_info
+      # @param [String] partition_name
+      # @return [Integer]
       def self.time_limit_seconds(system_info, partition_name = nil)
         partitions = partitions_from(system_info)
 
-        return DEFAULT_TIME_SECONDS if partitions.empty?
+        return DEFAULT_TIME_SECONDS if partitions.empty? || partition_name.nil?
 
         partition = find_partition(partitions, partition_name)
 
@@ -53,27 +80,36 @@ module AlcesJob
         TimeConverter.to_seconds(time_limit.to_s) || DEFAULT_TIME_SECONDS
       end
 
-      def self.gpu_total(system_info)
-        return DEFAULT_GPUS_PER_NODE if system_info.nil?
+      # Get's the total amount of available gpus for a partition
+      # @param [Hash] system_info
+      # @param [String] partition_name
+      # @return [Integer]
+      def self.gpu_total(system_info, partition_name = nil)
+        partitions = partitions_from(system_info)
 
-        system_info[:gpu_total] || system_info['gpu_total'] || DEFAULT_GPUS_PER_NODE
+        return DEFAULT_GPUS_PER_NODE if system_info.nil? || partition_name.nil? || partitions.empty?
+
+        partition = find_partition(partitions, partition_name)
+
+        partition[:gpu_total] || partition['gpu_total'] || DEFAULT_GPUS_PER_NODE
       end
 
       class << self
         private
 
-        def nodes_from(system_info)
-          return [] if system_info.nil?
-
-          system_info[:nodes] || system_info['nodes'] || []
-        end
-
+        # Get's all the partitions from the system info
+        # @param [Hash] system_info
+        # @return [Array]
         def partitions_from(system_info)
           return [] if system_info.nil?
 
           system_info[:partitions] || system_info['partitions'] || []
         end
 
+        # Finds a specific partition in an array of partitions
+        # @param [Array] partitions
+        # @param [String] partition_name
+        # @return [Hash]
         def find_partition(partitions, partition_name)
           return partitions.first if partition_name.nil?
 
