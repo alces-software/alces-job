@@ -22,7 +22,7 @@ module AlcesJob
         @output = []
 
         if profile.empty?
-          @profile = {}
+          @profile = options
           return
         end
 

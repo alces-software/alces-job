@@ -34,7 +34,7 @@ module AlcesJob
         @output = []
 
         if config.empty?
-          @config = {}
+          @config = options
           return
         end
 
