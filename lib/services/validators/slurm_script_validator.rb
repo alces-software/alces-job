@@ -275,8 +275,12 @@ module AlcesJob
 
       def directive_value(sbatch_lines, directive)
         sbatch_lines.each do |line|
-          match = line.match(/\A#SBATCH\s+#{Regexp.escape(directive)}(?:=|\s+)(.*?)\s*(?:#.*)?\z/)
-          return match[1].strip if match
+          match = line.match(/\A#SBATCH\s+(\S+?)(?:=|\s+)(.*?)\s*(?:#.*)?\z/)
+          next unless match
+
+          found_directive = SbatchDirectiveValidator.convert_alias_to_full_name(match[1])
+
+          return match[2].strip if found_directive == directive
         end
 
         nil
