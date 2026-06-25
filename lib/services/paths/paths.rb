@@ -57,6 +57,14 @@ module AlcesJob
         File.join(Dir.home, '.bash_completion.d', 'alces-job').to_s
       end
 
+      def system_bash_completion_dir
+        File.join('/etc', '.bash_completion.d').to_s
+      end
+
+      def system_bash_completion_path
+        File.join('/etc', '.bash_completion.d', 'alces-job').to_s
+      end
+
       # Gets the path to the admin template dir
       # @return [String]
       def admin_template_dir

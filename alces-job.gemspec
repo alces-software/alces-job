@@ -39,4 +39,16 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'xdg', '~> 10.2'
 
   spec.metadata['rubygems_mfa_required'] = 'true'
+
+  spec.post_install_message = <<~MSG
+    Thanks for installing Alces-Job!
+
+    To enable or update tab completion, run one of the following:
+
+      Global installation:
+        sudo alces-job completion
+
+      User-specific installation:
+        alces-job completion
+  MSG
 end
