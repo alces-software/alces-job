@@ -42,6 +42,7 @@ module AlcesJob
         validate_mail_user(sbatch_lines)
         validate_sbatch_capital(lines)
         validate_duplicate_shebang(lines)
+        validate_directives_before_commands(lines)
         errors.empty?
       end
 
@@ -263,6 +264,23 @@ module AlcesJob
         return if job_id.match?(/\A\d+\z/)
 
         errors << "Invalid dependency value: #{dependency_value}. Expected job ID after ':' "
+      end
+
+      def validate_directives_before_commands(lines)
+        command_seen = false
+
+        lines.each do |line|
+          stripped_line = line.strip
+
+          next if stripped_line.empty?
+          next if stripped_line.start_with?('#') && !stripped_line.start_with?('#SBATCH')
+
+          if stripped_line.start_with?('#SBATCH')
+            warnings << "#SBATCH directive appears after executable code and will be ignored by slurm: #{stripped_line}" if command_seen
+            next
+          end
+          command_seen = true
+        end
       end
 
       def validate_sbatch_capital(lines)
