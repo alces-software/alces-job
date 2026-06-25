@@ -233,6 +233,29 @@ $ alces-job profile delete --profile fast
     - `--output_file`, `-o`
     - `--submit`
 
+- `alces-job modify remove <script>`
+  - Removes directives from an existing sbatch/Slurm script using the provided flags.
+  - Flags:
+    - `--job_name`, `-j`
+    - `--nodes`, `-N`
+    - `--ntasks`, `-n`
+    - `--cpus_per_task`, `-c`
+    - `--mem`
+    - `--time`, `-t`
+    - `--partition`, `-p`
+    - `--account`, `-A`
+    - `--gres`
+    - `--output`
+    - `--error`, `-e`
+    - `--mail_user`
+    - `--mail_type`
+    - `--array`
+    - `--dependency`
+    - `--module`
+    - `--workdir`
+    - `--command`
+    - `--output_file`, `-o`
+    - `--submit`
 - `alces-job generate universal`
   - Creates a universal sbatch script.
   - Flags:

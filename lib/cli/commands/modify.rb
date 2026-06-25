@@ -10,6 +10,9 @@ require 'shellwords'
 require_relative '../../services/validators/slurm_script_validator'
 require_relative '../../services/module_extractor/module_extractor'
 
+# Load subcommand
+require_relative 'modify/remove'
+
 module AlcesJob
   module CLI
     module Commands
