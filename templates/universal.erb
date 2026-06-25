@@ -1,55 +1,42 @@
 #!/bin/bash
 
 <% if @context.job_name -%>
-#SBATCH --job-name=<%= @context.job_name %>        # Name shown for this job in the Slurm queue
+#SBATCH --job-name=<%= @context.job_name %>         # Name shown for this job in the Slurm queue
 <% end -%>
-
 <% if @context.nodes -%>
 #SBATCH --nodes=<%= @context.nodes %>              # Number of nodes/machines requested
 <% end -%>
-
 <% if @context.ntasks -%>
 #SBATCH --ntasks=<%= @context.ntasks %>            # Number of tasks/processes to run
 <% end -%>
-
 <% if @context.cpus_per_task -%>
-#SBATCH --cpus-per-task=<%= @context.cpus_per_task %> # CPU cores available to each task
+#SBATCH --cpus-per-task=<%= @context.cpus_per_task %>           # CPU cores available to each task
 <% end -%>
-
 <% if @context.mem -%>
 #SBATCH --mem=<%= @context.mem %>                  # Amount of memory requested for the job
 <% end -%>
-
 <% if @context.time -%>
 #SBATCH --time=<%= @context.time %>                # Maximum runtime before Slurm stops the job
 <% end -%>
-
 <% if @context.partition -%>
 #SBATCH --partition=<%= @context.partition %>      # Partition/queue where the job should run
 <% end -%>
-
 <% if @context.account -%>
 #SBATCH --account=<%= @context.account %>          # Account/project to charge the job to
 <% end -%>
-
 <% if @context.gres -%>
 #SBATCH --gres=<%= @context.gres %>                # Generic resources, commonly used for GPUs, e.g. gpu:1
 <% end -%>
-
 <% if @context.mail_user -%>
 #SBATCH --mail-user=<%= @context.mail_user %>      # Email address for Slurm job notifications
 <% end -%>
-
 <% if @context.mail_type -%>
 #SBATCH --mail-type=<%= @context.mail_type %>      # When to send emails, e.g. BEGIN, END, FAIL, ALL
 <% end -%>
-
 <% if @context.array -%>
 #SBATCH --array=<%= @context.array %>              # Run as an array job; each task gets a SLURM_ARRAY_TASK_ID
 <% end -%>
-
 <% if @context.dependency -%>
-
 #SBATCH --dependency=<%= @context.dependency %>    # Start this job only after another job condition is met
 <% end -%>
 

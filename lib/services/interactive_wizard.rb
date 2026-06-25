@@ -15,52 +15,44 @@ module AlcesJob
     class InteractiveWizard
       def initialize
         @info = AlcesJob::Services::SysInfo.load_info(Services::Paths.new.system_info_path)
-        @info = deep_symbolize_keys(@info)
 
-        return unless @info[:nodes].empty? &&
-                      @info[:partitions].empty? &&
-                      @info[:packages].empty? &&
-                      @info[:gpu_total].zero?
+        # @info = YAML.load_file('test_data.yaml')
+        @info = deep_symbolize_keys(@info || {})
 
-        @info = prompt_for_system_info
+        @info = prompt_for_system_info unless valid_partition_info?(@info)
+      end
+
+      def valid_partition_info?(info)
+        return false unless info.is_a?(Hash)
+        return false if info.empty?
+
+        info.values.all? do |partition|
+          partition.is_a?(Hash) &&
+            partition.key?(:name) &&
+            partition.key?(:time_limit) &&
+            partition.key?(:max_memory_mb) &&
+            partition.key?(:max_cpu_cores)
+        end
       end
 
       def call
         system('clear')
 
-        partition_types = Array(@info[:partitions])
-        partition_types = prompt_for_partitions(prompt) if partition_types.empty?
+        File.write('test_data.yaml', @info.to_yaml)
+
+        prompt = TTY::Prompt.new
 
         max_run_time = nil
 
         partition_list = []
 
-        partition_types.each do |partition|
-          partition_list.append(partition[:partition])
-
-          partition[:time_limit] = TimeConverter.normalise_slurm_time(partition[:time_limit]) if partition[:time_limit].is_a?(Integer)
+        @info.each_key do |partition|
+          partition_list.append(partition)
         end
-
-        nodes = Array(@info[:nodes])
-        nodes = prompt_for_nodes(prompt) if nodes.empty?
-
-        max_memory = 0
-        max_cpu_cores = 0
-
-        nodes.each do |node|
-          node_memory = MemoryConverter.to_mb((node[:memory] || node['memory']).to_s)
-          node_cpus = (node[:cpus] || node['cpus']).to_i
-
-          max_memory = node_memory if node_memory && node_memory > max_memory
-          max_cpu_cores = node_cpus if node_cpus > max_cpu_cores
-        end
-
-        human_readable_max_time = nil
 
         types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
         pastel = Pastel.new
-        prompt = TTY::Prompt.new
 
         puts pastel.underline.bold.bright_blue('Interactive Mode')
 
@@ -156,6 +148,8 @@ module AlcesJob
 
         system('clear')
 
+        info = @info
+
         questions = question_bank[job_type.to_sym]
 
         result = prompt.collect do
@@ -169,18 +163,23 @@ module AlcesJob
               puts 'If you are unsure, choose the default partition.'
               puts
 
-              partition_rows = partition_types.map do |partition|
+              partition_rows = info.values.map do |partition|
                 [
-                  partition[:partition],
-                  partition[:time_limit],
+                  partition[:name],
                   TimeConverter.to_human_readable(partition[:time_limit]),
-                  partition[:default] ? 'True' : 'False'
+                  "#{partition[:max_memory_mb]} MB",
+                  partition[:max_cpu_cores]
                 ]
               end
 
               puts Terminal::Table.new(
                 title: 'Available Partitions',
-                headings: ['Partition', 'Time Limit', 'Readable', 'Default'],
+                headings: [
+                  'Partition',
+                  'Time Limit',
+                  'Max Memory Per Node',
+                  'Max CPU Cores Per Node'
+                ],
                 rows: partition_rows
               )
 
@@ -194,9 +193,7 @@ module AlcesJob
               puts
               puts "In Slurm, time specifies the #{pastel.underline('maximum time limit for a job')}. Choose enough time for your job to finish, but avoid asking for much more than you need. Shorter jobs can sometimes start sooner."
 
-              selected_partition_info = partition_types.find do |partition|
-                partition[:partition] == selected_partition
-              end
+              selected_partition_info = info[selected_partition]
 
               unless selected_partition_info
                 puts "Could not find partition information for #{selected_partition}"
@@ -219,12 +216,16 @@ module AlcesJob
               end
 
             when :mem
+              max_memory = info[selected_partition][:max_memory_mb].to_i
               puts
               puts pastel.bold.yellow('Memory')
               puts
               puts "Memory is the amount of #{pastel.yellow('RAM')} (Random Access Memory) your job needs while it is running.\nYour program uses RAM to hold #{pastel.bold('data')}, #{pastel.bold('variables')}, #{pastel.bold('files')} and #{pastel.bold('calculations')}."
+              puts
               puts "If your job uses more memory than requested then Slurm may stop it.\n"
               puts 'For small scripts, 1024 - 2048 MB is often enough.'
+              puts
+              puts "The maximum memory per node on partition #{selected_partition} is #{max_memory} MB."
               puts
               key(item).ask(pastel.bold.yellow(question), default: defaults[item]) do |q|
                 q.validate do |input|
@@ -244,11 +245,16 @@ module AlcesJob
               end
 
             when :cpus_per_task
+              max_cpu_cores = info[selected_partition][:max_cpu_cores].to_i
+
               puts
               puts pastel.bold.green('CPU Cores')
               puts
               puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer. Each CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}. Ask for more only if your code uses threading, multiprocessing, or software that can run in parallel."
               puts
+              puts "The max number of cpu cores per node on partion #{selected_partition} is #{max_cpu_cores}."
+              puts
+
               key(item).ask(pastel.bold.green(question), default: defaults[item]) do |q|
                 q.validate(/\A\d+\z/)
                 q.messages[:valid?] = 'Please enter a whole number'
@@ -307,6 +313,8 @@ module AlcesJob
           end
         end
 
+        # Edit Loop
+
         loop do
           job_type = 'universal' if job_type == 'serial'
 
@@ -335,18 +343,23 @@ module AlcesJob
             puts 'If you are unsure, choose the default partition.'
             puts
 
-            partition_rows = partition_types.map do |partition|
+            partition_rows = info.values.map do |partition|
               [
-                partition[:partition],
-                partition[:time_limit],
+                partition[:name],
                 TimeConverter.to_human_readable(partition[:time_limit]),
-                partition[:default] ? 'True' : 'False'
+                "#{partition[:max_memory_mb]} MB",
+                partition[:max_cpu_cores]
               ]
             end
 
             puts Terminal::Table.new(
               title: 'Available Partitions',
-              headings: ['Partition', 'Time Limit', 'Readable', 'Default'],
+              headings: [
+                'Partition',
+                'Time Limit',
+                'Max Memory Per Node',
+                'Max CPU Cores Per Node'
+              ],
               rows: partition_rows
             )
 
@@ -359,17 +372,23 @@ module AlcesJob
 
             result[:partition] = selected_partition
 
-            selected_partition_info = partition_types.find do |partition|
-              partition[:partition] == selected_partition
+            selected_partition_info = info[selected_partition]
+
+            unless selected_partition_info
+              puts "Could not find partition information for #{selected_partition}"
+              exit(1)
             end
 
             max_run_time = selected_partition_info[:time_limit]
             human_readable_max_time = TimeConverter.to_human_readable(max_run_time)
 
-            puts "\nThe max runtime for the partition #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
-            puts
+            max_memory = selected_partition_info[:max_memory_mb].to_i
+            max_cpu_cores = selected_partition_info[:max_cpu_cores].to_i
 
             unless TimeConverter.valid_slurm_time?(result[:time], max_run_time)
+
+              puts "\nThe max runtime for the partition #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
+              puts
               puts "Your current time value #{result[:time]} is too high for #{selected_partition}."
               puts
 
@@ -386,15 +405,62 @@ module AlcesJob
               end
             end
 
+            if result[:mem].to_i > max_memory
+              puts "\nThe max memory for the partition #{selected_partition} is #{max_memory} MB."
+              puts
+              puts "Your current memory value #{result[:mem]} MB is too high for #{selected_partition}."
+              puts
+
+              result[:mem] = prompt.ask(
+                pastel.bold.yellow(questions[:mem]),
+                default: max_memory.to_s
+              ) do |q|
+                q.validate do |input|
+                  requested_memory_mb = MemoryConverter.to_mb(input)
+
+                  !requested_memory_mb.nil? &&
+                    requested_memory_mb >= 1 &&
+                    requested_memory_mb <= max_memory
+                end
+
+                q.messages[:valid?] =
+                  "Enter memory between 1 MB and #{max_memory} MB, such as 500, 500M, or 2G."
+
+                q.convert do |input|
+                  MemoryConverter.to_mb(input)
+                end
+              end
+            end
+
+            if result[:cpus_per_task] && result[:cpus_per_task].to_i > max_cpu_cores
+              puts "\nThe max CPU cores for the partition #{selected_partition} is #{max_cpu_cores}."
+              puts
+              puts "Your current CPU value #{result[:cpus_per_task]} is too high for #{selected_partition}."
+              puts
+
+              result[:cpus_per_task] = prompt.ask(
+                pastel.bold.green(questions[:cpus_per_task]),
+                default: max_cpu_cores.to_s
+              ) do |q|
+                q.validate do |input|
+                  input.match?(/\A\d+\z/) &&
+                    input.to_i.between?(1, max_cpu_cores)
+                end
+
+                q.messages[:valid?] =
+                  "Please enter a whole number between 1 and #{max_cpu_cores}"
+
+                q.convert :int
+              end
+            end
+
           when :time
             puts
             puts pastel.bold.magenta('Time')
             puts
             puts "In Slurm, time specifies the #{pastel.underline('maximum time limit for a job')}. Choose enough time for your job to finish, but avoid asking for much more than you need. Shorter jobs can sometimes start sooner."
 
-            selected_partition_info = partition_types.find do |partition|
-              partition[:partition] == result[:partition]
-            end
+            selected_partition_info = info[result[:partition]]
 
             unless selected_partition_info
               puts "Could not find partition information for #{result[:partition]}"
@@ -420,12 +486,23 @@ module AlcesJob
             end
 
           when :mem
+            selected_partition_info = info[result[:partition]]
+
+            unless selected_partition_info
+              puts "Could not find partition information for #{result[:partition]}"
+              exit(1)
+            end
+
+            max_memory = selected_partition_info[:max_memory_mb].to_i
+
             puts
             puts pastel.bold.yellow('Memory')
             puts
             puts "Memory is the amount of #{pastel.yellow('RAM')} (Random Access Memory) your job needs while it is running.\nYour program uses RAM to hold #{pastel.bold('data')}, #{pastel.bold('variables')}, #{pastel.bold('files')} and #{pastel.bold('calculations')}."
             puts "If your job uses more memory than requested then Slurm may stop it.\n"
             puts 'For small scripts, 1024 - 2048 MB is often enough.'
+            puts
+            puts "The maximum memory per node on partition #{result[:partition]} is #{max_memory} MB."
             puts
 
             result[:mem] = prompt.ask(
@@ -449,10 +526,21 @@ module AlcesJob
             end
 
           when :cpus_per_task
+            selected_partition_info = info[result[:partition]]
+
+            unless selected_partition_info
+              puts "Could not find partition information for #{result[:partition]}"
+              exit(1)
+            end
+
+            max_cpu_cores = selected_partition_info[:max_cpu_cores].to_i
+
             puts
             puts pastel.bold.green('CPU Cores')
             puts
             puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer. Each CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}. Ask for more only if your code uses threading, multiprocessing, or software that can run in parallel."
+            puts
+            puts "The max number of CPU cores per node on partition #{result[:partition]} is #{max_cpu_cores}."
             puts
 
             result[:cpus_per_task] = prompt.ask(
@@ -576,16 +664,7 @@ module AlcesJob
 
         puts Pastel.new.red("\nUnable to detect a Slurm environment. Please enter fallback cluster configuration for the system you wish to run the script on\n")
 
-        {
-          nodes: prompt_for_nodes(prompt),
-          partitions: prompt_for_partitions(prompt),
-          packages: [],
-          gpu_total: prompt.ask('How many GPUs are available in total?', default: '0') do |q|
-            q.validate(/\A\d+\z/)
-            q.messages[:valid?] = 'Please enter a whole number.'
-            q.convert :int
-          end
-        }
+        prompt_for_partitions(prompt)
       end
 
       def prompt_for_partitions(prompt)
@@ -596,36 +675,52 @@ module AlcesJob
         partition_names = partition_input.split(',').map(&:strip).reject(&:empty?)
         partition_names = ['default'] if partition_names.empty?
 
-        partition_names.map.with_index do |name, index|
-          {
-            partition: name,
-            time_limit: prompt.ask("Max time for partition #{name}", default: '0-07:00:00') do |q|
-              q.validate { |input| !TimeConverter.to_seconds(input).nil? }
-              q.messages[:valid?] = 'time must be in format HH:MM:SS or D-HH:MM:SS'
-            end,
-            default: index.zero?
-          }
-        end
-      end
+        partition_names.each_with_object({}).with_index do |(name, info), index|
+          time_limit = prompt.ask("Max time for partition #{name}", default: '0-07:00:00') do |q|
+            q.validate { |input| !TimeConverter.to_seconds(input).nil? }
+            q.messages[:valid?] = 'time must be in format HH:MM:SS or D-HH:MM:SS'
+          end
 
-      def prompt_for_nodes(prompt)
-        [{
-          node: 'local',
-          cpus: prompt.ask('Maximum CPU cores per node', default: '4') do |q|
+          max_cpu_cores = prompt.ask("Maximum CPU cores per node for partition #{name}", default: '4') do |q|
             q.validate(/\A\d+\z/)
             q.messages[:valid?] = 'Please enter a whole number.'
             q.convert :int
-          end,
-          memory: prompt.ask('Maximum memory per node (MB)', default: '5000') do |q|
+          end
+
+          max_memory_mb = prompt.ask("Maximum memory per node for partition #{name} (MB)", default: '5000') do |q|
             q.validate do |input|
               !MemoryConverter.to_mb(input).nil?
             end
+
             q.messages[:valid?] = 'Please enter memory using M, MB, G, GB e.g. 5000M or 4G'
+
             q.convert do |input|
               MemoryConverter.to_mb(input)
             end
           end
-        }]
+
+          max_gpus = prompt.ask("Maximum GPUs per node for partition #{name}", default: '0') do |q|
+            q.validate(/\A\d+\z/)
+            q.messages[:valid?] = 'Please enter a whole number.'
+            q.convert :int
+          end
+
+          node_count = prompt.ask("How many nodes are in partition #{name}?", default: '1') do |q|
+            q.validate(/\A\d+\z/)
+            q.messages[:valid?] = 'Please enter a whole number.'
+            q.convert :int
+          end
+
+          info[name] = {
+            name: name,
+            default: index.zero?,
+            max_memory_mb: max_memory_mb,
+            max_cpu_cores: max_cpu_cores,
+            max_gpus: max_gpus,
+            node_count: node_count,
+            time_limit: time_limit
+          }
+        end
       end
     end
     # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
