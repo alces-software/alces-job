@@ -1,17 +1,29 @@
 # frozen_string_literal: true
 
+require_relative 'sbatch_directive_validator'
+
 module AlcesJob
   module Services
     module IntegerDirectiveValidator
+      INTEGER_DIRECTIVES = [
+        '--ntasks',
+        '--cpus-per-task',
+        '--nodes'
+      ].freeze
+
       def self.validate(sbatch_lines, errors)
-        integer_directives = ['--ntasks=', '--cpus-per-task=', '--nodes=']
-        integer_directives.each do |directive|
-          line = sbatch_lines.find { |sbatch_line| sbatch_line.include?(directive.to_s) }
-          next unless line
+        sbatch_lines.each do |line|
+          match = line.match(/\A#SBATCH\s+(\S+?)(?:=|\s+)(.*?)\s*(?:#.*)?\z/)
+          next unless match
 
-          value = line.split(directive).last.split('#', 2).first.strip
+          raw_directive = match[1]
+          value = match[2].strip
 
-          errors << "Invalid format for #{directive.chomp('=')}: #{value}. Expected a positive integer value." unless value.match?(/\A[1-9]\d*\z/)
+          directive = SbatchDirectiveValidator.convert_alias_to_full_name(raw_directive)
+
+          next unless INTEGER_DIRECTIVES.include?(directive)
+
+          errors << "Invalid format for #{directive}: #{value}. Expected a positive integer value." unless value.match?(/\A[1-9]\d*\z/)
         end
       end
     end

@@ -13,6 +13,12 @@ module AlcesJob
     class SlurmScriptValidator
       attr_reader :errors, :warnings
 
+      SUPPORTED_SHEBANGS = [
+        '#!/bin/bash',
+        '#!/usr/bin/bash',
+        '#!/usr/bin/env bash'
+      ].freeze
+
       def initialize(file_path)
         @file_path = file_path
         @errors = []
@@ -29,6 +35,7 @@ module AlcesJob
         SbatchDirectiveValidator.validate_directives(sbatch_lines, errors)
         IntegerDirectiveValidator.validate(sbatch_lines, errors)
         validate_job_name(sbatch_lines)
+        validate_mutually_excllusive_directives(sbatch_lines)
         validate_memory(sbatch_lines)
         validate_time(sbatch_lines)
         validate_gres(sbatch_lines)
@@ -37,17 +44,23 @@ module AlcesJob
         validate_output(sbatch_lines)
         validate_account(sbatch_lines)
         validate_error(sbatch_lines)
+        validate_partition(sbatch_lines)
         validate_mail_type(sbatch_lines)
         validate_mail_user(sbatch_lines)
+        validate_sbatch_capital(lines)
+        validate_duplicate_shebang(lines)
+        validate_directives_before_commands(lines)
+        validate_supported_shebang(lines)
         errors.empty?
       end
 
       private
 
       def validate_shebang(lines)
-        return if lines[0] == '#!/bin/bash'
+        shebang_check = lines[0].sub(/\A#!\s*/, '#!').strip
+        return if SUPPORTED_SHEBANGS.include?(shebang_check)
 
-        errors << 'Missing shebang, spelt incorrectly, or unsupported. Expected: #!/bin/bash.'
+        errors << "Missing shebang, spelt incorrectly, or unsupported. Expected one of: #{SUPPORTED_SHEBANGS.join(',')}."
       end
 
       def validate_sbatch_lines_exist(sbatch_lines)
@@ -207,6 +220,28 @@ module AlcesJob
         errors << 'Mail user cannot be empty' if mail_user.empty?
       end
 
+      def validate_mem_per_cpu(sbatch_lines)
+      end
+
+      def validate_ntask_per_node(sbatch_lines)
+      end
+
+      def validate_mutually_excllusive_directives(sbatch_lines)
+        memory_directives = [
+          '--mem',
+          '--mem-per-cpu',
+          '--mem-per-gpu'
+        ]
+
+        used_directives = memory_directives.select do |directive|
+          !directive_value(sbatch_lines, directive).nil?
+        end
+
+        return unless used_directives.length > 1
+
+        errors << "Mutually exclusive directives used together: #{used_directives.join(', ')}."
+      end
+
       def validate_job_name(sbatch_lines)
         job_name = directive_value(sbatch_lines, '--job-name')
 
@@ -222,6 +257,14 @@ module AlcesJob
         return if job_name.match?(/\A[a-zA-Z0-9_-]+\z/)
 
         errors << "Invalid job-name: #{job_name} The program only allows for letters, numbers, hyphens and underscores. "
+      end
+
+      def validate_partition(sbatch_lines)
+        partition = directive_value(sbatch_lines, '--partition')
+
+        return if partition.nil?
+
+        errors << '--Partition cannot be empty.' if partition.empty?
       end
 
       def validate_dependency(sbatch_lines)
@@ -240,10 +283,60 @@ module AlcesJob
         errors << "Invalid dependency value: #{dependency_value}. Expected job ID after ':' "
       end
 
+      def validate_directives_before_commands(lines)
+        command_seen = false
+
+        lines.each do |line|
+          stripped_line = line.strip
+
+          next if stripped_line.empty?
+          next if stripped_line.start_with?('#') && !stripped_line.start_with?('#SBATCH')
+
+          if stripped_line.start_with?('#SBATCH')
+            warnings << "#SBATCH directive appears after executable code and will be ignored by slurm: #{stripped_line}" if command_seen
+            next
+          end
+          command_seen = true
+        end
+      end
+
+      def validate_supported_shebang(lines)
+        lines.each do |line|
+          next unless line.start_with?('#!')
+
+          shebang_check = line.sub(/\A#!\s*/, '#!').strip
+
+          next if SUPPORTED_SHEBANGS.include?(shebang_check)
+
+          errors << "Unsupported shebang found: #{line}. Supported shebangs are: #{SUPPORTED_SHEBANGS.join(', ')}."
+        end
+      end
+
+      def validate_sbatch_capital(lines)
+        lines.each do |line|
+          next unless line.match?(/\A#sbatch\b/i)
+          next if line.start_with?('#SBATCH')
+
+          errors << "Invalid SBATCH directive capitalisation: #{line}. Expected '#SBATCH'."
+        end
+      end
+
+      def validate_duplicate_shebang(lines)
+        shebang_lines = lines.select { |line| line.start_with?('#!') }
+
+        return unless shebang_lines.length > 1
+
+        errors << 'Duplicate shebang found. Only one shebang line is allowed.'
+      end
+
       def directive_value(sbatch_lines, directive)
         sbatch_lines.each do |line|
-          match = line.match(/\A#SBATCH\s+#{Regexp.escape(directive)}(?:=|\s+)(.*?)\s*(?:#.*)?\z/)
-          return match[1].strip if match
+          match = line.match(/\A#SBATCH\s+(\S+?)(?:=|\s+)(.*?)\s*(?:#.*)?\z/)
+          next unless match
+
+          found_directive = SbatchDirectiveValidator.convert_alias_to_full_name(match[1])
+
+          return match[2].strip if found_directive == directive
         end
 
         nil
