@@ -44,6 +44,7 @@ module AlcesJob
 
           partition.delete('*').split(',').each do |partition_name|
             partitions[partition_name] ||= {
+              name: partition_name,
               default: partition.include?('*'),
               max_memory_mb: 0,
               max_cpu_cores: 0,
