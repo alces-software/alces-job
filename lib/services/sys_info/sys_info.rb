@@ -18,38 +18,40 @@ module AlcesJob
       # @return [Hash{nodes: Array<Hash>, partitions: Array<Hash>, packages: Array<String>, gpu_total: Integer}]
       def self.all_info
         {
-          nodes: node_info,
           partitions: partition_info,
           packages: package_info,
           gpu_total: gpu_info
         }
       end
 
-      # Gets the node information
-      # @return [Array<{node: String, cpus: Integer, memory: Integer}>, nil]
-      def self.node_info
-        stdout, _, status = Open3.capture3('sinfo -N -h -o "%N %c %m"')
-
-        return [] unless status.success?
-
-        stdout
-          .lines
-          .map do |line|
-            node, cpus, mem = line.strip.split
-            { node: node, cpus: cpus.to_i, memory: mem.to_i }
-          end
-      rescue Errno::ENOENT
-        []
-      end
-
       # Gets partition information
-      # @return [Array<{partition: String, time_limit: String, default: Boolean}>, nil]
+      # @return [Array<{partition: String, time_limit: String, default: Boolean, nodes: Array<{name: String, cores: Integer, memory_mb: Integer}>}>]
       def self.partition_info
-        stdout, _, status = Open3.capture3('sinfo -o "%P %l" -h')
+        partition_stdout, _, partition_status =
+          Open3.capture3('sinfo -o "%P %l" -h')
 
-        return [] unless status.success?
+        return [] unless partition_status.success?
 
-        stdout.lines.map do |line|
+        node_stdout, _, node_status =
+          Open3.capture3('sinfo -N -o "%P %N %c %m" -h')
+
+        return [] unless node_status.success?
+
+        nodes_by_partition = Hash.new { |h, k| h[k] = [] }
+
+        node_stdout.lines.each do |line|
+          partition, node_name, cpus, memory = line.strip.split(/\s+/, 4)
+
+          partition.delete('*').split(',').each do |part|
+            nodes_by_partition[part] << {
+              name: node_name,
+              cores: cpus.to_i,
+              memory_mb: memory.to_i
+            }
+          end
+        end
+
+        partition_stdout.lines.map do |line|
           partition, time_limit = line.strip.split(/\s+/, 2)
 
           normalized_time_limit =
@@ -62,10 +64,13 @@ module AlcesJob
               time_limit
             end
 
+          partition_name = partition.delete('*')
+
           {
-            partition: partition.delete('*'),
+            partition: partition_name,
             time_limit: normalized_time_limit,
-            default: partition.include?('*')
+            default: partition.include?('*'),
+            nodes: nodes_by_partition[partition_name]
           }
         end
       rescue Errno::ENOENT
