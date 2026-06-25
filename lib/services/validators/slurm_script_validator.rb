@@ -56,7 +56,8 @@ module AlcesJob
       private
 
       def validate_shebang(lines)
-        return if SUPPORTED_SHEBANGS.include?(lines[0])
+        shebang_check = lines[0].sub(/\A#!\s*/, '#!').strip
+        return if SUPPORTED_SHEBANGS.include?(shebang_check)
 
         errors << "Missing shebang, spelt incorrectly, or unsupported. Expected one of: #{SUPPORTED_SHEBANGS.join(',')}."
       end
@@ -293,7 +294,10 @@ module AlcesJob
       def validate_supported_shebang(lines)
         lines.each do |line|
           next unless line.start_with?('#!')
-          next if SUPPORTED_SHEBANGS.include?(line)
+
+          shebang_check = line.sub(/\A#!\s*/, '#!').strip
+
+          next if SUPPORTED_SHEBANGS.include?(shebang_check)
 
           errors << "Unsupported shebang found: #{line}. Supported shebangs are: #{SUPPORTED_SHEBANGS.join(', ')}."
         end
