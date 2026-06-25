@@ -18,58 +18,64 @@ module AlcesJob
       # @return [Hash{nodes: Array<Hash>, partitions: Array<Hash>, packages: Array<String>, gpu_total: Integer}]
       def self.all_info
         {
-          nodes: node_info,
           partitions: partition_info,
-          packages: package_info,
-          gpu_total: gpu_info
+          packages: package_info
         }
       end
 
-      # Gets the node information
-      # @return [Array<{node: String, cpus: Integer, memory: Integer}>, nil]
-      def self.node_info
-        stdout, _, status = Open3.capture3('sinfo -N -h -o "%N %c %m"')
-
-        return [] unless status.success?
-
-        stdout
-          .lines
-          .map do |line|
-            node, cpus, mem = line.strip.split
-            { node: node, cpus: cpus.to_i, memory: mem.to_i }
-          end
-      rescue Errno::ENOENT
-        []
-      end
-
-      # Gets partition information
-      # @return [Array<{partition: String, time_limit: String, default: Boolean}>, nil]
+      # Returns a summary of available Slurm partitions.
+      # @return [Hash{String => {
+      #   default: Boolean,
+      #   max_memory_mb: Integer,
+      #   max_cpu_cores: Integer,
+      #   max_gpus: Integer,
+      #   node_count: Integer,
+      #   time_limit: String
+      # }}]
       def self.partition_info
-        stdout, _, status = Open3.capture3('sinfo -o "%P %l" -h')
+        stdout, _, status =
+          Open3.capture3('sinfo -N -h -o "%P|%N|%m|%c|%G|%l"')
 
-        return [] unless status.success?
+        return {} unless status.success?
 
-        stdout.lines.map do |line|
-          partition, time_limit = line.strip.split(/\s+/, 2)
+        stdout.each_line.with_object({}) do |line, partitions|
+          partition, _node, memory, cpus, gres, time_limit =
+            line.strip.split('|', 6)
 
-          normalized_time_limit =
-            case time_limit
-            when 'infinite'
-              '0-00:00:00'
-            when /\A\d{2}:\d{2}:\d{2}\z/
-              "0-#{time_limit}"
-            else
-              time_limit
+          partition.delete('*').split(',').each do |partition_name|
+            partitions[partition_name] ||= {
+              name: partition_name,
+              default: partition.include?('*'),
+              max_memory_mb: 0,
+              max_cpu_cores: 0,
+              max_gpus: 0,
+              node_count: 0,
+              time_limit:
+                case time_limit
+                when 'infinite'
+                  '0-00:00:00'
+                when /\A\d{2}:\d{2}:\d{2}\z/
+                  "0-#{time_limit}"
+                else
+                  time_limit
+                end
+            }
+
+            info = partitions[partition_name]
+
+            info[:node_count] += 1
+            info[:max_memory_mb] = [info[:max_memory_mb], memory.to_i].max
+            info[:max_cpu_cores] = [info[:max_cpu_cores], cpus.to_i].max
+
+            next if gres.to_s.empty? || gres == '(null)'
+
+            gres.scan(/gpu:[^:,\s]+(?::(\d+))?/) do |count|
+              info[:max_gpus] = [info[:max_gpus], (count.first || 1).to_i].max
             end
-
-          {
-            partition: partition.delete('*'),
-            time_limit: normalized_time_limit,
-            default: partition.include?('*')
-          }
+          end
         end
       rescue Errno::ENOENT
-        []
+        {}
       end
 
       # Gets a list of the names
@@ -84,18 +90,6 @@ module AlcesJob
         end
       rescue Errno::ENOENT
         []
-      end
-
-      # Gets the gpu information and returns a count of how many there are
-      # @return [Integer]
-      def self.gpu_info
-        stdout, _, status = Open3.capture3("scontrol show nodes | grep -o 'gpu:[^:]*:[0-9]*' | cut -d':' -f3 | paste -sd+ | bc")
-
-        return 0 unless status.success?
-
-        stdout.strip.to_i
-      rescue Errno::ENOENT
-        0
       end
     end
   end

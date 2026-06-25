@@ -21,6 +21,11 @@ module AlcesJob
 
         @output = []
 
+        if profile.empty?
+          @profile = options
+          return
+        end
+
         options_keys = options.keys
         profile.each_key do |key|
           if options_keys.include?(key)
