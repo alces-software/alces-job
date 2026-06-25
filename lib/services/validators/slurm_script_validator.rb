@@ -13,6 +13,12 @@ module AlcesJob
     class SlurmScriptValidator
       attr_reader :errors, :warnings
 
+      SUPPORTED_SHEBANGS = [
+        '#!/bin/bash',
+        '#!/usr/bin/bash',
+        '#!/usr/bin/env bash'
+      ].freeze
+
       def initialize(file_path)
         @file_path = file_path
         @errors = []
@@ -50,9 +56,9 @@ module AlcesJob
       private
 
       def validate_shebang(lines)
-        return if lines[0] == '#!/bin/bash'
+        return if SUPPORTED_SHEBANGS.include?(lines[0])
 
-        errors << 'Missing shebang, spelt incorrectly, or unsupported. Expected: #!/bin/bash.'
+        errors << "Missing shebang, spelt incorrectly, or unsupported. Expected one of: #{SUPPORTED_SHEBANGS.join(',')}."
       end
 
       def validate_sbatch_lines_exist(sbatch_lines)
@@ -287,9 +293,9 @@ module AlcesJob
       def validate_supported_shebang(lines)
         lines.each do |line|
           next unless line.start_with?('#!')
-          next if line == '#!/bin/bash'
+          next if SUPPORTED_SHEBANGS.include?(line)
 
-          errors << "Unsupported shebang found: #{line}. Only #!/bin/bash is supported"
+          errors << "Unsupported shebang found: #{line}. Supported shebangs are: #{SUPPORTED_SHEBANGS.join(', ')}."
         end
       end
 
@@ -303,11 +309,11 @@ module AlcesJob
       end
 
       def validate_duplicate_shebang(lines)
-        shebang_lines = lines.select { |line| line == '#!/bin/bash' }
+        shebang_lines = lines.select { |line| line.start_with?('#!') }
 
         return unless shebang_lines.length > 1
 
-        errors << 'Duplicate shebang found. Only one is allowed.'
+        errors << 'Duplicate shebang found. Only one shebang line is allowed.'
       end
 
       def directive_value(sbatch_lines, directive)
