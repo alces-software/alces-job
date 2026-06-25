@@ -1,25 +1,19 @@
 #!/bin/bash
 
 #SBATCH --job-name=<%= @context.job_name %>     # Name shown for this job in the Slurm queue
-
 #SBATCH --array=<%= @context.array %>           # Run as an array job; each task gets its own SLURM_ARRAY_TASK_ID      
-
 <% if @context.partition -%>
 #SBATCH --partition=<%= @context.partition %>   # Partition/queue where the job should run   
 <% end -%>
-
 <% if @context.time -%>
 #SBATCH --time=<%= @context.time %>             # Maximum runtime before Slurm stops the job         
 <% end -%>
-
 <% if @context.mem -%>
 #SBATCH --mem=<%= @context.mem %>               # Amount of memory requested for the job
 <% end -%>
-
 <% Array(@context.modules).each do |mod| -%>
 module load <%= mod %>                          # Load required software/module before running
 <% end -%>
-
 <% if @context.workdir -%>
 cd <%= @context.workdir %>                      # Move to the working directory
 <% end -%>
