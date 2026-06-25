@@ -24,25 +24,19 @@ module AlcesJob
             default: false
           )
 
-          install
-          puts
-          puts 'Tab completion has been installed. Restart your terminal to activate it.'
-          puts
-        end
-
-        private
-
-        def install
           paths = Services::Paths.new
-
           if Process.euid.zero?
             install_system(paths)
           else
             install_user(paths)
           end
 
-          :installed
+          puts
+          puts 'Tab completion has been installed. Restart your terminal to activate it.'
+          puts
         end
+
+        private
 
         def install_user(paths)
           FileUtils.mkdir_p(paths.user_bash_completion_dir)
