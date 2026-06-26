@@ -43,7 +43,7 @@ module AlcesJob
               spinner.auto_spin
               config_manager = Services::ConfigManager.new(options)
               options = config_manager.config
-              spinner.success(pastel.red('(Loaded)'))
+              spinner.success(pastel.green('(Loaded)'))
               config_manager.output.each do |line|
                 puts line
               end
@@ -97,8 +97,18 @@ module AlcesJob
 
           if options[:dry_run]
             spinner.success(pastel.green('(Successful)'))
-            puts pastel.green("\nThe SBATCH script has been generated and looks as follows:")
-            puts script
+            box_width = script.lines.map { |line| line.chomp.length }.max + 4
+            puts
+
+            puts TTY::Box.frame(
+              script,
+              title: {
+                top_center: pastel.bold.green(' SBATCH Script Preview ')
+              },
+              padding: 1,
+              border: :thick,
+              width: box_width
+            )
           end
 
           begin

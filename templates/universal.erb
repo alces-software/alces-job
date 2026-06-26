@@ -1,53 +1,70 @@
 #!/bin/bash
 
 <% if @context.job_name -%>
-#SBATCH --job-name=<%= @context.job_name %>         # Name shown for this job in the Slurm queue
+<%- line = "#SBATCH --job-name=#{@context.job_name}" -%>
+<%= line.ljust(55) %># Name shown for this job in the Slurm queue
 <% end -%>
 <% if @context.nodes -%>
-#SBATCH --nodes=<%= @context.nodes %>              # Number of nodes/machines requested
+<%- line = "#SBATCH --nodes=#{@context.nodes}" -%>
+<%= line.ljust(55) %># Number of nodes/machines requested
 <% end -%>
 <% if @context.ntasks -%>
-#SBATCH --ntasks=<%= @context.ntasks %>            # Number of tasks/processes to run
+<%- line = "#SBATCH --ntasks=#{@context.ntasks}" -%>
+<%= line.ljust(55) %># Number of tasks/processes to run
 <% end -%>
 <% if @context.cpus_per_task -%>
-#SBATCH --cpus-per-task=<%= @context.cpus_per_task %>           # CPU cores available to each task
+<%- line = "#SBATCH --cpus-per-task=#{@context.cpus_per_task}" -%>
+<%= line.ljust(55) %># CPU cores available to each task
 <% end -%>
 <% if @context.mem -%>
-#SBATCH --mem=<%= @context.mem %>                  # Amount of memory requested for the job
+<%- line = "#SBATCH --mem=#{@context.mem}" -%>
+<%= line.ljust(55) %># Amount of memory requested for the job
 <% end -%>
 <% if @context.time -%>
-#SBATCH --time=<%= @context.time %>                # Maximum runtime before Slurm stops the job
+<%- line = "#SBATCH --time=#{@context.time}" -%>
+<%= line.ljust(55) %># Maximum runtime before Slurm stops the job
 <% end -%>
 <% if @context.partition -%>
-#SBATCH --partition=<%= @context.partition %>      # Partition/queue where the job should run
+<%- line = "#SBATCH --partition=#{@context.partition}" -%>
+<%= line.ljust(55) %># Partition/queue where the job should run
 <% end -%>
 <% if @context.account -%>
-#SBATCH --account=<%= @context.account %>          # Account/project to charge the job to
+<%- line = "#SBATCH --account=#{@context.account}" -%>
+<%= line.ljust(55) %># Account/project to charge the job to
 <% end -%>
 <% if @context.gres -%>
-#SBATCH --gres=<%= @context.gres %>                # Generic resources, commonly used for GPUs, e.g. gpu:1
+<%- line = "#SBATCH --gres=#{@context.gres}" -%>
+<%= line.ljust(55) %># Generic resources, commonly used for GPUs, e.g. gpu:1
 <% end -%>
 <% if @context.mail_user -%>
-#SBATCH --mail-user=<%= @context.mail_user %>      # Email address for Slurm job notifications
+<%- line = "#SBATCH --mail-user=#{@context.mail_user}" -%>
+<%= line.ljust(55) %># Email address for Slurm job notifications
 <% end -%>
 <% if @context.mail_type -%>
-#SBATCH --mail-type=<%= @context.mail_type %>      # When to send emails, e.g. BEGIN, END, FAIL, ALL
+<%- line = "#SBATCH --mail-type=#{@context.mail_type}" -%>
+<%= line.ljust(55) %># When to send emails, e.g. BEGIN, END, FAIL, ALL
 <% end -%>
 <% if @context.array -%>
-#SBATCH --array=<%= @context.array %>              # Run as an array job; each task gets a SLURM_ARRAY_TASK_ID
+<%- line = "#SBATCH --array=#{@context.array}" -%>
+<%= line.ljust(55) %># Run as an array job; each task gets a SLURM_ARRAY_TASK_ID
 <% end -%>
 <% if @context.dependency -%>
-#SBATCH --dependency=<%= @context.dependency %>    # Start this job only after another job condition is met
+<%- line = "#SBATCH --dependency=#{@context.dependency}" -%>
+<%= line.ljust(55) %># Start this job only after another job condition is met
 <% end -%>
 
 <% Array(@context.modules).each do |mod| -%>
-module load <%= mod %>                             # Load required software/module before running
+<%- line = "module load #{mod}" -%>
+<%= line.ljust(55) %># Load required software/module before running
 <% end -%>
 
 <% if @context.workdir -%>
-cd <%= @context.workdir %>                         # Move to the working directory
+<%- line = "cd #{@context.workdir}" -%>
+<%= line.ljust(55) %># Move to the working directory
 <% end -%>
 
-echo "Running job<% if @context.job_name %>: '<%= @context.job_name %>'<% end %>"  # Print which job is running
+<%- line = "echo \"Running job#{@context.job_name ? ": '#{@context.job_name}'" : ''}\"" -%>
+<%= line.ljust(70) %># Print which job is running
 
-<%= @context.command || "echo 'No command provided'" %>  # Run the user's command
+<%- line = @context.command || "echo 'No command provided'" -%>
+<%= line.ljust(70) %># Run the user's command
