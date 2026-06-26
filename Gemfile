@@ -35,6 +35,6 @@ gem 'xdg', '~> 10.2'
 
 gem 'dry-cli-completion'
 
-gem "tty-box", "~> 0.7.0"
+gem 'tty-box', '~> 0.7.0'
 
-gem "unicode-display_width", "~> 2.6"
+gem 'unicode-display_width', '~> 2.6'
