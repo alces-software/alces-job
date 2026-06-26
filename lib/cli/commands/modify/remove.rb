@@ -108,36 +108,49 @@ module AlcesJob
               script
             end
 
-          File.write(file_path, edited_script.join("\n") + "\n")
-
-          puts pastel.green("\nSBATCH flags removed successfully.\n")
-          puts pastel.green("Written to: #{file_path}\n")
-
-          validator = Services::SlurmScriptValidator.new(file_path)
-
-          if validator.validate?
-            if options[:submit]
-              stdout, _, status = Open3.capture3("sbatch #{file_path}")
-              puts stdout
-              puts "Exit status: #{status.exitstatus}"
-            end
-
-            puts pastel.green("\nValidation passed.\n")
-          else
-            File.write(file_path, old_content)
-            puts pastel.red("\nInvalid script — changes reverted.\n")
-
-            validator.errors.each do |e|
-              puts "#{pastel.red('ERROR:')} #{e}"
-            end
+          begin
+            File.write(file_path, edited_script.join("\n") + "\n")
+          rescue Errno::ENOSPC
+            puts pastel.red("\nUnable to save the modified script because the disk is full. \n")
+            exit(1)
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            puts pastel.red("\nUnable to save the modified script because the output path is invalid or massing")
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            puts pastel.red("\nUnable to save the modified script due to permissions or a read-only filesystem.\n")
+            exit(1)
+          rescue Errno::EISDIR
+            puts pastel.red("\nUnable to save the modified script because the output path is a directory, not a file. \n")
+            exit(1)
           end
+            puts pastel.green("\nSBATCH flags removed successfully.\n")
+            puts pastel.green("Written to: #{file_path}\n")
+
+            validator = Services::SlurmScriptValidator.new(file_path)
+
+            if validator.validate?
+              if options[:submit]
+                stdout, _, status = Open3.capture3("sbatch #{file_path}")
+                puts stdout
+                puts "Exit status: #{status.exitstatus}"
+              end
+
+              puts pastel.green("\nValidation passed.\n")
+            else
+              File.write(file_path, old_content)
+              puts pastel.red("\nInvalid script — changes reverted.\n")
+
+              validator.errors.each do |e|
+                puts "#{pastel.red('ERROR:')} #{e}"
+              end
+            end
 
           validator.warnings.each do |w|
             puts "#{pastel.yellow('WARNING:')} #{w}"
           end
-        rescue StandardError => e
-          puts pastel.red("\nFatal error: #{e.message}\n")
-          exit(1)
+          rescue StandardError => e
+            puts pastel.red("\nFatal error: #{e.message}\n")
+            exit(1)
         end
       end
     end

@@ -85,6 +85,22 @@ module AlcesJob
             spinner.success(pastel.green('(Successful)'))
             puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
             exit(0)
+          rescue Errno::ENOSPC
+            spinner.error(pastel.red('(Disk full)'))
+            puts pastel.red("\nUnable to create the profile because the disk is full \n")
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error(pastel.red('(Permission denied)'))
+            puts pastel.red("\nUnable to create the profile due to permissions or a read-only filesystem. \n")
+            exit(1)
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            spinner.error(pastel.red('Invalid path'))
+            puts pastel.red("\nUnable to create the profile because the output path is invalid or missing")
+            exit(1)
+          rescue Errno::EISDIR
+            spinner.error(pastel.red('Invalid path'))
+            puts pastel.red("\nUnable to create the profile because the output path is a directory")
+            exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Write error)'))
             puts pastel.red("\nFailed to create your profile:\n#{e.message}\n")

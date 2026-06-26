@@ -40,6 +40,14 @@ module AlcesJob
             puts "# Path: #{profile_path}"
             puts File.read(profile_path)
             puts
+          rescue Errno::ENOENT
+            puts pastel.red("\nThe profile could not be found.\n")
+            exit(1)
+          rescue Errno::EACCES
+            puts pastel.red("\nYou do not have permission to read this profile\n")
+            exit(1)
+          rescue Errno::EISDIR
+            puts pastel.red("\nThe profile path points to a directory, not a profile file. \n")
           rescue StandardError => e
             puts pastel.red("\nFailed to read the profile:\n#{e.message}\n")
             exit(1)
