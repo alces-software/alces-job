@@ -39,6 +39,8 @@ module AlcesJob
       def call
         system('clear')
 
+        puts @info
+
         File.write('test_data.yaml', @info.to_yaml)
 
         prompt = TTY::Prompt.new
@@ -92,7 +94,6 @@ module AlcesJob
         job_type = prompt.select(pastel.bold.magenta('What type of job would you like to run?'), types_of_job)
 
         # To add in later?
-        # array: 'What array range would you like to use (e.g. 1-100)?',
         # gres: 'How many GPUs would you like to request?',
         # ntasks: 'How many MPI tasks would you like per node?',
 
@@ -122,6 +123,7 @@ module AlcesJob
             job_name: 'What is your job name?',
             partition: 'Which partition would you like to use?',
             time: 'How long would you like your job to run for?',
+            gres: 'How many GPUs would you like to request?',
             cpus_per_task: 'How many CPU cores would you like to request?',
             mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?'
@@ -142,6 +144,7 @@ module AlcesJob
         defaults = {
           job_name: 'my_slurm_job',
           time: '00-01:00:00',
+          gres: '1',
           cpus_per_task: '1',
           array: '0-2',
           mem: '1024',
@@ -177,7 +180,8 @@ module AlcesJob
                   TimeConverter.to_human_readable(partition[:time_limit]),
                   partition[:node_count],
                   "#{partition[:max_memory_mb]} MB",
-                  partition[:max_cpu_cores]
+                  partition[:max_cpu_cores],
+                  partition[:max_gpus]
                 ]
               end
 
@@ -188,11 +192,11 @@ module AlcesJob
                   'Time Limit',
                   'Node Count',
                   'Max Memory Per Node',
-                  'Max CPU Cores Per Node'
+                  'Max CPU Cores Per Node',
+                  'GPU Count'
                 ],
                 rows: partition_rows
               )
-
               puts
 
               selected_partition = key(item).select(pastel.bold.cyan(question), partition_list)
@@ -295,6 +299,38 @@ module AlcesJob
 
                 q.messages[:valid?] =
                   "Enter a valid array value between 0 and #{max_array_size - 1}, such as 1-10, 0-9, 1,5,9, 1-100%10, or 1-20:2."
+              end
+
+            when :gres
+              selected_partition_info = info[selected_partition]
+              max_gpus = selected_partition_info&.dig(:max_gpus).to_i
+
+              puts
+              puts pastel.bold.blue('GPUs')
+              puts
+              puts 'A GPU (Graphics Processing Unit) is special processor used for highly parallel work, such as machine learning, simulations, and some scientific workloads.'
+              puts
+
+              if max_gpus.positive?
+                puts "The maximum number of GPUs on partition #{pastel.bold(selected_partition)} is #{pastel.bold(max_gpus)} per node."
+              else
+                puts pastel.red('This partition does not appear to have any GPUs.')
+                exit(1)
+              end
+
+              puts
+
+              key(item).ask(
+                pastel.bold.blue(question),
+                default: defaults[item] || 1
+              ) do |q|
+                q.validate do |input|
+                  input.to_s.match?(/\A\d+\z/) &&
+                    input.to_i.between?(1, max_gpus)
+                end
+
+                q.messages[:valid?] = "Please enter a whole number between 1 and #{max_gpus}"
+                q.convert ->(input) { "gpu:#{input.to_i}" }
               end
 
             when :nodes
@@ -492,7 +528,8 @@ module AlcesJob
                 TimeConverter.to_human_readable(partition[:time_limit]),
                 partition[:node_count],
                 "#{partition[:max_memory_mb]} MB",
-                partition[:max_cpu_cores]
+                partition[:max_cpu_cores],
+                partition[:max_gpus]
               ]
             end
 
@@ -503,7 +540,8 @@ module AlcesJob
                 'Time Limit',
                 'Node Count',
                 'Max Memory Per Node',
-                'Max CPU Cores Per Node'
+                'Max CPU Cores Per Node',
+                'GPU Count'
               ],
               rows: partition_rows
             )
@@ -618,6 +656,38 @@ module AlcesJob
                 q.convert :int
               end
 
+            end
+
+          when :gres
+            selected_partition_info = info[selected_partition]
+            max_gpus = selected_partition_info&.dig(:max_gpus).to_i
+
+            puts
+            puts pastel.bold.blue('GPUs')
+            puts
+            puts 'A GPU (Graphics Processing Unit) is special processor used for highly parallel work, such as machine learning, simulations, and some scientific workloads.'
+            puts
+
+            if max_gpus.positive?
+              puts "The maximum number of GPUs on partition #{pastel.bold(selected_partition)} is #{pastel.bold(max_gpus)} per node."
+            else
+              puts pastel.red('This partition does not appear to have any GPUs.')
+              exit(1)
+            end
+
+            puts
+
+            result[:gres] = prompt.ask(
+              pastel.bold.blue(questions[:gres]),
+              default: defaults[:gres] || 1
+            ) do |q|
+              q.validate do |input|
+                input.to_s.match?(/\A\d+\z/) &&
+                  input.to_i.between?(1, max_gpus)
+              end
+
+              q.messages[:valid?] = "Please enter a whole number between 1 and #{max_gpus}"
+              q.convert ->(input) { "gpu:#{input.to_i}" }
             end
 
           when :nodes
@@ -963,13 +1033,13 @@ module AlcesJob
             end
           end
 
-          max_gpus = prompt.ask("Maximum GPUs per node for partition #{name}", default: '0') do |q|
+          max_gpus = prompt.ask("Maximum GPUs per node for partition #{name}", default: '2') do |q|
             q.validate(/\A\d+\z/)
             q.messages[:valid?] = 'Please enter a whole number.'
             q.convert :int
           end
 
-          node_count = prompt.ask("How many nodes are in partition #{name}?", default: '1') do |q|
+          node_count = prompt.ask("How many nodes are in partition #{name}?", default: '4') do |q|
             q.validate(/\A\d+\z/)
             q.messages[:valid?] = 'Please enter a whole number.'
             q.convert :int

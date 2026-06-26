@@ -69,9 +69,18 @@ module AlcesJob
 
             next if gres.to_s.empty? || gres == '(null)'
 
-            gres.scan(/gpu:[^:,\s]+(?::(\d+))?/) do |count|
-              info[:max_gpus] = [info[:max_gpus], (count.first || 1).to_i].max
-            end
+            clean_gres = gres.to_s.sub(/\(.+\)\z/, '')
+
+            gpu_count =
+              if clean_gres =~ /gpu:[^:,\s]+:(\d+)/
+                Regexp.last_match(1).to_i
+              elsif clean_gres =~ /gpu:(\d+)/
+                Regexp.last_match(1).to_i
+              else
+                0
+              end
+
+            info[:max_gpus] = [info[:max_gpus], gpu_count].max
           end
         end
       rescue Errno::ENOENT
