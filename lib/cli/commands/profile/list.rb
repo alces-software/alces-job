@@ -34,6 +34,12 @@ module AlcesJob
           puts
 
           exit(0)
+        rescue Errno::EACCES
+          puts pastel.red("\nYou do not have permission to view saved profiles. \n")
+          exit(1)
+        rescue Errno::ENOENT, Errno::ENOTDIR
+          puts pastel.red("\nThe profiles directory could not be found or is invalid. \n")
+          exit(1)
         rescue StandardError => e
           puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)

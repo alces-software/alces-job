@@ -79,6 +79,10 @@ module AlcesJob
             File.write(system_info_file_path, system_data.to_yaml)
             spinner.success(pastel.green('(Successful)'))
             puts pastel.green("\nThe system info file has been written to #{system_info_file_path}\n")
+          rescue Errno::ENOSPC
+            spinner.error(pastel.red('(Disk full)'))
+            puts pastel.red("\nUnable to write the system info file because the disk is full. \n")
+            exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Writing error)'))
             puts pastel.red("\nFailed to write system info file:\n#{e.message}\n")

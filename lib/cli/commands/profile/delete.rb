@@ -51,6 +51,18 @@ module AlcesJob
             File.unlink(profile_path)
             spinner.success(pastel.green('(deleted)'))
             puts pastel.green("\nSuccessfully deleted the profile.\n")
+          rescue Errno::ENOENT
+            spinner.error(pastel.red("\nProfile missing\n"))
+            puts pastel.red("\nThe profile could not be found when deletion was attempted.\n")
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error(pastel.red('(Permission denied)'))
+            puts pastel.red("\nUnable to delete the profile due to permissions or a read-only filesystem. \n")
+            exit(1)
+          rescue Errno::EISDIR
+            spinner.error(pastel.red('(Invalid profile path)'))
+            puts pastel.red("\nUnable to delete the profile because the path points to a directory. \n")
+            exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(delete error)'))
             puts pastel.red("\nFailed to delete the profile:\n#{e.message}\n")
