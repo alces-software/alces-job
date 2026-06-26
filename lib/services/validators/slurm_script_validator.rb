@@ -23,7 +23,7 @@ module AlcesJob
         @file_path = file_path
         @errors = []
         @warnings = []
-        @system_info = SysInfo.load_info(Paths.new.system_info_path)
+        @system_info = SysInfo.load_info
       end
 
       def validate?

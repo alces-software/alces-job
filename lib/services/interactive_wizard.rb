@@ -15,10 +15,11 @@ module AlcesJob
   module Services
     class InteractiveWizard
       def initialize
-        @info = AlcesJob::Services::SysInfo.load_info(Services::Paths.new.system_info_path)
+        @info = AlcesJob::Services::SysInfo.load_info
 
         # @info = YAML.load_file('test_data.yaml')
         @info = deep_symbolize_keys(@info || {})
+        @info = @info[:partitions]
 
         @info = prompt_for_system_info unless valid_partition_info?(@info)
       end
@@ -38,8 +39,6 @@ module AlcesJob
 
       def call
         system('clear')
-
-        File.write('test_data.yaml', @info.to_yaml)
 
         prompt = TTY::Prompt.new
 
