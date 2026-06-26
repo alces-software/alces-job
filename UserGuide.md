@@ -48,13 +48,13 @@ $ gem --version
 Go to the [releases](https://github.com/alces-software/alces-job/releases) page and download the gem file, or download it directly with
 
 ```sh
-$ wget https://github.com/alces-software/alces-job/releases/download/v1.0.0/alces-job-1.0.0.gem
+$ wget https://github.com/alces-software/alces-job/releases/download/v1.0.1/alces-job-1.0.1.gem
 ```
 
 Run:
 
 ```sh
-$ gem install alces-job-1.0.0.gem
+$ gem install alces-job-1.0.1.gem
 ```
 
 Verify installation with
