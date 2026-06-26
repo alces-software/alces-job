@@ -94,7 +94,6 @@ module AlcesJob
         job_type = prompt.select(pastel.bold.magenta('What type of job would you like to run?'), types_of_job)
 
         # To add in later?
-        # gres: 'How many GPUs would you like to request?',
         # ntasks: 'How many MPI tasks would you like per node?',
 
         question_bank = {
