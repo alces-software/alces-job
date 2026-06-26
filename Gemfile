@@ -14,9 +14,6 @@ gem 'config', '~> 5.6'
 
 gem 'rake', '~> 13.4'
 
-gem 'tty-box'
-gem 'unicode-display_width', '< 3.0'
-
 gem 'tty-spinner'
 
 group :test do
@@ -37,3 +34,7 @@ gem 'open3', '~> 0.2.1'
 gem 'xdg', '~> 10.2'
 
 gem 'dry-cli-completion'
+
+gem "tty-box", "~> 0.7.0"
+
+gem "unicode-display_width", "~> 2.6"
