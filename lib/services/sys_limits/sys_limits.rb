@@ -7,7 +7,7 @@ module AlcesJob
   module Services
     module SystemLimits
       DEFAULT_NODE_COUNT = 1
-      DEFAULT_MEMORY_MB = 5000
+      DEFAULT_MEMORY_MB = 20000
       DEFAULT_TIME_SECONDS = 604_800 # 7 days
       DEFAULT_CPUS_PER_NODE = 4
       DEFAULT_GPUS_PER_NODE = 1
