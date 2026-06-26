@@ -178,6 +178,9 @@ module AlcesJob
           errors << 'Array value cannot be empty.'
           return
         end
+        if array_value.match?(/\A\d+\z/)
+          warnings << "Array value '#{array_value}' creates only one task. This is valid, but a normal job may be more appropriate"
+        end
         unless array_value.match?(/\A[\d,\-:%]+\z/)
           errors << "Invalid array value: #{array_value}."
           return
