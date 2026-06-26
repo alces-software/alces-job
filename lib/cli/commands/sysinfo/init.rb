@@ -17,13 +17,13 @@ module AlcesJob
         desc 'This command generates the initial system info and saves it'
 
         def call(*)
-          system_info_file_path = Services::Paths.new.system_info_path
           pastel = Pastel.new
 
-          if Process.uid != 0
-            puts pastel.red("\nThis command must be ran with elevated privileges.\n")
-            exit(1)
-          end
+          system_info_file_path = if Process.uid.zero?
+                                    Services::Paths.new.system_info_path
+                                  else
+                                    Services::Paths.new.user_system_info_path
+                                  end
 
           # Check config file
           puts

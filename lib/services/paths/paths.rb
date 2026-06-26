@@ -9,6 +9,7 @@ module AlcesJob
         @xdg = XDG.new
         @system_root = '/etc/alces-job'
         @system_info_file_name = 'system-info'
+        @user_system_info_file_name = 'system-info-user'
         @admin_config_file_name = 'admin-config'
         @user_config_file_name = 'user-config'
       end
@@ -76,6 +77,12 @@ module AlcesJob
       # @return [String]
       def system_info_path
         File.join(@system_root, "#{@system_info_file_name}.yaml").to_s
+      end
+
+      # Gets the path to the system info file
+      # @return [String]
+      def user_system_info_path
+        @xdg.config_home.join('alces-job', "#{@user_system_info_file_name}.yaml").to_s
       end
 
       # Completion
