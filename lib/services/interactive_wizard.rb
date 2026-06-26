@@ -130,7 +130,9 @@ module AlcesJob
           array: {
             job_name: 'What is your job name?',
             partition: 'Which partition would you like to use?',
+            array: 'What array range would you like to use (e.g. 1-100)?',
             time: 'How long would you like your job to run for?',
+            cpus_per_task: 'How many CPU cores should each array task use?',
 
             mem: 'How much memory would you like per array task? (MB)',
             command: 'What command would you like to run?'
@@ -141,6 +143,7 @@ module AlcesJob
           job_name: 'my_slurm_job',
           time: '00-01:00:00',
           cpus_per_task: '1',
+          array: '0-2',
           mem: '1024',
           nodes: '1',
           command: 'echo "Hello, World!"'
@@ -193,6 +196,106 @@ module AlcesJob
               puts
 
               selected_partition = key(item).select(pastel.bold.cyan(question), partition_list)
+
+            when :array
+              max_array_size = 1001
+              puts
+              puts pastel.bold.bright_magenta('Array Job')
+              puts
+              puts "A Slurm array job runs the #{pastel.bold.underline('same job many times')} with different task IDs."
+              puts
+              puts 'This is useful when you want to run the same script for many inputs, files, seeds, or parameters.'
+              puts
+              puts 'Each array task gets its own ID through:'
+              puts
+              puts pastel.bold.green('$SLURM_ARRAY_TASK_ID')
+              puts
+              puts 'Your script can use this ID to choose which file, row, or parameter to process.'
+              puts
+
+              puts pastel.bold('Examples:')
+              puts
+              puts "#{pastel.bold.bright_magenta('1-10')}       runs task IDs 1 through 10"
+              puts "#{pastel.bold.bright_magenta('0-9')}        runs task IDs 0 through 9"
+              puts "#{pastel.bold.bright_magenta('1,5,9')}      runs only task IDs 1, 5, and 9"
+              puts "#{pastel.bold.bright_magenta('1-100%10')}   creates 100 tasks, but only runs 10 at the same time"
+              puts "#{pastel.bold.bright_magenta('1-20:2')}     runs every 2nd task, e.g. 1, 3, 5 ... 19"
+              puts
+
+              puts "The #{pastel.bold('%')} part limits how many array tasks can run at once."
+              puts "For example, #{pastel.bold('1-100%10')} means run at most 10 tasks at the same time."
+              puts
+              puts 'If you are unsure, start small, such as 1-5 or 1-10.'
+              puts
+
+              key(item).ask(pastel.bold.bright_magenta(question), default: defaults[item]) do |q|
+                q.modify :strip
+
+                q.validate do |input|
+                  array_value = input.strip
+
+                  next false if array_value.empty?
+
+                  next false unless array_value.match?(/\A[\d,\-:%]+\z/)
+
+                  max_array_index = max_array_size - 1
+
+                  valid_array = true
+
+                  array_parts, concurrency_limit = array_value.split('%', 2)
+
+                  if concurrency_limit && !concurrency_limit.match?(/\A\d+\z/)
+                    valid_array = false
+                  elsif concurrency_limit && concurrency_limit.to_i < 1
+                    valid_array = false
+                  end
+
+                  array_parts.split(',').each do |array_part|
+                    break unless valid_array
+
+                    range_part, step_value = array_part.split(':', 2)
+
+                    if step_value && (!step_value.match?(/\A\d+\z/) || step_value.to_i < 1)
+                      valid_array = false
+                      break
+                    end
+
+                    if range_part.include?('-')
+                      array_range = range_part.match(/\A(\d+)-(\d+)\z/)
+
+                      unless array_range
+                        valid_array = false
+                        break
+                      end
+
+                      start_value = array_range[1].to_i
+                      end_value = array_range[2].to_i
+
+                      if start_value > end_value || end_value > max_array_index
+                        valid_array = false
+                        break
+                      end
+                    else
+                      unless range_part.match?(/\A\d+\z/)
+                        valid_array = false
+                        break
+                      end
+
+                      single_value = range_part.to_i
+
+                      if single_value > max_array_index
+                        valid_array = false
+                        break
+                      end
+                    end
+                  end
+
+                  valid_array
+                end
+
+                q.messages[:valid?] =
+                  "Enter a valid array value between 0 and #{max_array_size - 1}, such as 1-10, 0-9, 1,5,9, 1-100%10, or 1-20:2."
+              end
 
             when :nodes
               selected_partition_info = info[selected_partition]
@@ -641,23 +744,101 @@ module AlcesJob
               q.convert :int
             end
 
+          when :array
+            max_array_size = 1001
+            max_array_index = max_array_size - 1
+
+            puts
+            puts pastel.bold.bright_magenta('Array Job')
+            puts
+            puts 'An array job runs the same job multiple times using different task IDs.'
+            puts
+            puts "Each task gets a value through #{pastel.bold.green('$SLURM_ARRAY_TASK_ID')}."
+            puts
+            puts "This cluster currently allows array task IDs from 0 to #{max_array_index}."
+            puts
+            puts pastel.bold('Examples:')
+            puts
+            puts "#{pastel.bold.bright_magenta('1-10')}       runs task IDs 1 through 10"
+            puts "#{pastel.bold.bright_magenta('0-9')}        runs task IDs 0 through 9"
+            puts "#{pastel.bold.bright_magenta('1,5,9')}      runs only task IDs 1, 5, and 9"
+            puts "#{pastel.bold.bright_magenta('1-100%10')}   creates 100 tasks, but only runs 10 at the same time"
+            puts "#{pastel.bold.bright_magenta('1-20:2')}     runs every 2nd task, e.g. 1, 3, 5 ... 19"
+            puts
+
+            result[:array] = prompt.ask(
+              questions[:array] || 'What array range would you like to use?',
+              default: result[:array].to_s
+            ) do |q|
+              q.modify :strip
+
+              q.validate do |input|
+                array_value = input.strip
+
+                next false if array_value.empty?
+
+                next false unless array_value.match?(/\A[\d,\-:%]+\z/)
+
+                valid_array = true
+
+                array_parts, concurrency_limit = array_value.split('%', 2)
+
+                if concurrency_limit && !concurrency_limit.match?(/\A\d+\z/)
+                  valid_array = false
+                elsif concurrency_limit && concurrency_limit.to_i < 1
+                  valid_array = false
+                end
+
+                array_parts.split(',').each do |array_part|
+                  break unless valid_array
+
+                  range_part, step_value = array_part.split(':', 2)
+
+                  if step_value && (!step_value.match?(/\A\d+\z/) || step_value.to_i < 1)
+                    valid_array = false
+                    break
+                  end
+
+                  if range_part.include?('-')
+                    array_range = range_part.match(/\A(\d+)-(\d+)\z/)
+
+                    unless array_range
+                      valid_array = false
+                      break
+                    end
+
+                    start_value = array_range[1].to_i
+                    end_value = array_range[2].to_i
+
+                    if start_value > end_value || end_value > max_array_index
+                      valid_array = false
+                      break
+                    end
+                  else
+                    unless range_part.match?(/\A\d+\z/)
+                      valid_array = false
+                      break
+                    end
+
+                    single_value = range_part.to_i
+
+                    if single_value > max_array_index
+                      valid_array = false
+                      break
+                    end
+                  end
+                end
+
+                valid_array
+              end
+
+              q.messages[:valid?] =
+                "Enter a valid array value between 0 and #{max_array_index}, such as 1-10, 0-9, 1,5,9, 1-100%10, or 1-20:2."
+            end
+
           when :command
             puts
             puts pastel.bold.cyan('Command')
-            puts
-            puts "This is the command that Slurm will run inside your batch script.\nUse the same command you would normally type into the terminal."
-            puts
-            puts "Examples:\n"
-            puts
-            puts "#{pastel.bold.bright_magenta('python')} script.py"
-            puts
-            puts "#{pastel.bold.bright_magenta('R')} analysis.R"
-            puts
-            puts "#{pastel.bold.bright_magenta('node')} app.js"
-            puts
-            puts "#{pastel.bold.bright_magenta('srun')} ./my_mpi_program"
-            puts
-            puts
 
             result[:command] = prompt.ask(
               pastel.bold.cyan(questions[:command]),

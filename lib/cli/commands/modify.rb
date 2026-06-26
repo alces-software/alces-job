@@ -253,12 +253,36 @@ module AlcesJob
             end
           end
 
-          spinner.success('(Successful)')
+          spinner.success(pastel.green('(Successful)'))
+          puts
 
-          puts pastel.green("\n--- ORIGINAL SCRIPT ---")
-          puts old_content
-          puts pastel.green("\n--- MODIFIED SCRIPT ---")
-          puts edited_script.join("\n")
+          box_width = old_content.lines.map { |line| line.chomp.length }.max + 4
+
+          puts TTY::Box.frame(
+            old_content,
+            title: {
+              top_center: pastel.bold.yellow(' ORIGINAL SCRIPT ')
+            },
+            padding: 1,
+            border: :thick,
+            width: box_width
+          )
+
+          puts
+
+          modified_content = edited_script.join("\n")
+
+          box_width = modified_content.lines.map { |line| line.chomp.length }.max + 4
+
+          puts TTY::Box.frame(
+            modified_content,
+            title: {
+              top_center: pastel.bold.green(' MODIFIED SCRIPT ')
+            },
+            padding: 1,
+            border: :thick,
+            width: box_width
+          )
 
           unless TTY::Prompt.new.yes?("\nWould you like to save this script?", default: false)
             puts 'Aborting...'

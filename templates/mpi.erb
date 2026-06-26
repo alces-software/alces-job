@@ -1,29 +1,41 @@
 #!/bin/bash
 
-#SBATCH --job-name=<%= @context.job_name %>     # Name shown for this job in the Slurm queue
-#SBATCH --nodes=<%= @context.nodes || 2 %>      # Number of nodes/machines requested; default is 2
-#SBATCH --ntasks=<%= @context.ntasks || 32 %>   # Total number of MPI tasks/processes; default is 32
-#SBATCH --cpus-per-task=<%= @context.cpus_per_task || 1 %>  # CPU cores per MPI task; default is 1
+<%- line = "#SBATCH --job-name=#{@context.job_name}" -%>
+<%= line.ljust(50) %># Name shown for this job in the Slurm queue
+<%- line = "#SBATCH --nodes=#{@context.nodes || 2}" -%>
+<%= line.ljust(50) %># Number of nodes/machines requested
+<%- line = "#SBATCH --ntasks=#{@context.ntasks || 32}" -%>
+<%= line.ljust(50) %># Total number of MPI tasks/processes
+<%- line = "#SBATCH --cpus-per-task=#{@context.cpus_per_task || 1}" -%>
+<%= line.ljust(50) %># CPU cores per MPI task
 <% if @context.partition -%>
-#SBATCH --partition=<%= @context.partition %>   # Partition/queue where the job should run
+<%- line = "#SBATCH --partition=#{@context.partition}" -%>
+<%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
 <% if @context.time -%>
-#SBATCH --time=<%= @context.time %>             # Maximum runtime before Slurm stops the job
+<%- line = "#SBATCH --time=#{@context.time}" -%>
+<%= line.ljust(50) %># Maximum runtime before Slurm stops the job
 <% end -%>
 <% if @context.mem -%>
-#SBATCH --mem=<%= @context.mem %>               # Amount of memory requested for the job
+<%- line = "#SBATCH --mem=#{@context.mem}" -%>
+<%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
 
-module load openmpi         # Load OpenMPI so MPI programs can run
+<%- line = "module load openmpi" -%>
+<%= line.ljust(50) %># Load OpenMPI so MPI programs can run
 
 <% Array(@context.modules).each do |mod| -%>
-module load <%= mod %>                                       # Load extra user-requested module
+<%- line = "module load #{mod}" -%>
+<%= line.ljust(50) %># Load extra user-requested module
 <% end -%>
 
 <% if @context.workdir -%>
-cd <%= @context.workdir %>                                   # Move to the working directory
+<%- line = "cd #{@context.workdir}" -%>
+<%= line.ljust(50) %># Move to the working directory
 <% end -%>
 
-echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"  # Print MPI resource information
+<%- line = 'echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"' -%>
+<%= line.ljust(80) %># Print MPI resource information
 
-srun <%= @context.command %>            # Launch the MPI program using Slurm's task launcher
+<%- line = "srun #{@context.command}" -%>
+<%= line.ljust(50) %># Launch the MPI program using Slurm's task launcher
