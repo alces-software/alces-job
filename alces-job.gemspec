@@ -7,7 +7,8 @@ Gem::Specification.new do |spec|
   spec.version       = AlcesJob::VERSION
 
   spec.summary       = 'Generate Slurm job scripts from templates'
-  spec.description   = spec.summary
+  spec.description   = 'alces-job is a small CLI tool for generating Slurm sbatch scripts from templates, profiles, and site defaults.'
+
   spec.homepage      = AlcesJob::GITHUB_URL
   spec.executables   = ['alces-job']
   spec.bindir        = 'bin'
@@ -37,6 +38,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'terminal-table', '~> 4.0'
   spec.add_dependency 'tty-prompt', '~> 0.23.1'
   spec.add_dependency 'tty-spinner', '~> 0.9.3'
+  spec.add_dependency 'tty-box', '~> 0.7.0'
+  spec.add_dependency 'unicode-display_width', '~> 2.6'
   spec.add_dependency 'xdg', '~> 10.2'
 
   spec.metadata['rubygems_mfa_required'] = 'true'
