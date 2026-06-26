@@ -7,7 +7,8 @@ Gem::Specification.new do |spec|
   spec.version       = AlcesJob::VERSION
 
   spec.summary       = 'Generate Slurm job scripts from templates'
-  spec.description   = spec.summary
+  spec.description   = 'alces-job is a small CLI tool for generating Slurm sbatch scripts from templates, profiles, and site defaults.'
+
   spec.homepage      = AlcesJob::GITHUB_URL
   spec.executables   = ['alces-job']
   spec.bindir        = 'bin'
