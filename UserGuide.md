@@ -140,7 +140,7 @@ When you run alces-job generate universal, the tool takes values you pass via fl
 
 Conditional blocks (like <% if @context.mem -%>) mean sections are only included if you provide those options, keeping the final script clean and tailored to your job.
 
-For an example of a template, look inside `/templates`
+For an example of a template, look inside [/templates](https://github.com/alces-software/alces-job/tree/main/templates) on the repo.
 
 #### Where you would put your own template
 
