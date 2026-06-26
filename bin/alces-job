@@ -2,8 +2,6 @@
 # frozen_string_literal: true
 
 root = File.expand_path('..', __dir__)
-ENV['BUNDLE_GEMFILE'] ||= File.join(root, 'Gemfile')
-require 'bundler/setup'
 require "#{root}/lib/cli/cli"
 
 Dry::CLI.new(AlcesJob::CLI).call
