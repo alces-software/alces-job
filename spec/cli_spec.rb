@@ -11,6 +11,6 @@ RSpec.describe AlcesJob::CLI do
       cli.call(arguments: ['version'])
     end
 
-    expect(output).to include('1.0.0')
+    expect(output).to include('1.0.1')
   end
 end
