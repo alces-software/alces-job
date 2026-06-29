@@ -59,24 +59,39 @@ module AlcesJob
 
         def call(script:, **options)
           pastel = Pastel.new
+          TTY::Prompt.new
+
+          spinner = TTY::Spinner.new(
+            '[:spinner] :title ...',
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
+          )
+
           script = File.expand_path(script, Dir.pwd)
 
+          # ------------------------------------------------------------
+          # Validate script exists
+          # ------------------------------------------------------------
           unless File.exist?(script)
-            warn pastel.red("\nScript not found: #{script}\n")
+            warn pastel.red("Script not found: #{script}")
+            warn pastel.yellow('Please check the file path and try again.')
             exit(1)
           end
 
           old_content = File.read(script)
           lines = old_content.lines(chomp: true)
 
-          # Build set of keys to remove
           remove_keys = options.select { |_, v| v == true }.keys
 
-          edited_script = []
+          # ------------------------------------------------------------
+          # Modify script
+          # ------------------------------------------------------------
+          spinner.update(title: 'processing SBATCH script')
+          spinner.auto_spin
 
-          lines.each do |line|
+          edited_script = lines.each_with_object([]) do |line, result|
             if line.start_with?('#!')
-              edited_script << line
+              result << line
               next
             end
 
@@ -84,7 +99,7 @@ module AlcesJob
               parts = line.split[1]
 
               unless parts&.start_with?('--') && parts.include?('=')
-                edited_script << line
+                result << line
                 next
               end
 
@@ -93,65 +108,114 @@ module AlcesJob
 
               next if remove_keys.include?(key)
 
-              edited_script << line
+              result << line
               next
             end
 
-            edited_script << line
+            result << line
           end
 
           file_path =
-            if options[:output_file]
-              File.join(Dir.pwd, options[:output_file])
-            else
-              script
-            end
+            options[:output_file] ? File.join(Dir.pwd, options[:output_file]) : script
 
+          # ------------------------------------------------------------
+          # Save file
+          # ------------------------------------------------------------
           begin
             File.write(file_path, "#{edited_script.join("\n")}\n")
           rescue Errno::ENOSPC
-            warn pastel.red("\nUnable to save the modified script because the disk is full. \n")
+            spinner.error(pastel.red('(Disk full)'))
+            warn pastel.red('There is not enough disk space to save the file.')
             exit(1)
           rescue Errno::ENOENT, Errno::ENOTDIR
-            warn pastel.red("\nUnable to save the modified script because the output path is invalid or massing")
+            spinner.error(pastel.red('(Invalid path)'))
+            warn pastel.red('The output location does not exist or is invalid.')
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
-            warn pastel.red("\nUnable to save the modified script due to permissions or a read-only filesystem.\n")
+            spinner.error(pastel.red('(Permission denied)'))
+            warn pastel.red('You do not have permission to write to this location.')
             exit(1)
           rescue Errno::EISDIR
-            warn pastel.red("\nUnable to save the modified script because the output path is a directory, not a file. \n")
+            spinner.error(pastel.red('(Invalid target)'))
+            warn pastel.red('The output path is a directory, not a file.')
+            exit(1)
+          rescue StandardError => e
+            spinner.error(pastel.red('(Write failed)'))
+            warn pastel.red('Failed to write the modified script to disk:')
+            warn pastel.red(e.message)
             exit(1)
           end
-          puts pastel.green("\nSBATCH flags removed successfully.\n")
+
+          spinner.success(pastel.green('(Updated)'))
+
+          puts pastel.green("\nSBATCH script updated successfully.")
           puts pastel.green("Written to: #{file_path}\n")
 
-          validator = Services::SlurmScriptValidator.new(file_path)
+          # ------------------------------------------------------------
+          # Validate script
+          # ------------------------------------------------------------
+          begin
+            validator = Services::SlurmScriptValidator.new(file_path)
 
-          if validator.validate?
-            if options[:submit]
-              stdout, _, status = Open3.capture3('sbatch', file_path)
+            unless validator.validate?
+              spinner.error(pastel.red('(Invalid script)'))
+
+              warn pastel.red("\nThe modified script is invalid and has been reverted.\n")
+
+              File.write(file_path, old_content)
+
+              validator.errors.each do |error|
+                warn pastel.red("Error: #{error}")
+              end
+
+              validator.warnings.each do |warning|
+                warn pastel.yellow("Warning: #{warning}")
+              end
+
+              exit(1)
+            end
+          rescue StandardError => e
+            warn pastel.red('Failed to validate script:')
+            warn pastel.red(e.message)
+            exit(1)
+          end
+
+          # ------------------------------------------------------------
+          # Show warnings (success case)
+          # ------------------------------------------------------------
+          unless validator.warnings.empty?
+            validator.warnings.each do |warning|
+              warn pastel.yellow("Warning: #{warning}")
+            end
+          end
+
+          # ------------------------------------------------------------
+          # Submit job
+          # ------------------------------------------------------------
+          return unless options[:submit]
+
+          begin
+            stdout, _, status = Open3.capture3('sbatch', file_path)
+
+            if status.success?
+              puts pastel.green("\nJob submitted successfully.")
               puts stdout
-              puts "Exit status: #{status.exitstatus}"
+            else
+              warn pastel.red("\nSlurm rejected the job submission.")
+              warn pastel.red(stdout.to_s)
+              exit(1)
             end
-
-            puts pastel.green("\nValidation passed.\n")
-            exit(0)
-          else
-            File.write(file_path, old_content)
-            warn pastel.red("\nInvalid script — changes reverted.\n")
-
-            validator.errors.each do |e|
-              warn "#{pastel.red('ERROR:')} #{e}"
-            end
+          rescue StandardError => e
+            warn pastel.red('Failed to submit job:')
+            warn pastel.red(e.message)
+            exit(1)
           end
 
-          validator.warnings.each do |w|
-            puts "#{pastel.yellow('WARNING:')} #{w}"
-          end
-
-          exit(1)
+          exit(0)
         rescue StandardError => e
-          warn pastel.red("\nFatal error: #{e.message}\n")
+          spinner&.error(pastel.red('(Unexpected error)'))
+          warn pastel.red('An unexpected error occurred while modifying the script:')
+          warn pastel.red(e.message)
           exit(1)
         end
       end
