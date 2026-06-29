@@ -47,10 +47,10 @@ module AlcesJob
             end
           rescue Errno::EACCES
             spinner.error(pastel.yellow('(Permission denied)'))
-            puts pastel.yellow("\nYou do not have permission to read the config.\n")
+            warn pastel.yellow("\nYou do not have permission to read the config.\n")
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load)'))
-            puts pastel.red("\nAn error occurred while accessing the config:\n#{e.message}\n")
+            warn pastel.red("\nConfig load failed: #{e.message}\n")
             exit(1)
           end
 
@@ -68,15 +68,15 @@ module AlcesJob
               end
             end
           rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error(pastel.red('(No such file or directory)'))
-            exit(1)
+            spinner.error(pastel.red('(No profile found)'))
+            puts pastel.yellow("\nNo profile with that name was found\n")
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nYou do not have permission to read the specified profile.\n")
+            warn pastel.red("\nYou do not have permission to read the specified profile.\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load)'))
-            puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
+            warn pastel.red("\nProfile load failed:\n#{e.message}\n")
             exit(1)
           end
 

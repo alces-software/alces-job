@@ -50,10 +50,10 @@ module AlcesJob
             end
           rescue Errno::EACCES
             spinner.error(pastel.yellow('(Permission denied)'))
-            puts pastel.yellow("\nYou do not have permission to read the config.\n")
+            warn pastel.yellow("\nYou do not have permission to read the config.\n")
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load)'))
-            puts pastel.red("\nAn error occurred while accessing the config:\n#{e.message}\n")
+            warn pastel.red("\nConfig load failed: #{e.message}\n")
             exit(1)
           end
 
@@ -71,16 +71,15 @@ module AlcesJob
               end
             end
           rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error(pastel.red('(No such file or directory)'))
-            puts 'The file or directory could not be found'
-            exit(1)
+            spinner.error(pastel.red('(No profile found)'))
+            puts pastel.yellow("\nNo profile with that name was found\n")
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nYou do not have permission to read the specified profile.\n")
+            warn pastel.red("\nYou do not have permission to read the specified profile.\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load)'))
-            puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
+            warn pastel.red("\nProfile load failed:\n#{e.message}\n")
             exit(1)
           end
 
@@ -132,7 +131,7 @@ module AlcesJob
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to overwrite)'))
-            puts pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
+            warn pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
             exit(1)
           end
 
@@ -155,7 +154,7 @@ module AlcesJob
               end
             end
           rescue StandardError => e
-            puts pastel.red("\nFailed to validate file before saving:\n#{e.message}\n")
+            warn pastel.red("\nFailed to validate file before saving:\n#{e.message}\n")
             exit(1)
           end
 
@@ -163,16 +162,15 @@ module AlcesJob
             script_path = generator.save(script)
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
-            puts pastel.red("\nUnable to validate the generated script because the disk is full.\n")
+            warn pastel.red("\nUnable to validate the generated script because the disk is full.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permissions issue)'))
-            puts pastel.red("\nUnable to create or write the temporary validating file due to permissions or a read-only filesystem")
+            warn pastel.red("\nUnable to create or write the temporary validating file due to permissions or a read-only filesystem")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to save)'))
-            puts pastel.red("\nAn error occurred while saving the script\n")
-            warn e.message
+            warn pastel.red("\nAn error occurred while saving the script:\n#{e.message}\n")
             exit(1)
           end
 
@@ -194,13 +192,13 @@ module AlcesJob
             stdout, status = generator.submit(script_path)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to submit)'))
-            puts pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
             exit(1)
           end
 
           unless status.success?
             spinner.error(pastel.red('(Error)'))
-            puts pastel.red("\nAn error occurred.\n")
+            warn pastel.red("\nAn error occurred.\n")
             exit(1)
           end
 
@@ -210,7 +208,7 @@ module AlcesJob
           exit(0)
         rescue StandardError => e
           spinner.error(pastel.red('(Command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

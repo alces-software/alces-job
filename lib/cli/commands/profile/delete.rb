@@ -21,7 +21,7 @@ module AlcesJob
           prompt = TTY::Prompt.new
 
           unless profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided.\n")
+            warn pastel.red("\nNo profile name was provided.\n")
             exit(1)
           end
 
@@ -30,11 +30,11 @@ module AlcesJob
 
           begin
             unless File.exist?(profile_path)
-              puts pastel.red("\nThe profile doesn't exist.\n")
+              warn pastel.red("\nThe profile doesn't exist.\n")
               exit(1)
             end
           rescue StandardError => e
-            puts pastel.red("\nAn error occurred while checking if the profile exits:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while checking if the profile exits:\n#{e.message}\n")
             exit(1)
           end
 
@@ -51,28 +51,27 @@ module AlcesJob
             File.unlink(profile_path)
             spinner.success(pastel.green('(deleted)'))
             puts pastel.green("\nSuccessfully deleted the profile.\n")
+            exit(0)
           rescue Errno::ENOENT
             spinner.error(pastel.red("\nProfile missing\n"))
-            puts pastel.red("\nThe profile could not be found when deletion was attempted.\n")
+            warn pastel.red("\nThe profile could not be found when deletion was attempted.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nUnable to delete the profile due to permissions or a read-only filesystem. \n")
+            warn pastel.red("\nUnable to delete the profile due to permissions or a read-only filesystem. \n")
             exit(1)
           rescue Errno::EISDIR
             spinner.error(pastel.red('(Invalid profile path)'))
-            puts pastel.red("\nUnable to delete the profile because the path points to a directory. \n")
+            warn pastel.red("\nUnable to delete the profile because the path points to a directory. \n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(delete error)'))
-            puts pastel.red("\nFailed to delete the profile:\n#{e.message}\n")
+            warn pastel.red("\nFailed to delete the profile:\n#{e.message}\n")
             exit(1)
           end
-
-          exit(0)
         rescue StandardError => e
           spinner&.error(pastel.red('(command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

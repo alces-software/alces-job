@@ -40,7 +40,7 @@ module AlcesJob
           pastel = Pastel.new
 
           if profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided.\n")
+            warn pastel.red("\nNo profile name was provided.\n")
             exit(1)
           end
 
@@ -48,7 +48,7 @@ module AlcesJob
           options.select { |_key, value| value }
 
           if options.empty?
-            puts pastel.red("\nNo flags were provided that could be removed from the profile.\n")
+            warn pastel.red("\nNo flags were provided that could be removed from the profile.\n")
             exit(1)
           end
 
@@ -64,12 +64,12 @@ module AlcesJob
           begin
             unless File.exist?(profile_path)
               spinner.error(pastel.red('(No profile)'))
-              puts pastel.red("\nNo profile can be found with that name.\n")
+              warn pastel.red("\nNo profile can be found with that name.\n")
               exit(1)
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to check profile)'))
-            puts pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
+            warn pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
             exit(1)
           end
 
@@ -77,19 +77,19 @@ module AlcesJob
             profile_data = YAML.load_file(profile_path)
           rescue Errno::ENOENT
             spinner.error(pastel.red('(Profile missing)'))
-            puts pastel.red("\nThe profile file could not be found. \n")
+            warn pastel.red("\nThe profile file could not be found. \n")
             exit(1)
           rescue Errno::EACCES
             spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nYou do not have permission to read this profile. \n")
+            warn pastel.red("\nYou do not have permission to read this profile. \n")
             exit(1)
           rescue Psych::SyntaxError => e
             spinner.error(pastel.red('Invalid YAML:'))
-            puts pastel.red("\nThe profile contains invalid YAML:\n#{e.message}\n")
+            warn pastel.red("\nThe profile contains invalid YAML:\n#{e.message}\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load profile)'))
-            puts pastel.red("\nFailed to load profile:\n#{e.message}\n")
+            warn pastel.red("\nFailed to load profile:\n#{e.message}\n")
             exit(1)
           end
 
@@ -101,7 +101,7 @@ module AlcesJob
             options.each_key { |key| profile_data.delete(key.to_sym) }
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to remove flags)'))
-            puts pastel.red("\nFailed to remove flags from the profile:\n#{e.message}\n")
+            warn pastel.red("\nFailed to remove flags from the profile:\n#{e.message}\n")
             exit(1)
           end
 
@@ -116,12 +116,12 @@ module AlcesJob
             exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(Write error)'))
-            puts pastel.red("\nFailed to update the profile:\n#{e.message}\n")
+            warn pastel.red("\nFailed to update the profile:\n#{e.message}\n")
             exit(1)
           end
         rescue StandardError => e
           spinner&.error(pastel.red('(Command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

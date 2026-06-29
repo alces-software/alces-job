@@ -18,7 +18,7 @@ module AlcesJob
           pastel = Pastel.new
 
           if profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided.\n")
+            warn pastel.red("\nNo profile name was provided.\n")
             exit(1)
           end
 
@@ -26,11 +26,11 @@ module AlcesJob
 
           begin
             unless File.exist?(profile_path)
-              puts pastel.red("\nThe profile doesn't exist.\n")
+              warn pastel.red("\nThe profile doesn't exist.\n")
               exit(1)
             end
           rescue StandardError => e
-            puts pastel.red("\nAn error occurred while checking if the profile exits:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while checking if the profile exits:\n#{e.message}\n")
             exit(1)
           end
 
@@ -40,22 +40,22 @@ module AlcesJob
             puts "# Path: #{profile_path}"
             puts File.read(profile_path)
             puts
+            exit(0)
           rescue Errno::ENOENT
-            puts pastel.red("\nThe profile could not be found.\n")
+            warn pastel.red("\nThe profile could not be found.\n")
             exit(1)
           rescue Errno::EACCES
-            puts pastel.red("\nYou do not have permission to read this profile\n")
+            warn pastel.red("\nYou do not have permission to read this profile\n")
             exit(1)
           rescue Errno::EISDIR
-            puts pastel.red("\nThe profile path points to a directory, not a profile file. \n")
+            warn pastel.red("\nThe profile path points to a directory, not a profile file. \n")
+            exit(1)
           rescue StandardError => e
-            puts pastel.red("\nFailed to read the profile:\n#{e.message}\n")
+            warn pastel.red("\nFailed to read the profile:\n#{e.message}\n")
             exit(1)
           end
-
-          exit(0)
         rescue StandardError => e
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

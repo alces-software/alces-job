@@ -50,10 +50,10 @@ module AlcesJob
             end
           rescue Errno::EACCES
             spinner.error(pastel.yellow('(Permission denied)'))
-            puts pastel.yellow("\nYou do not have permission to read the config.\n")
+            warn pastel.yellow("\nYou do not have permission to read the config.\n")
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load)'))
-            puts pastel.red("\nAn error occurred while accessing the config:\n#{e.message}\n")
+            warn pastel.red("\nConfig load failed: #{e.message}\n")
             exit(1)
           end
 
@@ -71,16 +71,15 @@ module AlcesJob
               end
             end
           rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error(pastel.red('(No such file or directory)'))
-            puts 'The file or directory could not be found'
-            exit(1)
+            spinner.error(pastel.red('(No profile found)'))
+            puts pastel.yellow("\nNo profile with that name was found\n")
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nYou do not have permission to read the specified profile.\n")
+            warn pastel.red("\nYou do not have permission to read the specified profile.\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load)'))
-            puts pastel.red("\nAn error occurred while accessing the specified profile:\n#{e.message}\n")
+            warn pastel.red("\nProfile load failed:\n#{e.message}\n")
             exit(1)
           end
 
@@ -120,13 +119,15 @@ module AlcesJob
             end
           rescue Errno::EACCES
             spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nYou do not have permission to access the output location. \n")
+            warn pastel.red("\nYou do not have permission to access the output location.\n")
+            exit(1)
           rescue Errno::ENOTDIR
             spinner.error(pastel.red('(Invalid path)'))
-            puts pastel.red("\nThe output path is invalid.\n")
+            warn pastel.red("\nThe output path is invalid.\n")
+            exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to overwrite)'))
-            puts pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
+            warn pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
             exit(1)
           end
 
@@ -150,14 +151,14 @@ module AlcesJob
             end
           rescue Errno::ENOSPC
             spinner.error(pastel.red('Disk full'))
-            puts pastel.red("\Unable to validate the script because the temporary filesystem is full. \n")
+            warn pastel.red("\Unable to validate the script because the temporary filesystem is full.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('Permission denied'))
-            puts pastel.rec("\nUnable to create the temporary validation file due to permissions or a read-only filesystem. \n")
+            warn pastel.rec("\nUnable to create the temporary validation file due to permissions or a read-only filesystem.\n")
             exit(1)
           rescue StandardError => e
-            puts pastel.red("\nFailed to validate file before saving:\n#{e.message}\n")
+            warn pastel.red("\nFailed to validate file before saving:\n#{e.message}\n")
             exit(1)
           end
 
@@ -165,15 +166,15 @@ module AlcesJob
             script_path = generator.save(script)
           rescue Errno::ENOSPC
             spinner.error('Disk full')
-            puts pastel.red("\nUnable to save the generated script because the disk is full.\n")
+            warn pastel.red("\nUnable to save the generated script because the disk is full.\n")
             exit(1)
           rescue Errno::ENOENT, Errno::ENOTDIR
             spinner.error('(Invalid path)')
-            puts pastel.red("\nEnable to save the generated script because the output path is invalid or missing. \n")
+            warn pastel.red("\nEnable to save the generated script because the output path is invalid or missing.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error('(permission denied)')
-            puts pastel.red("\nUnable to save the generated script due to permissions or a read-only filesystem. \n")
+            warn pastel.red("\nUnable to save the generated script due to permissions or a read-only filesystem.\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to save)'))
@@ -201,13 +202,13 @@ module AlcesJob
             stdout, status = generator.submit(script_path)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to submit)'))
-            puts pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
             exit(1)
           end
 
           unless status.success?
             spinner.error(pastel.red('(Error)'))
-            puts pastel.red("\nAn error occurred\n")
+            warn pastel.red("\nAn error occurred\n")
             exit(1)
           end
 
@@ -217,7 +218,7 @@ module AlcesJob
           exit(0)
         rescue StandardError => e
           spinner.error(pastel.red('(Command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

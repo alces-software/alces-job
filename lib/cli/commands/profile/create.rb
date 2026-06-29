@@ -45,7 +45,7 @@ module AlcesJob
           path = Services::Paths.new
 
           if profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided.\n")
+            warn pastel.red("\nNo profile name was provided.\n")
             exit(1)
           end
 
@@ -53,7 +53,7 @@ module AlcesJob
           options.reject! { |_, value| value == [] }
 
           if options.empty?
-            puts pastel.red("\nNo flags were provided that could be saved to a profile.\n")
+            warn pastel.red("\nNo flags were provided that could be saved to a profile.\n")
             exit(1)
           end
 
@@ -76,7 +76,7 @@ module AlcesJob
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to check profile)'))
-            puts pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
+            warn pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
             exit(1)
           end
 
@@ -88,28 +88,28 @@ module AlcesJob
             exit(0)
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
-            puts pastel.red("\nUnable to create the profile because the disk is full \n")
+            warn pastel.red("\nUnable to create the profile because the disk is full \n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nUnable to create the profile due to permissions or a read-only filesystem. \n")
+            warn pastel.red("\nUnable to create the profile due to permissions or a read-only filesystem. \n")
             exit(1)
           rescue Errno::ENOENT, Errno::ENOTDIR
             spinner.error(pastel.red('Invalid path'))
-            puts pastel.red("\nUnable to create the profile because the output path is invalid or missing")
+            warn pastel.red("\nUnable to create the profile because the output path is invalid or missing")
             exit(1)
           rescue Errno::EISDIR
             spinner.error(pastel.red('Invalid path'))
-            puts pastel.red("\nUnable to create the profile because the output path is a directory")
+            warn pastel.red("\nUnable to create the profile because the output path is a directory")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Write error)'))
-            puts pastel.red("\nFailed to create your profile:\n#{e.message}\n")
+            warn pastel.red("\nFailed to create your profile:\n#{e.message}\n")
             exit(1)
           end
         rescue StandardError => e
           spinner&.error(pastel.red('(Command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

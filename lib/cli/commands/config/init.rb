@@ -36,7 +36,7 @@ module AlcesJob
           options = options.select { |_key, value| value }
 
           if options.empty?
-            puts pastel.red("\nNo flags have been provided\n")
+            warn pastel.red("\nNo flags have been provided\n")
             exit(1)
           end
 
@@ -61,7 +61,7 @@ module AlcesJob
 
             unless data.nil?
               spinner.error(pastel.red('(Config exists)'))
-              puts pastel.green("\nA config already exists\n")
+              puts pastel.red("\nA config already exists aborting\n")
               exit(1)
             end
 
@@ -85,27 +85,27 @@ module AlcesJob
 
           begin
             FileUtils.mkdir_p(File.dirname(path))
-            File.write(path, options.to_yaml)
+            File.write(path, config.to_yaml)
             spinner.success(pastel.green('(Successful)'))
 
             puts pastel.green("\nThe config file has been written to #{path}\n")
             exit(0)
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
-            puts pastel.red("\nUnable to write the config file to disk as it's too full.\n")
+            warn pastel.red("\nUnable to write the config file to disk as it's too full.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permissions issue)'))
-            puts pastel.red("\nUnable to create or write the temporary validating file due to permissions or a read-only filesystem\n")
+            warn pastel.red("\nUnable to create or write the temporary validating file due to permissions or a read-only filesystem\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Writing error)'))
-            puts pastel.red("\nFailed to write config file:\n#{e.message}\n")
+            warn pastel.red("\nFailed to write config file:\n#{e.message}\n")
             exit(1)
           end
         rescue StandardError => e
           spinner&.error(pastel.red('(Command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

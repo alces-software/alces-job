@@ -42,7 +42,7 @@ module AlcesJob
           pastel = Pastel.new
 
           if profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided.\n")
+            warn pastel.red("\nNo profile name was provided.\n")
             exit(1)
           end
 
@@ -50,7 +50,7 @@ module AlcesJob
           options.reject! { |_, value| value == [] }
 
           if options.empty?
-            puts pastel.red("\nNo flags were provided that could be added or changed in the profile.\n")
+            warn pastel.red("\nNo flags were provided that could be added or changed in the profile.\n")
             exit(1)
           end
 
