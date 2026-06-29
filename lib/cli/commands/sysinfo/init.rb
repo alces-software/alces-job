@@ -14,84 +14,111 @@ module AlcesJob
     module Commands
       class SysInfoInit < Dry::CLI::Command
         AlcesJob::CLI.register 'sysinfo init', self
-        desc 'This command generates the initial system info and saves it'
+
+        desc 'Generates and saves the initial system information'
 
         def call(*)
           pastel = Pastel.new
+          path = Services::Paths.new
 
-          system_info_file_path = if Process.uid.zero?
-                                    Services::Paths.new.admin_system_info_path
-                                  else
-                                    Services::Paths.new.user_system_info_path
-                                  end
+          system_info_file_path =
+            if Process.uid.zero?
+              path.admin_system_info_path
+            else
+              path.user_system_info_path
+            end
 
-          # Check config file
           puts
+
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),
             error_mark: pastel.red('✗')
           )
 
-          spinner.update(title: 'checking for system info file')
+          # ------------------------------------------------------------
+          # Check system info file
+          # ------------------------------------------------------------
+          spinner.update(title: 'checking system information')
           spinner.auto_spin
+
           begin
             if File.exist?(system_info_file_path)
-              begin
-                data = YAML.load_file(system_info_file_path)
-                if data
-                  spinner.error(pastel.red('(Config exists)'))
-                  warn pastel.red("\nA system info already exists.\n")
-                  exit(1)
-                end
-                spinner.success(pastel.green('(Empty system info)'))
-              rescue StandardError => e
-                spinner.error(pastel.red('(Failed to load)'))
-                warn pastel.red("\nFailed to load the system info file:\n#{e.message}\n")
+              data = YAML.load_file(system_info_file_path)
+
+              if data
+                spinner.error(pastel.red('(Already exists)'))
+
+                warn pastel.red("\nSystem information already exists.")
+                warn pastel.yellow("Remove the existing system information file and try again.\n")
+
                 exit(1)
               end
+
+              spinner.success(pastel.green('(Empty file)'))
             else
-              spinner.success(pastel.green('(No system info)'))
+              spinner.success(pastel.green('(Not found)'))
             end
           rescue StandardError => e
-            spinner.error(pastel.red('(Failed to find)'))
-            warn pastel.red("\nFailed to check if the system info exists:\n#{e.message}\n")
+            spinner.error(pastel.red('(Failed to check)'))
+            warn pastel.red("\nFailed to check system information.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
-          # Collecting system information
-          spinner.update(title: 'collecting system info')
+          # ------------------------------------------------------------
+          # Collect system information
+          # ------------------------------------------------------------
+          spinner.update(title: 'collecting system information')
           spinner.auto_spin
+
           begin
             system_data = Services::SysInfo.all_info
+            spinner.success(pastel.green('(Collected)'))
           rescue StandardError => e
-            spinner.error(pastel.red('(System info)'))
-            warn pastel.red("\nThere was an error while grabbing system information:\n#{e.message}\n")
+            spinner.error(pastel.red('(Failed)'))
+            warn pastel.red("\nFailed to collect system information.")
+            warn pastel.yellow("System tools may not be available or accessible.\n")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
-          spinner.success(pastel.green('(Successful)'))
 
-          # Writing to system info file
-          spinner.update(title: 'writing system info file')
+          # ------------------------------------------------------------
+          # Write system information file
+          # ------------------------------------------------------------
+          spinner.update(title: 'saving system information')
           spinner.auto_spin
+
           begin
             FileUtils.mkdir_p(File.dirname(system_info_file_path))
             File.write(system_info_file_path, system_data.to_yaml)
-            spinner.success(pastel.green('(Successful)'))
-            puts pastel.green("\nThe system info file has been written to #{system_info_file_path}\n")
+
+            spinner.success(pastel.green('(Saved)'))
+            puts pastel.green("\nSystem information created successfully.")
+            puts pastel.green("Written to: #{system_info_file_path}\n")
             exit(0)
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
-            warn pastel.red("\nUnable to write the system info file because the disk is full. \n")
+            warn pastel.red("\nNot enough disk space to save system information.\n")
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error(pastel.red('(Permission denied)'))
+            warn pastel.red("\nYou do not have permission to save system information here.\n")
             exit(1)
           rescue StandardError => e
-            spinner.error(pastel.red('(Writing error)'))
-            warn pastel.red("\nFailed to write system info file:\n#{e.message}\n")
+            spinner.error(pastel.red('(Write failed)'))
+            warn pastel.red("\nFailed to save system information.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          spinner&.error(pastel.red('(command error)'))
-          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          spinner&.error(pastel.red('(Unexpected error)'))
+          warn pastel.red("\nAn unexpected error occurred while running the command.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end
