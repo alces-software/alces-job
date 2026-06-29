@@ -18,6 +18,39 @@ module AlcesJob
         '#!/usr/bin/bash',
         '#!/usr/bin/env bash'
       ].freeze
+      VALID_FILENAME_PATTERN_SYMBOLS = [
+        '%',
+        'A',
+        'a',
+        'b',
+        'J',
+        'j',
+        'N',
+        'n',
+        'r',
+        'S',
+        's',
+        't',
+        'u',
+        'x'
+      ].freeze
+
+      VALID_MAIL_TYPES = %w[
+        NONE
+        BEGIN
+        END
+        FAIL
+        REQUEUE
+        ALL
+        INVALID_DEPEND
+        STAGE_OUT
+        TIME_LIMIT
+        TIME_LIMIT_90
+        TIME_LIMIT_80
+        TIME_LIMIT_50
+        ARRAY_TASKS
+        NONE
+      ].freeze
 
       def initialize(file_path)
         @file_path = file_path
@@ -57,6 +90,10 @@ module AlcesJob
       private
 
       def validate_shebang(lines)
+        if lines.empty?
+          errors << 'Script is empty.'
+          return
+        end
         shebang_check = lines[0].sub(/\A#!\s*/, '#!').strip
         return if SUPPORTED_SHEBANGS.include?(shebang_check)
 
@@ -101,6 +138,28 @@ module AlcesJob
         end
       end
 
+      def find_pattern(file_path, label)
+        index = 0
+
+        while index < file_path.length
+          unless file_path[index] == '%'
+            index += 1
+            next
+          end
+          pattern_start = index
+          index += 1
+          index += 1 while index < file_path.length && file_path[index].match?(/\d/)
+          if index >= file_path.length
+            warnings << "#{label} path has an incomplete Slurm filename pattern: #{file_path[pattern_start..]}"
+            break
+          end
+
+          symbol = file_path[index]
+          warnings << "#{label} Paths contains a unrecognised Slurm file pattern: #{file_path[pattern_start..index]}. " unless VALID_FILENAME_PATTERN_SYMBOLS.include?(symbol)
+          index += 1
+        end
+      end
+
       def validate_time(sbatch_lines)
         time_value = directive_value(sbatch_lines, '--time')
         partition_name = directive_value(sbatch_lines, '--partition')
@@ -138,6 +197,8 @@ module AlcesJob
           errors << "#{label} path cannot be empty."
           return
         end
+
+        find_pattern(file_path, label)
 
         directory = File.dirname(file_path)
 
@@ -201,23 +262,61 @@ module AlcesJob
         array_expression = unwrap_array_brackets(array_value)
         return if array_expression.nil?
 
-        warnings << "Array value '#{array_value}' creates only one task. This is valid, but a normal job may be more appropriate." if array_expression.match?(/\A\d+\z/)
+        array_parts = array_expression.split('%', -1)
 
-        unless array_expression.match?(/\A[\d,\-:%]+\z/)
+        if array_parts.length > 2
+          errors << "Invalid array value: #{array_value}. Only one concurrency limit is allowed."
+          return
+        end
+
+        task_expression = array_parts[0]
+        concurrency_limit = array_parts[1]
+
+        if task_expression.empty?
+          errors << 'Array task indexes cannot be empty.'
+          return
+        end
+
+        if concurrency_limit
+          if concurrency_limit.empty?
+            errors << "Invalid array concurrency limit in '#{array_value}'. Expected a positive number after '%'."
+            return
+          end
+
+          unless concurrency_limit.match?(/\A\d+\z/) && concurrency_limit.to_i.positive?
+            errors << "Invalid array concurrency limit '#{concurrency_limit}'. Expected a positive whole number."
+            return
+          end
+        end
+
+        unless task_expression.match?(/\A[\d,\-:]+\z/)
           errors << "Invalid array value: #{array_value}."
           return
         end
 
-        array_expression.split(',').each do |array_part|
+        warnings << "Array value '#{array_value}' creates only one task. This is valid, but a normal job may be more appropriate." if task_expression.match?(/\A\d+\z/)
+
+        task_expression.split(',', -1).each do |array_part|
+          if array_part.empty?
+            errors << "Invalid array value: #{array_value}. Array indexes cannot be empty."
+            next
+          end
+
           next unless array_part.include?('-')
 
-          array_range = array_part.match(/\A(\d+)-(\d+)\z/)
-          next unless array_range
+          array_range = array_part.match(/\A(\d+)-(\d+)(?::(\d+))?\z/)
+
+          unless array_range
+            errors << "Invalid array range: #{array_part}."
+            next
+          end
 
           start_value = array_range[1].to_i
           end_value = array_range[2].to_i
+          step_value = array_range[3]&.to_i
 
           errors << "Invalid array range: #{array_part}. Start value must be less than or equal to end value." if start_value > end_value
+          errors << "Invalid array step value in #{array_part}. Step must be greater than 0." if step_value&.zero?
         end
       end
 
@@ -235,7 +334,25 @@ module AlcesJob
         mail_type = directive_value(sbatch_lines, '--mail-type')
         return if mail_type.nil?
 
-        errors << 'Mail type cannot be empty.' if mail_type.empty?
+        if mail_type.empty?
+          errors << 'Mail type cannot be empty.'
+          return
+        end
+
+        mail_types = mail_type.split(',', -1)
+
+        mail_types.each do |individual_mail_type|
+          if individual_mail_type.empty?
+            errors << 'Mail type values cannot be empty.'
+            next
+          end
+
+          errors << "Invalid mail type: #{individual_mail_type}." unless VALID_MAIL_TYPES.include?(individual_mail_type)
+        end
+
+        return unless mail_types.include?('NONE') && mail_types.length > 1
+
+        warnings << 'Mail type NONE suppresses all notifications, so the other mail type values will be ignored.'
       end
 
       def validate_mail_user(sbatch_lines)
@@ -243,6 +360,10 @@ module AlcesJob
         return if mail_user.nil?
 
         errors << 'Mail user cannot be empty' if mail_user.empty?
+
+        return unless directive_value(sbatch_lines, '--mail-type').nil?
+
+        warnings << 'A --mail-user directive was supplied without --mail-type, so no email events have been selected'
       end
 
       def validate_mem_per_cpu(sbatch_lines); end
