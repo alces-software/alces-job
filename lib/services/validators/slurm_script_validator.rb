@@ -170,6 +170,25 @@ module AlcesJob
         end
       end
 
+      def unwrap_array_brackets(array_value)
+        starts_with_bracket = array_value.start_with?('[')
+        ends_with_bracket = array_value.end_with?(']')
+
+        if starts_with_bracket != ends_with_bracket
+          errors << "Invalid array value: #{array_value}. Square brackets must wrap the full expression."
+          return nil
+        end
+
+        expression = starts_with_bracket ? array_value[1..-2] : array_value
+
+        if expression.empty?
+          errors << 'Array value cannot be empty.'
+          return nil
+        end
+
+        expression
+      end
+
       def validate_array(sbatch_lines)
         array_value = directive_value(sbatch_lines, '--array')
         return if array_value.nil?
@@ -178,21 +197,26 @@ module AlcesJob
           errors << 'Array value cannot be empty.'
           return
         end
-        warnings << "Array value '#{array_value}' creates only one task. This is valid, but a normal job may be more appropriate" if array_value.match?(/\A\d+\z/)
-        unless array_value.match?(/\A[\d,\-:%]+\z/)
+
+        array_expression = unwrap_array_brackets(array_value)
+        return if array_expression.nil?
+
+        warnings << "Array value '#{array_value}' creates only one task. This is valid, but a normal job may be more appropriate." if array_expression.match?(/\A\d+\z/)
+
+        unless array_expression.match?(/\A[\d,\-:%]+\z/)
           errors << "Invalid array value: #{array_value}."
           return
         end
 
-        array_value.split(',').each do |array_part|
+        array_expression.split(',').each do |array_part|
           next unless array_part.include?('-')
 
           array_range = array_part.match(/\A(\d+)-(\d+)\z/)
-
           next unless array_range
 
           start_value = array_range[1].to_i
           end_value = array_range[2].to_i
+
           errors << "Invalid array range: #{array_part}. Start value must be less than or equal to end value." if start_value > end_value
         end
       end

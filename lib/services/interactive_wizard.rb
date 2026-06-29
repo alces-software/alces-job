@@ -71,6 +71,7 @@ module AlcesJob
         puts
         puts pastel.yellow('Tip: Enlarge your terminal screen for a better experience.')
 
+
         puts "\nAt the end, you will be able to preview the generated script before saving it.\n\n"
 
         key = prompt.keypress('[Press any key to continue, or q to quit]')
@@ -888,7 +889,7 @@ module AlcesJob
 
         exit(0) unless prompt.yes?('Write script to file?')
 
-        exit(0) if File.exist?(generator.file_path) && !prompt.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
+        exit(0) if File.exist?(generator.file_path) && !prompt.yes?("\nA SBATCH already exists do you want to overwrite it?", default: false)
 
         file_path = generator.save(generator.generate)
 

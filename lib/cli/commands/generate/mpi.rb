@@ -131,9 +131,9 @@ module AlcesJob
           # ------------------------------------------------------------
           begin
             if File.exist?(generator.file_path)
-              spinner.error(pastel.red('(Exists)'))
+              spinner.error(pastel.red('(File exists)'))
 
-              unless prompt.yes?('A script already exists at this location. Overwrite?', default: false)
+              unless prompt.yes?("\nA SBATCH script already exists at #{generator.file_path}. Overwrite it?", default: false)
                 puts pastel.yellow("\nOperation cancelled.\n")
                 exit(0)
               end
