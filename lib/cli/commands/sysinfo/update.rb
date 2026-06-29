@@ -23,7 +23,7 @@ module AlcesJob
           pastel = Pastel.new
 
           system_info_file_path = if Process.uid.zero?
-                                    Services::Paths.new.system_info_path
+                                    Services::Paths.new.admin_system_info_path
                                   else
                                     Services::Paths.new.user_system_info_path
                                   end
@@ -48,12 +48,12 @@ module AlcesJob
           begin
             unless File.exist?(system_info_file_path)
               spinner.error(pastel.red('(No system info)'))
-              puts pastel.red("\nThere is no system info file currently present use sysinfo init to create one.\n")
+              warn pastel.red("\nThere is no system info file currently present use sysinfo init to create one.\n")
               exit(1)
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Check failed)'))
-            puts pastel.red("\nFailed to check if a system information file exists:\n#{e.message}\n")
+            warn pastel.red("\nFailed to check if a system information file exists:\n#{e.message}\n")
             exit(1)
           end
 
@@ -61,13 +61,13 @@ module AlcesJob
             system_data = YAML.load_file(system_info_file_path)
           rescue StandardError => e
             spinner.error(pastel.red('(Load failed)'))
-            puts pastel.red("\nFailed to load the system information file:\n#{e.message}\n")
+            warn pastel.red("\nFailed to load the system information file:\n#{e.message}\n")
             exit(1)
           end
 
           if system_data.nil?
             spinner.error(pastel.red('(Blank system info)'))
-            puts pastel.red("\nThe system info you have contains no data generate a new one using sysinfo init.\n")
+            warn pastel.red("\nThe system info you have contains no data generate a new one using sysinfo init.\n")
             exit(1)
           end
           spinner.success(pastel.green('(Successful)'))
@@ -90,7 +90,7 @@ module AlcesJob
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to collect)'))
-            puts pastel.red("\nFailed to collect system information:\n#{e.message}\n")
+            warn pastel.red("\nFailed to collect system information:\n#{e.message}\n")
             exit(1)
           end
           spinner.success(pastel.green('(Successful)'))
@@ -102,16 +102,15 @@ module AlcesJob
             File.write(system_info_file_path, system_data.to_yaml)
             spinner.success(pastel.green('(Successful)'))
             puts pastel.green("\nThe system info file at #{system_info_file_path} has been updated.\n")
+            exit(0)
           rescue StandardError => e
             spinner.error(pastel.red('(Writing error)'))
-            puts pastel.red("\nFailed to update system info file:\n#{e.message}\n")
+            warn pastel.red("\nFailed to update system info file:\n#{e.message}\n")
             exit(1)
           end
-
-          exit(0)
         rescue StandardError => e
           spinner&.error(pastel.red('(Command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

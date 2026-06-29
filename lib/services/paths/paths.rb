@@ -75,7 +75,7 @@ module AlcesJob
 
       # Gets the path to the system info file
       # @return [String]
-      def system_info_path
+      def admin_system_info_path
         File.join(@system_root, "#{@system_info_file_name}.yaml").to_s
       end
 

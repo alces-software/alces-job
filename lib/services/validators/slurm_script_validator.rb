@@ -245,11 +245,9 @@ module AlcesJob
         errors << 'Mail user cannot be empty' if mail_user.empty?
       end
 
-      def validate_mem_per_cpu(sbatch_lines)
-      end
+      def validate_mem_per_cpu(sbatch_lines); end
 
-      def validate_ntask_per_node(sbatch_lines)
-      end
+      def validate_ntask_per_node(sbatch_lines); end
 
       def validate_mutually_excllusive_directives(sbatch_lines)
         memory_directives = [
@@ -258,8 +256,8 @@ module AlcesJob
           '--mem-per-gpu'
         ]
 
-        used_directives = memory_directives.select do |directive|
-          !directive_value(sbatch_lines, directive).nil?
+        used_directives = memory_directives.reject do |directive|
+          directive_value(sbatch_lines, directive).nil?
         end
 
         return unless used_directives.length > 1

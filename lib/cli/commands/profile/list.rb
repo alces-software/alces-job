@@ -10,38 +10,53 @@ module AlcesJob
     module Commands
       class ProfileList < Dry::CLI::Command
         AlcesJob::CLI.register 'profile list', self
-        desc 'Lists saved user profiles'
+
+        desc 'List all saved user profiles.'
 
         def call(*)
           pastel = Pastel.new
 
+          # ------------------------------------------------------------
+          # Find saved profiles
+          # ------------------------------------------------------------
           begin
             profile_files = Dir.glob(Services::Paths.new.user_profile_path('*'))
+          rescue Errno::EACCES
+            warn pastel.red("\nYou do not have permission to view saved profiles.\n")
+            exit(1)
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            warn pastel.red("\nThe profiles directory could not be found or is invalid.\n")
+            exit(1)
           rescue StandardError => e
-            puts pastel.red("\nAn error occurred while getting all the profiles names:\n#{e.message}\n")
+            warn pastel.red("\nFailed to retrieve the list of saved profiles.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # Display profiles
+          # ------------------------------------------------------------
           if profile_files.empty?
-            puts pastel.red("\nNo profiles found.\n")
+            warn pastel.yellow("\nNo saved profiles were found.\n")
             exit(0)
           end
 
           puts pastel.green("\nAvailable profiles:")
-          profile_files.each do |path|
+
+          profile_files.sort.each do |path|
             puts "#{File.basename(path, '.yaml')} ~ #{path}"
           end
+
           puts
 
           exit(0)
-        rescue Errno::EACCES
-          puts pastel.red("\nYou do not have permission to view saved profiles. \n")
-          exit(1)
-        rescue Errno::ENOENT, Errno::ENOTDIR
-          puts pastel.red("\nThe profiles directory could not be found or is invalid. \n")
-          exit(1)
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn unexpected error occurred while listing profiles.\n")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end

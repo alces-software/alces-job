@@ -17,7 +17,7 @@ module AlcesJob
           pastel = Pastel.new
           AlcesJob::Services::InteractiveWizard.new.call
         rescue StandardError => e
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

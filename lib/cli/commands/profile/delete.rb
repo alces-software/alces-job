@@ -12,67 +12,96 @@ module AlcesJob
     module Commands
       class ProfileDelete < Dry::CLI::Command
         AlcesJob::CLI.register 'profile delete', self
-        desc 'Deletes a saved profile'
 
-        argument :profile_name, require: true, type: :string, desc: 'The name of the profile'
+        desc 'Delete a saved profile.'
+
+        argument :profile_name, required: true, type: :string, desc: 'The name of the profile to delete'
 
         def call(profile_name:, **)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 
-          unless profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided.\n")
+          # ------------------------------------------------------------
+          # Validate input
+          # ------------------------------------------------------------
+          if profile_name.to_s.strip.empty?
+            warn pastel.red("\nNo profile name was provided.")
+            warn pastel.yellow("Please specify the name of the profile you want to delete.\n")
             exit(1)
           end
 
-          profile_name = profile.strip
+          profile_name = profile_name.strip
           profile_path = Services::Paths.new.user_profile_path(profile_name)
 
+          # ------------------------------------------------------------
+          # Check profile exists
+          # ------------------------------------------------------------
           begin
             unless File.exist?(profile_path)
-              puts pastel.red("\nThe profile doesn't exist.\n")
+              warn pastel.red("\nProfile not found: #{profile_name}")
+              warn pastel.yellow("Check the profile name and try again.\n")
               exit(1)
             end
           rescue StandardError => e
-            puts pastel.red("\nAn error occurred while checking if the profile exits:\n#{e.message}\n")
+            warn pastel.red("\nFailed to check whether the profile exists.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
-          exit(0) if prompt.yes?("\nAre you sure you want to delete your #{profile_name} profile?", default: false)
+          # ------------------------------------------------------------
+          # Confirm deletion
+          # ------------------------------------------------------------
+          unless prompt.yes?(
+            "Are you sure you want to delete the '#{profile_name}' profile?",
+            default: false
+          )
+            warn pastel.yellow("\nProfile deletion cancelled.\n")
+            exit(0)
+          end
+
+          puts
 
           spinner = TTY::Spinner.new(
-            "\n[:spinner] deleting profile ...",
+            '[:spinner] :title ...',
             success_mark: pastel.green('✓'),
             error_mark: pastel.red('✗')
           )
+
+          spinner.update(title: 'deleting profile')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Delete profile
+          # ------------------------------------------------------------
           begin
             File.unlink(profile_path)
-            spinner.success(pastel.green('(deleted)'))
-            puts pastel.green("\nSuccessfully deleted the profile.\n")
+
+            spinner.success(pastel.green('(Deleted)'))
+
+            puts pastel.green("\nProfile deleted successfully.\n")
+            exit(0)
           rescue Errno::ENOENT
-            spinner.error(pastel.red("\nProfile missing\n"))
-            puts pastel.red("\nThe profile could not be found when deletion was attempted.\n")
+            spinner.error(pastel.red('(Profile missing)'))
+            warn pastel.red("\nThe profile could not be found when deletion was attempted.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nUnable to delete the profile due to permissions or a read-only filesystem. \n")
-            exit(1)
-          rescue Errno::EISDIR
-            spinner.error(pastel.red('(Invalid profile path)'))
-            puts pastel.red("\nUnable to delete the profile because the path points to a directory. \n")
+            warn pastel.red("\nYou do not have permission to delete this profile.\n")
             exit(1)
           rescue StandardError => e
-            spinner.error(pastel.red('(delete error)'))
-            puts pastel.red("\nFailed to delete the profile:\n#{e.message}\n")
+            spinner.error(pastel.red('(Delete failed)'))
+            warn pastel.red("\nFailed to delete the profile.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
-          exit(0)
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          spinner&.error(pastel.red('(command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          spinner&.error(pastel.red('(Unexpected error)'))
+          warn pastel.red("\nAn unexpected error occurred while deleting the profile.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end

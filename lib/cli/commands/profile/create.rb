@@ -14,9 +14,10 @@ module AlcesJob
     module Commands
       class ProfileCreate < Dry::CLI::Command
         AlcesJob::CLI.register 'profile create', self
-        desc 'This command creates a profile bases on the flags passed in'
 
-        argument :profile_name, require: true, type: :string, desc: 'What the profile will be called'
+        desc 'Create a new profile using the supplied Slurm options.'
+
+        argument :profile_name, required: true, type: :string, desc: 'The name of the profile to create'
 
         option :job_name, type: :string, aliases: ['-J'], desc: 'Sets the Slurm job name for the generated script'
         option :nodes, type: :integer, desc: 'Requests the number of compute nodes for the job'
@@ -40,75 +41,111 @@ module AlcesJob
         def call(profile_name:, **options)
           options[:module] = AlcesJob::Services.module_extractor(ARGV)
           options.delete(:args)
+
           pastel = Pastel.new
           prompt = TTY::Prompt.new
+          path = Services::Paths.new
 
+          # ------------------------------------------------------------
+          # Validate input
+          # ------------------------------------------------------------
           if profile_name.to_s.strip.empty?
-            puts pastel.red("\nNo profile name was provided.\n")
+            warn pastel.red("\nNo profile name was provided.")
+            warn pastel.yellow("Please specify a name for the profile.\n")
             exit(1)
           end
 
-          profile_path = Services::Paths.new.user_profile_path(profile_name.strip)
+          profile_path = path.user_profile_path(profile_name.strip)
+
+          # ------------------------------------------------------------
+          # Validate options
+          # ------------------------------------------------------------
           options.reject! { |_, value| value == [] }
 
           if options.empty?
-            puts pastel.red("\nNo flags were provided that could be saved to a profile.\n")
+            warn pastel.red("\nNo profile settings were provided.")
+            warn pastel.yellow("Specify one or more command-line options to save in the profile.\n")
             exit(1)
           end
 
           puts
+
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),
             error_mark: pastel.red('✗')
           )
+
           spinner.update(title: 'generating profile')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Check whether the profile already exists
+          # ------------------------------------------------------------
           begin
             if File.exist?(profile_path)
               spinner.error(pastel.red('(Profile exists)'))
-              exit(0) unless prompt.yes?("\nA profile with that name was found do you want to overwrite it?", default: false)
+
+              overwrite = prompt.yes?(
+                "\nA profile named '#{profile_name}' already exists. Do you want to overwrite it?",
+                default: false
+              )
+
+              unless overwrite
+                warn pastel.yellow("\nProfile creation cancelled.\n")
+                exit(0)
+              end
+
               puts
               spinner.update(title: 'overwriting profile')
               spinner.auto_spin
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to check profile)'))
-            puts pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
+            warn pastel.red("\nFailed to check whether the profile already exists.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # Create profile directory and save profile
+          # ------------------------------------------------------------
           begin
-            FileUtils.mkdir_p(File.dirname(profile_path))
+            FileUtils.mkdir_p(path.user_profile_dir)
             File.write(profile_path, options.to_yaml)
-            spinner.success(pastel.green('(Successful)'))
-            puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")
+
+            spinner.success(pastel.green('(Created)'))
+
+            puts pastel.green("\nProfile created successfully.")
+            puts pastel.green("Written to: #{profile_path}\n")
+
             exit(0)
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
-            puts pastel.red("\nUnable to create the profile because the disk is full \n")
+            warn pastel.red("\nThere is not enough disk space to create the profile.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nUnable to create the profile due to permissions or a read-only filesystem. \n")
+            warn pastel.red("\nYou do not have permission to create the profile in this location.\n")
             exit(1)
           rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error(pastel.red('Invalid path'))
-            puts pastel.red("\nUnable to create the profile because the output path is invalid or missing")
-            exit(1)
-          rescue Errno::EISDIR
-            spinner.error(pastel.red('Invalid path'))
-            puts pastel.red("\nUnable to create the profile because the output path is a directory")
+            spinner.error(pastel.red('(Invalid path)'))
+            warn pastel.red("\nThe profile directory does not exist or is invalid.\n")
             exit(1)
           rescue StandardError => e
-            spinner.error(pastel.red('(Write error)'))
-            puts pastel.red("\nFailed to create your profile:\n#{e.message}\n")
+            spinner.error(pastel.red('(Write failed)'))
+            warn pastel.red("\nFailed to create the profile.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          spinner&.error(pastel.red('(Command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          spinner&.error(pastel.red('(Unexpected error)'))
+          warn pastel.red("\nAn unexpected error occurred while creating the profile.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end

@@ -32,7 +32,7 @@ module AlcesJob
           path = template_path(template_name)
 
           unless path
-            puts pastel.red("\nTemplate #{template_name} not found.\n")
+            warn pastel.red("\nTemplate #{template_name} not found.\n")
             exit(1)
           end
 
@@ -43,14 +43,13 @@ module AlcesJob
             puts
             puts File.read(path)
             puts
+            exit(0)
           rescue StandardError => e
-            puts pastel.red("\nAn error occurred while reading the template:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while reading the template:\n#{e.message}\n")
             exit(1)
           end
-
-          exit(0)
         rescue StandardError => e
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
 

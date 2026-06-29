@@ -43,7 +43,7 @@ RSpec.describe AlcesJob::CLI::Commands::Modify do
     capture_stdout do
       described_class.new.call(
         script: script,
-        **{ module: [], submit: false }.merge(options)
+        module: [], submit: false, **options
       )
     end
   end
