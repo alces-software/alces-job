@@ -20,7 +20,7 @@ module AlcesJob
           pastel = Pastel.new
 
           system_info_file_path = if Process.uid.zero?
-                                    Services::Paths.new.system_info_path
+                                    Services::Paths.new.admin_system_info_path
                                   else
                                     Services::Paths.new.user_system_info_path
                                   end

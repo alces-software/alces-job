@@ -11,9 +11,10 @@ module AlcesJob
       # Load system information from file if available or grabs info
       # @return [Hash{nodes: Array<Hash>, partitions: Array<Hash>, packages: Array<String>, gpu_total: Integer}]
       def self.load_info
-        admin_path = Paths.new.system_info_path
         user_path = Paths.new.user_system_info_path
         return YAML.load_file(user_path) if File.exist?(user_path)
+
+        admin_path = Paths.new.admin_system_info_path
         return YAML.load_file(admin_path) if File.exist?(admin_path)
 
         all_info

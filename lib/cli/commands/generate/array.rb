@@ -81,7 +81,7 @@ module AlcesJob
             end
           rescue Errno::ENOENT, Errno::ENOTDIR
             spinner.error(pastel.red('(Not found)'))
-            warn pastel.yellow('No profile was found with the specified name.')
+            warn pastel.yellow("No profile was found with the specified name.\n")
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
             warn pastel.red('You do not have permission to read the requested profile.')
@@ -224,7 +224,7 @@ module AlcesJob
           exit(0) unless options[:submit]
 
           unless options[:yes] || prompt.yes?('Submit this job to Slurm?', default: false)
-            puts pastel.yellow('Submission skipped.')
+            puts pastel.yellow("\nSubmission skipped.\n")
             exit(0)
           end
 

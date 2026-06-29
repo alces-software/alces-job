@@ -65,7 +65,7 @@ module AlcesJob
             unless data.nil?
               spinner.error(pastel.red('(Already exists)'))
               warn pastel.red("A configuration file already exists at:\n#{path}")
-              warn pastel.yellow('Remove it or edit it manually if you want to regenerate it.')
+              warn pastel.yellow("Remove it or edit it manually if you want to regenerate it.\n")
               exit(1)
             end
 

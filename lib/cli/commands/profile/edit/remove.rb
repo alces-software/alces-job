@@ -45,8 +45,8 @@ module AlcesJob
           # Validate input
           # ------------------------------------------------------------
           if profile_name.to_s.strip.empty?
-            warn pastel.red('No profile name was provided.')
-            warn pastel.yellow('Please specify the name of the profile you want to update.')
+            warn pastel.red("\nNo profile name was provided.")
+            warn pastel.yellow("Please specify the name of the profile you want to update.\n")
             exit(1)
           end
 
@@ -58,8 +58,8 @@ module AlcesJob
           options.select! { |_key, value| value }
 
           if options.empty?
-            warn pastel.red('No profile settings were provided to remove.')
-            warn pastel.yellow('Specify one or more command-line options to remove from the profile.')
+            warn pastel.red("\nNo profile settings were provided to remove.")
+            warn pastel.yellow("Specify one or more command-line options to remove from the profile.\n")
             exit(1)
           end
 
@@ -80,14 +80,14 @@ module AlcesJob
           begin
             unless File.exist?(profile_path)
               spinner.error(pastel.red('(Profile not found)'))
-              warn pastel.red("Profile not found: #{profile_name}")
-              warn pastel.yellow('Check the profile name and try again.')
+              warn pastel.red("\nProfile not found: #{profile_name}")
+              warn pastel.yellow("Check the profile name and try again.\n")
               exit(1)
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to check profile)'))
-            warn pastel.red('Failed to check whether the profile exists.')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to check whether the profile exists.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
@@ -98,23 +98,23 @@ module AlcesJob
             profile_data = YAML.load_file(profile_path)
           rescue Errno::ENOENT
             spinner.error(pastel.red('(Profile missing)'))
-            warn pastel.red('The profile file could not be found.')
-            warn pastel.yellow('It may have been moved or deleted.')
+            warn pastel.red("\nThe profile file could not be found.")
+            warn pastel.yellow("It may have been moved or deleted.\n")
             exit(1)
           rescue Errno::EACCES
             spinner.error(pastel.red('(Permission denied)'))
-            warn pastel.red('You do not have permission to read this profile.')
+            warn pastel.red("\nYou do not have permission to read this profile.")
             exit(1)
           rescue Psych::SyntaxError => e
             spinner.error(pastel.red('(Invalid YAML)'))
-            warn pastel.red('The profile contains invalid YAML.')
-            warn pastel.red(e.message)
+            warn pastel.red("\nThe profile contains invalid YAML.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load profile)'))
-            warn pastel.red('Failed to load the profile.')
+            warn pastel.red("\nFailed to load the profile.")
             warn pastel.yellow('The profile may be corrupted or unreadable.')
-            warn pastel.red(e.message)
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
@@ -129,8 +129,8 @@ module AlcesJob
             options.each_key { |key| profile_data.delete(key.to_sym) }
           rescue StandardError => e
             spinner.error(pastel.red('(Removal failed)'))
-            warn pastel.red('Failed to remove the selected settings from the profile.')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to remove the selected settings from the profile.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
@@ -150,30 +150,26 @@ module AlcesJob
             exit(0)
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
-            warn pastel.red('There is not enough disk space to save the profile.')
+            warn pastel.red("\nThere is not enough disk space to save the profile.\n")
             exit(1)
           rescue Errno::ENOENT, Errno::ENOTDIR
             spinner.error(pastel.red('(Invalid path)'))
-            warn pastel.red('The profile path does not exist or is invalid.')
+            warn pastel.red("\nThe profile path does not exist or is invalid.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            warn pastel.red('You do not have permission to write to this profile.')
-            exit(1)
-          rescue Errno::EISDIR
-            spinner.error(pastel.red('(Invalid target)'))
-            warn pastel.red('The profile path refers to a directory instead of a file.')
+            warn pastel.red("\nYou do not have permission to write to this profile.\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Write failed)'))
-            warn pastel.red('Failed to save the updated profile.')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to save the updated profile.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
         rescue StandardError => e
           spinner&.error(pastel.red('(Unexpected error)'))
-          warn pastel.red('An unexpected error occurred while updating the profile.')
-          warn pastel.red(e.message)
+          warn pastel.red("\nAn unexpected error occurred while updating the profile.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end

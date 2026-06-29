@@ -74,7 +74,7 @@ module AlcesJob
           # ------------------------------------------------------------
           unless File.exist?(script)
             warn pastel.red("Script not found: #{script}")
-            warn pastel.yellow('Please check the file path and try again.')
+            warn pastel.yellow("Please check the file path and try again.\n")
             exit(1)
           end
 
