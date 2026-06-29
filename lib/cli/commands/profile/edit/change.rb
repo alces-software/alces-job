@@ -13,9 +13,10 @@ module AlcesJob
     module Commands
       class ProfileEditChange < Dry::CLI::Command
         AlcesJob::CLI.register 'profile edit change', self
-        desc 'This is used to change and add flags within the the specified profile'
 
-        argument :profile_name, require: true, type: :string, desc: 'The profile you want to update'
+        desc 'Change or add Slurm options within an existing profile.'
+
+        argument :profile_name, required: true, type: :string, desc: 'The profile you want to update'
 
         option :job_name, type: :string, aliases: ['-J'], desc: 'Sets the Slurm job name for the generated script'
         option :nodes, type: :integer, desc: 'Requests the number of compute nodes for the job'
@@ -39,54 +40,78 @@ module AlcesJob
         def call(profile_name:, **options)
           options[:module] = AlcesJob::Services.module_extractor(ARGV)
           options.delete(:args)
+
           pastel = Pastel.new
 
+          # ------------------------------------------------------------
+          # Validate input
+          # ------------------------------------------------------------
           if profile_name.to_s.strip.empty?
-            warn pastel.red("\nNo profile name was provided.\n")
+            warn pastel.red('No profile name was provided.')
+            warn pastel.yellow('Please specify the name of the profile you want to update.')
             exit(1)
           end
 
           profile_path = Services::Paths.new.user_profile_path(profile_name.strip)
+
+          # ------------------------------------------------------------
+          # Validate options
+          # ------------------------------------------------------------
           options.reject! { |_, value| value == [] }
 
           if options.empty?
-            warn pastel.red("\nNo flags were provided that could be added or changed in the profile.\n")
+            warn pastel.red('No profile settings were provided to update.')
+            warn pastel.yellow('Specify one or more command-line options to modify the profile.')
             exit(1)
           end
 
           puts
+
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),
             error_mark: pastel.red('✗')
           )
+
           spinner.update(title: 'loading profile')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Check profile exists
+          # ------------------------------------------------------------
           begin
             unless File.exist?(profile_path)
-              spinner.error(pastel.red('(No profile)'))
-              puts pastel.red("\nNo profile can be found with that name.\n")
+              spinner.error(pastel.red('(Profile not found)'))
+              warn pastel.red("Profile not found: #{profile_name}")
+              warn pastel.yellow('Check the profile name and try again.')
               exit(1)
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to check profile)'))
-            puts pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
+            warn pastel.red('Failed to check whether the profile exists.')
+            warn pastel.red(e.message)
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # Load profile
+          # ------------------------------------------------------------
           begin
             profile_data = YAML.load_file(profile_path)
           rescue Errno::ENOENT
             spinner.error(pastel.red('(Profile missing)'))
-            puts.pastel.red("\nThe profile file could not be found. \n")
+            warn pastel.red('The profile file could not be found.')
+            warn pastel.yellow('It may have been moved or deleted.')
             exit(1)
           rescue Errno::EACCES
             spinner.error(pastel.red('(Permission denied)'))
+            warn pastel.red('You do not have permission to read this profile.')
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load profile)'))
-            puts pastel.red("\nFailed to load profile:\n#{e.message}\n")
+            warn pastel.red('Failed to load the profile.')
+            warn pastel.yellow('The profile may contain invalid YAML or be corrupted.')
+            warn pastel.red(e.message)
             exit(1)
           end
 
@@ -94,31 +119,54 @@ module AlcesJob
           spinner.update(title: 'updating profile')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Update profile
+          # ------------------------------------------------------------
           begin
             profile_data = profile_data.merge(options)
           rescue StandardError => e
-            spinner.error(pastel.red('(Failed to update)'))
-            puts pastel.red("\nFailed to update the profile information:\n#{e.message}\n")
+            spinner.error(pastel.red('(Update failed)'))
+            warn pastel.red('Failed to update the profile.')
+            warn pastel.red(e.message)
             exit(1)
           end
 
-          spinner.success(pastel.green('(Successful)'))
-          spinner.update(title: 'writing to file')
+          spinner.success(pastel.green('(Updated)'))
+          spinner.update(title: 'writing profile')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Save profile
+          # ------------------------------------------------------------
           begin
             File.write(profile_path, profile_data.to_yaml)
+
             spinner.success(pastel.green('(Written)'))
-            puts pastel.green("\nSuccessfully updated the profile.\n")
+
+            puts pastel.green("\nProfile updated successfully.\n")
             exit(0)
+          rescue Errno::ENOSPC
+            spinner.error(pastel.red('(Disk full)'))
+            warn pastel.red('There is not enough disk space to save the profile.')
+            exit(1)
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            spinner.error(pastel.red('(Invalid path)'))
+            warn pastel.red('The profile path does not exist or is invalid.')
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error(pastel.red('(Permission denied)'))
+            warn pastel.red('You do not have permission to write to this profile.')
+            exit(1)
           rescue StandardError => e
-            spinner.error(pastel.red('(Write error)'))
-            puts pastel.red("\nFailed to update the profile:\n#{e.message}\n")
+            spinner.error(pastel.red('(Write failed)'))
+            warn pastel.red('Failed to save the updated profile.')
+            warn pastel.red(e.message)
             exit(1)
           end
         rescue StandardError => e
-          spinner&.error(pastel.red('(command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          spinner&.error(pastel.red('(Unexpected error)'))
+          warn pastel.red('An unexpected error occurred while updating the profile.')
+          warn pastel.red(e.message)
           exit(1)
         end
       end

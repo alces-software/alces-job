@@ -12,116 +12,168 @@ module AlcesJob
     module Commands
       class ProfileEditRemove < Dry::CLI::Command
         AlcesJob::CLI.register 'profile edit remove', self
-        desc 'This is used to remove flags that have been stored in a profile'
 
-        argument :profile_name, require: true, type: :string, desc: 'The profile you want to update'
+        desc 'Remove stored Slurm options from an existing profile.'
 
-        option :job_name, type: :boolean, aliases: ['-J'], desc: 'Sets the Slurm job name for the generated script'
-        option :nodes, type: :boolean, desc: 'Requests the number of compute nodes for the job'
-        option :ntasks, type: :boolean, desc: 'Specifies the total number of tasks for the job'
-        option :cpus_per_task, type: :boolean, desc: 'Specifies CPU cores per task'
-        option :mem, type: :boolean, desc: 'Sets the memory requirement for the job (e.g. 4G or 2000M)'
-        option :time, type: :boolean, aliases: ['-t'], desc: 'Sets the job time limit (e.g. 02:00:00)'
-        option :partition, type: :boolean, aliases: ['-p'], desc: 'Specifies the Slurm partition or queue to use'
-        option :account, type: :boolean, aliases: ['-A'], desc: 'Specifies the Slurm account to charge'
-        option :gres, type: :boolean, desc: 'Specifies generic resources such as GPUs or MICs'
-        option :output, type: :boolean, aliases: ['-o'], desc: 'Sets the Slurm stdout file path in the generated script'
-        option :error, type: :boolean, aliases: ['-e'], desc: 'Sets the Slurm stderr file path in the generated script'
-        option :mail_user, type: :boolean, desc: 'Sets the email address for Slurm notifications'
-        option :mail_type, type: :boolean, desc: 'Sets the Slurm mail notification type (BEGIN, END, FAIL, etc.)'
-        option :module, type: :boolean, aliases: ['-m'], desc: 'Loads one or more environment modules before running the job'
-        option :workdir, type: :boolean, desc: 'Changes to the specified working directory in the job script'
-        option :command, type: :boolean, desc: 'Specifies the shell command to execute in the script'
-        option :array, type: :boolean, desc: 'Sets a Slurm array specification for multiple jobs'
-        option :dependency, type: :boolean, desc: 'Sets a Slurm dependency string for the job'
+        argument :profile_name, required: true, type: :string, desc: 'The profile you want to update'
+
+        option :job_name, type: :boolean, aliases: ['-J'], desc: 'Remove the Slurm job name'
+        option :nodes, type: :boolean, desc: 'Remove the node count'
+        option :ntasks, type: :boolean, desc: 'Remove the task count'
+        option :cpus_per_task, type: :boolean, desc: 'Remove CPUs per task'
+        option :mem, type: :boolean, desc: 'Remove the memory requirement'
+        option :time, type: :boolean, aliases: ['-t'], desc: 'Remove the time limit'
+        option :partition, type: :boolean, aliases: ['-p'], desc: 'Remove the partition'
+        option :account, type: :boolean, aliases: ['-A'], desc: 'Remove the account'
+        option :gres, type: :boolean, desc: 'Remove generic resource requirements'
+        option :output, type: :boolean, aliases: ['-o'], desc: 'Remove the output file path'
+        option :error, type: :boolean, aliases: ['-e'], desc: 'Remove the error file path'
+        option :mail_user, type: :boolean, desc: 'Remove the mail user'
+        option :mail_type, type: :boolean, desc: 'Remove the mail notification type'
+        option :module, type: :boolean, aliases: ['-m'], desc: 'Remove loaded modules'
+        option :workdir, type: :boolean, desc: 'Remove the working directory'
+        option :command, type: :boolean, desc: 'Remove the command'
+        option :array, type: :boolean, desc: 'Remove the array specification'
+        option :dependency, type: :boolean, desc: 'Remove the dependency'
 
         def call(profile_name:, **options)
           options.delete(:args)
+
           pastel = Pastel.new
 
+          # ------------------------------------------------------------
+          # Validate input
+          # ------------------------------------------------------------
           if profile_name.to_s.strip.empty?
-            warn pastel.red("\nNo profile name was provided.\n")
+            warn pastel.red('No profile name was provided.')
+            warn pastel.yellow('Please specify the name of the profile you want to update.')
             exit(1)
           end
 
           profile_path = Services::Paths.new.user_profile_path(profile_name.strip)
-          options.select { |_key, value| value }
+
+          # ------------------------------------------------------------
+          # Validate options
+          # ------------------------------------------------------------
+          options.select! { |_key, value| value }
 
           if options.empty?
-            warn pastel.red("\nNo flags were provided that could be removed from the profile.\n")
+            warn pastel.red('No profile settings were provided to remove.')
+            warn pastel.yellow('Specify one or more command-line options to remove from the profile.')
             exit(1)
           end
 
           puts
+
           spinner = TTY::Spinner.new(
             '[:spinner] :title ...',
             success_mark: pastel.green('✓'),
             error_mark: pastel.red('✗')
           )
+
           spinner.update(title: 'loading profile')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Check profile exists
+          # ------------------------------------------------------------
           begin
             unless File.exist?(profile_path)
-              spinner.error(pastel.red('(No profile)'))
-              warn pastel.red("\nNo profile can be found with that name.\n")
+              spinner.error(pastel.red('(Profile not found)'))
+              warn pastel.red("Profile not found: #{profile_name}")
+              warn pastel.yellow('Check the profile name and try again.')
               exit(1)
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to check profile)'))
-            warn pastel.red("\nFailed to check if the profile exists:\n#{e.message}\n")
+            warn pastel.red('Failed to check whether the profile exists.')
+            warn pastel.red(e.message)
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # Load profile
+          # ------------------------------------------------------------
           begin
             profile_data = YAML.load_file(profile_path)
           rescue Errno::ENOENT
             spinner.error(pastel.red('(Profile missing)'))
-            warn pastel.red("\nThe profile file could not be found. \n")
+            warn pastel.red('The profile file could not be found.')
+            warn pastel.yellow('It may have been moved or deleted.')
             exit(1)
           rescue Errno::EACCES
             spinner.error(pastel.red('(Permission denied)'))
-            warn pastel.red("\nYou do not have permission to read this profile. \n")
+            warn pastel.red('You do not have permission to read this profile.')
             exit(1)
           rescue Psych::SyntaxError => e
-            spinner.error(pastel.red('Invalid YAML:'))
-            warn pastel.red("\nThe profile contains invalid YAML:\n#{e.message}\n")
+            spinner.error(pastel.red('(Invalid YAML)'))
+            warn pastel.red('The profile contains invalid YAML.')
+            warn pastel.red(e.message)
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load profile)'))
-            warn pastel.red("\nFailed to load profile:\n#{e.message}\n")
+            warn pastel.red('Failed to load the profile.')
+            warn pastel.yellow('The profile may be corrupted or unreadable.')
+            warn pastel.red(e.message)
             exit(1)
           end
 
           spinner.success(pastel.green('(Profile loaded)'))
-          spinner.update(title: 'updating profile')
+          spinner.update(title: 'removing settings')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Remove selected settings
+          # ------------------------------------------------------------
           begin
             options.each_key { |key| profile_data.delete(key.to_sym) }
           rescue StandardError => e
-            spinner.error(pastel.red('(Failed to remove flags)'))
-            warn pastel.red("\nFailed to remove flags from the profile:\n#{e.message}\n")
+            spinner.error(pastel.red('(Removal failed)'))
+            warn pastel.red('Failed to remove the selected settings from the profile.')
+            warn pastel.red(e.message)
             exit(1)
           end
 
-          spinner.success(pastel.green('(Successful)'))
-          spinner.update(title: 'writing to file')
+          spinner.success(pastel.green('(Updated)'))
+          spinner.update(title: 'writing profile')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Save profile
+          # ------------------------------------------------------------
           begin
             File.write(profile_path, profile_data.to_yaml)
+
             spinner.success(pastel.green('(Written)'))
-            puts pastel.green("\nSuccessfully updated the profile\n")
+
+            puts pastel.green("\nProfile updated successfully.\n")
             exit(0)
+          rescue Errno::ENOSPC
+            spinner.error(pastel.red('(Disk full)'))
+            warn pastel.red('There is not enough disk space to save the profile.')
+            exit(1)
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            spinner.error(pastel.red('(Invalid path)'))
+            warn pastel.red('The profile path does not exist or is invalid.')
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error(pastel.red('(Permission denied)'))
+            warn pastel.red('You do not have permission to write to this profile.')
+            exit(1)
+          rescue Errno::EISDIR
+            spinner.error(pastel.red('(Invalid target)'))
+            warn pastel.red('The profile path refers to a directory instead of a file.')
+            exit(1)
           rescue StandardError => e
-            spinner.error(pastel.red('(Write error)'))
-            warn pastel.red("\nFailed to update the profile:\n#{e.message}\n")
+            spinner.error(pastel.red('(Write failed)'))
+            warn pastel.red('Failed to save the updated profile.')
+            warn pastel.red(e.message)
             exit(1)
           end
         rescue StandardError => e
-          spinner&.error(pastel.red('(Command error)'))
-          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          spinner&.error(pastel.red('(Unexpected error)'))
+          warn pastel.red('An unexpected error occurred while updating the profile.')
+          warn pastel.red(e.message)
           exit(1)
         end
       end
