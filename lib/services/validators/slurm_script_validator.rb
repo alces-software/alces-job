@@ -57,6 +57,10 @@ module AlcesJob
       private
 
       def validate_shebang(lines)
+        if lines.empty?
+          errors << 'Script is empty.'
+          return
+        end
         shebang_check = lines[0].sub(/\A#!\s*/, '#!').strip
         return if SUPPORTED_SHEBANGS.include?(shebang_check)
 
