@@ -18,6 +18,22 @@ module AlcesJob
         '#!/usr/bin/bash',
         '#!/usr/bin/env bash'
       ].freeze
+      VALID_FILENAME_PATTERN_SYMBOLS = [
+        '%',
+        'A',
+        'a',
+        'b',
+        'J',
+        'j',
+        'N',
+        'n',
+        'r',
+        'S',
+        's',
+        't',
+        'u',
+        'x'
+      ].freeze
 
       def initialize(file_path)
         @file_path = file_path
@@ -105,6 +121,28 @@ module AlcesJob
         end
       end
 
+      def find_pattern(file_path, label)
+        index = 0
+
+        while index < file_path.length
+          unless file_path[index] == '%'
+            index += 1
+            next
+          end
+          pattern_start = index
+          index += 1
+          index += 1 while index < file_path.length && file_path[index].match?(/\d/)
+          if index >= file_path.length
+            warnings << "#{label} path has an incomplete Slurm filename pattern: #{file_path[pattern_start..]}"
+            break
+          end
+
+          symbol = file_path[index]
+          warnings << "#{label} Paths contains a unrecognised Slurm file pattern: #{file_path[pattern_start..index]}. " unless VALID_FILENAME_PATTERN_SYMBOLS.include?(symbol)
+          index += 1
+        end
+      end
+
       def validate_time(sbatch_lines)
         time_value = directive_value(sbatch_lines, '--time')
         partition_name = directive_value(sbatch_lines, '--partition')
@@ -142,6 +180,8 @@ module AlcesJob
           errors << "#{label} path cannot be empty."
           return
         end
+
+        find_pattern(file_path, label)
 
         directory = File.dirname(file_path)
 
