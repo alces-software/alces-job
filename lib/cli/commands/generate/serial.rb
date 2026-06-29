@@ -36,21 +36,21 @@ module AlcesJob
 
           begin
             if options[:site_config]
-              spinner.update(title: 'Loading admin config')
+              spinner.update(title: 'Loading config')
               spinner.auto_spin
               config_manager = Services::ConfigManager.new(options)
               options = config_manager.config
-              spinner.success(pastel.green('(Loaded)'))
+              spinner.success(pastel.green('(Loaded config)'))
               config_manager.output.each do |line|
                 puts line
               end
             end
           rescue Errno::EACCES
             spinner.error(pastel.yellow('(Permission denied)'))
-            puts pastel.yellow("\nYou do not have permission to read the admin config.\n")
+            puts pastel.yellow("\nYou do not have permission to read the config.\n")
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load)'))
-            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
+            puts pastel.red("\nAn error occurred while accessing the config:\n#{e.message}\n")
             exit(1)
           end
 

@@ -27,7 +27,7 @@ module AlcesJob
 
         def call(**options)
           options[:module] = AlcesJob::Services.module_extractor(ARGV)
-          Services::Paths.new
+          prompt = TTY::Prompt.new
           pastel = Pastel.new
 
           puts
@@ -39,22 +39,21 @@ module AlcesJob
 
           begin
             if options[:site_config]
-              spinner.update(title: 'Loading admin config')
+              spinner.update(title: 'Loading config')
               spinner.auto_spin
               config_manager = Services::ConfigManager.new(options)
               options = config_manager.config
-              spinner.success(pastel.red('(Loaded)'))
+              spinner.success(pastel.green('(Loaded config)'))
               config_manager.output.each do |line|
                 puts line
               end
             end
           rescue Errno::EACCES
-            spinner.error(pastel.red('(Permission denied)'))
-            puts pastel.red("\nYou do not have permission to read the admin config.\n")
-            exit(1)
+            spinner.error(pastel.yellow('(Permission denied)'))
+            puts pastel.yellow("\nYou do not have permission to read the config.\n")
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load)'))
-            puts pastel.red("\nAn error occurred while accessing the admin config:\n#{e.message}\n")
+            puts pastel.red("\nAn error occurred while accessing the config:\n#{e.message}\n")
             exit(1)
           end
 
@@ -91,8 +90,15 @@ module AlcesJob
           spinner.auto_spin
 
           if options[:array].nil? || options[:array].to_s.strip.empty?
-            warn 'Error: --array is required for array jobs'
-            exit(1)
+            spinner.error(pastel.red('(Option missing)'))
+            if prompt.yes?("\nNo --array was provided would you like to use the default (0-2)")
+              options[:array] = '0-2'
+            else
+              puts pastel.red("\nAborting\n")
+              exit(0)
+            end
+            puts
+            spinner.auto_spin
           end
 
           options[:template] = 'array'
@@ -177,7 +183,7 @@ module AlcesJob
           # Submit the sbatch file to sbatch if user adds submit flag
           exit(0) unless options[:submit]
 
-          unless options[:yes] || TTY::Prompt.new.yes?("\nWould you like to submit this script?", default: false)
+          unless options[:yes] || prompt.yes?("\nWould you like to submit this script?", default: false)
             puts pastel.yellow("\nSkipping submission\n")
             exit(0)
           end

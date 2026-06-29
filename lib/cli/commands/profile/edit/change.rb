@@ -83,7 +83,7 @@ module AlcesJob
             exit(1)
           rescue Errno::EACCES
             spinner.error(pastel.red('(Permission denied)'))
-            exit(1)  
+            exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to load profile)'))
             puts pastel.red("\nFailed to load profile:\n#{e.message}\n")

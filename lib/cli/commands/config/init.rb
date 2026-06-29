@@ -32,6 +32,9 @@ module AlcesJob
         def call(**options)
           pastel = Pastel.new
 
+          options = options.reject! { |_, value| value == [] }
+          options = options.select { |_key, value| value }
+
           if options.empty?
             puts pastel.red("\nNo flags have been provided\n")
             exit(1)

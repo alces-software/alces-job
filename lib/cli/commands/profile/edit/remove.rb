@@ -83,11 +83,11 @@ module AlcesJob
             spinner.error(pastel.red('(Permission denied)'))
             puts pastel.red("\nYou do not have permission to read this profile. \n")
             exit(1)
-            rescue Psych::SyntaxError => e
+          rescue Psych::SyntaxError => e
             spinner.error(pastel.red('Invalid YAML:'))
             puts pastel.red("\nThe profile contains invalid YAML:\n#{e.message}\n")
             exit(1)
-            rescue StandardError => e
+          rescue StandardError => e
             spinner.error(pastel.red('(Failed to load profile)'))
             puts pastel.red("\nFailed to load profile:\n#{e.message}\n")
             exit(1)

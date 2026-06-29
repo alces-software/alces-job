@@ -42,13 +42,14 @@ module AlcesJob
           options.delete(:args)
           pastel = Pastel.new
           prompt = TTY::Prompt.new
+          path = Services::Paths.new
 
           if profile_name.to_s.strip.empty?
             puts pastel.red("\nNo profile name was provided.\n")
             exit(1)
           end
 
-          profile_path = Services::Paths.new.user_profile_path(profile_name.strip)
+          profile_path = path.user_profile_path(profile_name.strip)
           options.reject! { |_, value| value == [] }
 
           if options.empty?
@@ -80,7 +81,7 @@ module AlcesJob
           end
 
           begin
-            FileUtils.mkdir_p(File.dirname(profile_path))
+            FileUtils.mkdir_p(path.user_profile_dir)
             File.write(profile_path, options.to_yaml)
             spinner.success(pastel.green('(Successful)'))
             puts pastel.green("\nYour profile has been created and written to #{profile_path}\n")

@@ -38,7 +38,7 @@ module AlcesJob
           return
         end
 
-        config_keys = config['values'].keys
+        config_keys = config.keys
 
         unless options.empty?
           options.each_key do |key|
