@@ -35,6 +35,23 @@ module AlcesJob
         'x'
       ].freeze
 
+      VALID_MAIL_TYPES = %w[
+        NONE
+        BEGIN
+        END
+        FAIL
+        REQUEUE
+        ALL
+        INVALID_DEPEND
+        STAGE_OUT
+        TIME_LIMIT
+        TIME_LIMIT_90
+        TIME_LIMIT_80
+        TIME_LIMIT_50
+        ARRAY_TASKS
+        NONE
+      ].freeze
+
       def initialize(file_path)
         @file_path = file_path
         @errors = []
@@ -317,7 +334,21 @@ module AlcesJob
         mail_type = directive_value(sbatch_lines, '--mail-type')
         return if mail_type.nil?
 
-        errors << 'Mail type cannot be empty.' if mail_type.empty?
+        if mail_type.empty?
+          errors << 'Mail type cannot be empty.'
+          return
+        end
+
+        mail_types = mail_type.split(',', -1)
+
+        mail_types.each do |individual_mail_type|
+          if individual_mail_type.empty?
+            errors << 'Mail type values cannot be empty.'
+            next
+          end
+
+          errors << "Invalid mail type: #{individual_mail_type}." unless VALID_MAIL_TYPES.include?(individual_mail_type)
+        end
       end
 
       def validate_mail_user(sbatch_lines)
@@ -325,6 +356,10 @@ module AlcesJob
         return if mail_user.nil?
 
         errors << 'Mail user cannot be empty' if mail_user.empty?
+
+        return unless directive_value(sbatch_lines, '--mail-type').nil?
+
+        warnings << 'A --mail-user directive was supplied without --mail-type, so no email events have been selected'
       end
 
       def validate_mem_per_cpu(sbatch_lines)
