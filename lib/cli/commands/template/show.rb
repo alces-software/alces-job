@@ -12,7 +12,7 @@ module AlcesJob
         AlcesJob::CLI.register 'template show', self
         desc 'Displays the contents of an available template'
 
-        argument :template_name, require: true, type: :string, desc: 'The name of the template to display'
+        argument :template_name, require: false, type: :string, desc: 'The name of the template to display'
 
         def initialize
           paths = Services::Paths.new
@@ -21,10 +21,10 @@ module AlcesJob
           @builtin_templates_folder = File.expand_path('../../../../templates', __dir__)
         end
 
-        def call(template_name:, **)
+        def call(template_name: nil, **)
           pastel = Pastel.new
 
-          if template_name.nil?
+          if template_name.nil? || template_name.strip.empty?
             puts pastel.red("\nNo template name supplied.\n")
             exit(1)
           end

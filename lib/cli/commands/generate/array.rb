@@ -91,7 +91,7 @@ module AlcesJob
           spinner.auto_spin
 
           if options[:array].nil? || options[:array].to_s.strip.empty?
-            warn 'Error: --array is required for array jobs'
+            warn pastel.red('Error: --array is required for array. e.g. --array=1-6')
             exit(1)
           end
 
