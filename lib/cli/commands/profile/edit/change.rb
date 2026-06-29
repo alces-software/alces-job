@@ -163,6 +163,10 @@ module AlcesJob
             warn pastel.red("#{e.message}\n")
             exit(1)
           end
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
           spinner&.error(pastel.red('(Unexpected error)'))
           warn pastel.red("\nAn unexpected error occurred while updating the profile.")

@@ -36,7 +36,7 @@ module AlcesJob
           options = options.select { |_, value| value }
 
           if options.empty?
-            warn pastel.red('No configuration options were provided. Use --help to see available flags.')
+            warn pastel.red("\nNo configuration options were provided. Use --help to see available flags.\n")
             exit(1)
           end
 
@@ -64,7 +64,7 @@ module AlcesJob
 
             unless data.nil?
               spinner.error(pastel.red('(Already exists)'))
-              warn pastel.red("A configuration file already exists at:\n#{path}")
+              warn pastel.red("\nA configuration file already exists at:\n#{path}")
               warn pastel.yellow("Remove it or edit it manually if you want to regenerate it.\n")
               exit(1)
             end
@@ -100,25 +100,29 @@ module AlcesJob
             exit(0)
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
-            warn pastel.red('Unable to write configuration file: disk space is full.')
+            warn pastel.red("\nUnable to write configuration file: disk space is full.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
             warn pastel.red(
-              "Permission denied while writing configuration file.\n" \
-              "Check your access rights or filesystem permissions:\n#{path}"
+              "\nPermission denied while writing configuration file.\n" \
+              "Check your access rights or filesystem permissions:\n#{path}\n"
             )
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Write failed)'))
-            warn pastel.red('Failed to write configuration file:')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to write configuration file:")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
           spinner&.error(pastel.red('(Unexpected error)'))
-          warn pastel.red('An unexpected error occurred while running the command:')
-          warn pastel.red(e.message)
+          warn pastel.red("\nAn unexpected error occurred while creating the config:")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end

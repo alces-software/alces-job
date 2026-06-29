@@ -22,14 +22,14 @@ module AlcesJob
           begin
             profile_files = Dir.glob(Services::Paths.new.user_profile_path('*'))
           rescue Errno::EACCES
-            warn pastel.red('You do not have permission to view saved profiles.')
+            warn pastel.red("\nYou do not have permission to view saved profiles.\n")
             exit(1)
           rescue Errno::ENOENT, Errno::ENOTDIR
-            warn pastel.red('The profiles directory could not be found or is invalid.')
+            warn pastel.red("\nThe profiles directory could not be found or is invalid.\n")
             exit(1)
           rescue StandardError => e
-            warn pastel.red('Failed to retrieve the list of saved profiles.')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to retrieve the list of saved profiles.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
@@ -37,7 +37,7 @@ module AlcesJob
           # Display profiles
           # ------------------------------------------------------------
           if profile_files.empty?
-            warn pastel.yellow('No saved profiles were found.')
+            warn pastel.yellow("\nNo saved profiles were found.\n")
             exit(0)
           end
 
@@ -50,9 +50,13 @@ module AlcesJob
           puts
 
           exit(0)
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          warn pastel.red('An unexpected error occurred while listing profiles.')
-          warn pastel.red(e.message)
+          warn pastel.red("\nAn unexpected error occurred while listing profiles.\n")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end

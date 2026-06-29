@@ -73,7 +73,7 @@ module AlcesJob
           # Validate script exists
           # ------------------------------------------------------------
           unless File.exist?(script)
-            warn pastel.red("Script not found: #{script}")
+            warn pastel.red("\nScript not found: #{script}")
             warn pastel.yellow("Please check the file path and try again.\n")
             exit(1)
           end
@@ -125,24 +125,24 @@ module AlcesJob
             File.write(file_path, "#{edited_script.join("\n")}\n")
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
-            warn pastel.red('There is not enough disk space to save the file.')
+            warn pastel.red("\nThere is not enough disk space to save the file.\n")
             exit(1)
           rescue Errno::ENOENT, Errno::ENOTDIR
             spinner.error(pastel.red('(Invalid path)'))
-            warn pastel.red('The output location does not exist or is invalid.')
+            warn pastel.red("\nThe output location does not exist or is invalid.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            warn pastel.red('You do not have permission to write to this location.')
+            warn pastel.red("\nYou do not have permission to write to this location.\n")
             exit(1)
           rescue Errno::EISDIR
             spinner.error(pastel.red('(Invalid target)'))
-            warn pastel.red('The output path is a directory, not a file.')
+            warn pastel.red("\nThe output path is a directory, not a file.\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Write failed)'))
-            warn pastel.red('Failed to write the modified script to disk:')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to write the modified script to disk:")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
@@ -175,8 +175,8 @@ module AlcesJob
               exit(1)
             end
           rescue StandardError => e
-            warn pastel.red('Failed to validate script:')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to validate script:")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
@@ -202,20 +202,24 @@ module AlcesJob
               puts stdout
             else
               warn pastel.red("\nSlurm rejected the job submission.")
-              warn pastel.red(stdout.to_s)
+              warn pastel.red("#{stdout}\n")
               exit(1)
             end
           rescue StandardError => e
-            warn pastel.red('Failed to submit job:')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to submit job:")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
           exit(0)
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
           spinner&.error(pastel.red('(Unexpected error)'))
-          warn pastel.red('An unexpected error occurred while modifying the script:')
-          warn pastel.red(e.message)
+          warn pastel.red("\nAn unexpected error occurred while modifying the script:")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end

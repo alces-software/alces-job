@@ -25,8 +25,8 @@ module AlcesJob
           # Validate input
           # ------------------------------------------------------------
           if profile_name.to_s.strip.empty?
-            warn pastel.red('No profile name was provided.')
-            warn pastel.yellow('Please specify the name of the profile you want to delete.')
+            warn pastel.red("\nNo profile name was provided.")
+            warn pastel.yellow("Please specify the name of the profile you want to delete.\n")
             exit(1)
           end
 
@@ -38,13 +38,13 @@ module AlcesJob
           # ------------------------------------------------------------
           begin
             unless File.exist?(profile_path)
-              warn pastel.red("Profile not found: #{profile_name}")
-              warn pastel.yellow('Check the profile name and try again.')
+              warn pastel.red("\nProfile not found: #{profile_name}")
+              warn pastel.yellow("Check the profile name and try again.\n")
               exit(1)
             end
           rescue StandardError => e
-            warn pastel.red('Failed to check whether the profile exists.')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to check whether the profile exists.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
@@ -55,7 +55,7 @@ module AlcesJob
             "Are you sure you want to delete the '#{profile_name}' profile?",
             default: false
           )
-            warn pastel.yellow('Profile deletion cancelled.')
+            warn pastel.yellow("\nProfile deletion cancelled.\n")
             exit(0)
           end
 
@@ -82,22 +82,26 @@ module AlcesJob
             exit(0)
           rescue Errno::ENOENT
             spinner.error(pastel.red('(Profile missing)'))
-            warn pastel.red('The profile could not be found when deletion was attempted.')
+            warn pastel.red("\nThe profile could not be found when deletion was attempted.\n")
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            warn pastel.red('You do not have permission to delete this profile.')
+            warn pastel.red("\nYou do not have permission to delete this profile.\n")
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Delete failed)'))
-            warn pastel.red('Failed to delete the profile.')
-            warn pastel.red(e.message)
+            warn pastel.red("\nFailed to delete the profile.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
           spinner&.error(pastel.red('(Unexpected error)'))
-          warn pastel.red('An unexpected error occurred while deleting the profile.')
-          warn pastel.red(e.message)
+          warn pastel.red("\nAn unexpected error occurred while deleting the profile.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end
