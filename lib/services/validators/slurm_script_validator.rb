@@ -349,6 +349,10 @@ module AlcesJob
 
           errors << "Invalid mail type: #{individual_mail_type}." unless VALID_MAIL_TYPES.include?(individual_mail_type)
         end
+
+        return unless mail_types.include?('NONE') && mail_types.length > 1
+
+        warnings << 'Mail type NONE suppresses all notifications, so the other mail type values will be ignored.'
       end
 
       def validate_mail_user(sbatch_lines)
