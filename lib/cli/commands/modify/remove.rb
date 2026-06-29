@@ -123,34 +123,34 @@ module AlcesJob
             puts pastel.red("\nUnable to save the modified script because the output path is a directory, not a file. \n")
             exit(1)
           end
-            puts pastel.green("\nSBATCH flags removed successfully.\n")
-            puts pastel.green("Written to: #{file_path}\n")
+          puts pastel.green("\nSBATCH flags removed successfully.\n")
+          puts pastel.green("Written to: #{file_path}\n")
 
-            validator = Services::SlurmScriptValidator.new(file_path)
+          validator = Services::SlurmScriptValidator.new(file_path)
 
-            if validator.validate?
-              if options[:submit]
-                stdout, _, status = Open3.capture3("sbatch #{file_path}")
-                puts stdout
-                puts "Exit status: #{status.exitstatus}"
-              end
-
-              puts pastel.green("\nValidation passed.\n")
-            else
-              File.write(file_path, old_content)
-              puts pastel.red("\nInvalid script — changes reverted.\n")
-
-              validator.errors.each do |e|
-                puts "#{pastel.red('ERROR:')} #{e}"
-              end
+          if validator.validate?
+            if options[:submit]
+              stdout, _, status = Open3.capture3("sbatch #{file_path}")
+              puts stdout
+              puts "Exit status: #{status.exitstatus}"
             end
+
+            puts pastel.green("\nValidation passed.\n")
+          else
+            File.write(file_path, old_content)
+            puts pastel.red("\nInvalid script — changes reverted.\n")
+
+            validator.errors.each do |e|
+              puts "#{pastel.red('ERROR:')} #{e}"
+            end
+          end
 
           validator.warnings.each do |w|
             puts "#{pastel.yellow('WARNING:')} #{w}"
           end
-          rescue StandardError => e
-            puts pastel.red("\nFatal error: #{e.message}\n")
-            exit(1)
+        rescue StandardError => e
+          puts pastel.red("\nFatal error: #{e.message}\n")
+          exit(1)
         end
       end
     end
