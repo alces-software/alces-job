@@ -19,7 +19,7 @@ module AlcesJob
           pastel = Pastel.new
 
           if file_path.to_s.strip.empty?
-            puts pastel.red("\nNo template name was provided.\n")
+            warn pastel.red("\nNo file path was provided.\n")
             exit(1)
           end
 
@@ -35,7 +35,7 @@ module AlcesJob
             validator = AlcesJob::Services::SlurmScriptValidator.new(File.expand_path(file_path, Dir.pwd))
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to validate)'))
-            puts pastel.red("\nAn error occurred while validating the script:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while validating the script:\n#{e.message}\n")
             exit(1)
           end
           spinner.success(pastel.green('(Validation complete)'))
@@ -43,19 +43,19 @@ module AlcesJob
           if validator.validate?
             puts pastel.green("\nValidation passed\n")
           else
-            puts pastel.red("\nValidation failed:")
-            validator.errors.each { |error| puts "- #{error}" }
+            warn pastel.red("\nValidation failed:")
+            validator.errors.each { |error| warn "- #{error}" }
           end
 
           unless validator.warnings.empty?
-            puts pastel.yellow("\nWarnings:")
-            validator.warnings.each { |warning| puts "- #{warning}" }
+            warn pastel.yellow("\nWarnings:")
+            validator.warnings.each { |warning| warn "- #{warning}" }
           end
 
           exit(0)
         rescue StandardError => e
           spinner&.error(pastel.red('(Command error)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
       end

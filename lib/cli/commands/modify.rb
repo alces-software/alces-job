@@ -81,7 +81,7 @@ module AlcesJob
           pastel = Pastel.new
 
           if script.to_s.strip.empty?
-            puts pastel.red("\nNo script path was provided.\n")
+            warn pastel.red("\nNo script path was provided.\n")
             exit(1)
           end
 
@@ -98,12 +98,12 @@ module AlcesJob
           begin
             unless File.exist?(script)
               spinner.error(pastel.red('(Unable to find)'))
-              puts pastel.red("\nScript can't be found.\n")
+              warn pastel.red("\nScript can't be found.\n")
               exit(1)
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to find)'))
-            puts pastel.red("\nAn error occurred while checking if the file exists:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while checking if the file exists:\n#{e.message}\n")
             exit(1)
           end
 
@@ -116,7 +116,7 @@ module AlcesJob
             lines = old_content.lines(chomp: true)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to read)'))
-            puts pastel.red("\nFailed to read file:\n#{e.message}\n")
+            warn pastel.red("\nFailed to read file:\n#{e.message}\n")
             exit(1)
           end
 
@@ -303,7 +303,7 @@ module AlcesJob
             File.write(file_path, "#{edited_script.join("\n")}\n")
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to write)'))
-            puts pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
             exit(1)
           end
 
@@ -315,7 +315,7 @@ module AlcesJob
             validator = Services::SlurmScriptValidator.new(file_path)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to validate)'))
-            puts pastel.red("\nAn error occurred while validating the script:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while validating the script:\n#{e.message}\n")
             exit(1)
           end
 
@@ -345,7 +345,7 @@ module AlcesJob
             begin
               File.write(file_path, old_content)
             rescue StandardError => e
-              puts pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
+              warn pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
               exit(1)
             end
 
@@ -363,7 +363,7 @@ module AlcesJob
           exit(0)
         rescue StandardError => e
           spinner&.error(pastel.red('(Command failed)'))
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
 

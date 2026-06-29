@@ -20,10 +20,10 @@ module AlcesJob
     module Commands
       class Array < Templates::GenerateCommandTemplate
         AlcesJob::CLI.register 'generate array', self
-        desc 'Creates an array sbatch script'
+        desc 'Create a Slurm array job script'
 
-        option :nodes, type: :integer, aliases: ['-N'], desc: 'Requests the number of compute nodes for the array job'
-        option :array, type: :string, desc: 'Sets the Slurm array task specification for the job'
+        option :nodes, type: :integer, aliases: ['-N'], desc: 'Number of compute nodes'
+        option :array, type: :string, desc: 'Slurm array task specification'
 
         def call(**options)
           options[:module] = AlcesJob::Services.module_extractor(ARGV)
@@ -37,65 +37,79 @@ module AlcesJob
             error_mark: pastel.red('✗')
           )
 
+          # ------------------------------------------------------------
+          # Load site config
+          # ------------------------------------------------------------
           begin
             if options[:site_config]
-              spinner.update(title: 'Loading config')
+              spinner.update(title: 'loading configuration')
               spinner.auto_spin
+
               config_manager = Services::ConfigManager.new(options)
               options = config_manager.config
-              spinner.success(pastel.green('(Loaded config)'))
-              config_manager.output.each do |line|
-                puts line
-              end
+
+              spinner.success(pastel.green('(Loaded)'))
+
+              config_manager.output.each { |line| puts line }
             end
           rescue Errno::EACCES
-            spinner.error(pastel.yellow('(Permission denied)'))
-            warn pastel.yellow("\nYou do not have permission to read the config.\n")
+            spinner.error(pastel.red('(Permission denied)'))
+            warn pastel.red('Cannot read configuration file due to insufficient permissions.')
           rescue StandardError => e
-            spinner.error(pastel.red('(Failed to load)'))
-            warn pastel.red("\nConfig load failed: #{e.message}\n")
+            spinner.error(pastel.red('(Failed)'))
+            warn pastel.red('Failed to load configuration:')
+            warn pastel.red(e.message)
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # Load profile
+          # ------------------------------------------------------------
           begin
             unless options[:profile].nil?
               puts
               spinner.update(title: 'loading profile')
               spinner.auto_spin
+
               profile_manager = Services::ProfileManager.new(options[:profile], options)
               options = profile_manager.profile
               options.delete(:profile)
-              spinner.success(pastel.green('(Loaded profile)'))
-              profile_manager.output.each do |line|
-                puts line
-              end
+
+              spinner.success(pastel.green('(Loaded)'))
+
+              profile_manager.output.each { |line| puts line }
             end
           rescue Errno::ENOENT, Errno::ENOTDIR
-            spinner.error(pastel.red('(No profile found)'))
-            puts pastel.yellow("\nNo profile with that name was found\n")
+            spinner.error(pastel.red('(Not found)'))
+            warn pastel.yellow('No profile was found with the specified name.')
           rescue Errno::EACCES, Errno::EROFS
             spinner.error(pastel.red('(Permission denied)'))
-            warn pastel.red("\nYou do not have permission to read the specified profile.\n")
+            warn pastel.red('You do not have permission to read the requested profile.')
             exit(1)
           rescue StandardError => e
-            spinner.error(pastel.red('(Failed to load)'))
-            warn pastel.red("\nProfile load failed:\n#{e.message}\n")
+            spinner.error(pastel.red('(Failed)'))
+            warn pastel.red('Failed to load profile:')
+            warn pastel.red(e.message)
             exit(1)
           end
 
-          # Generate sbatch file bases on user inputs
+          # ------------------------------------------------------------
+          # Generate script
+          # ------------------------------------------------------------
           puts
           spinner.update(title: 'generating SBATCH script')
           spinner.auto_spin
 
           if options[:array].nil? || options[:array].to_s.strip.empty?
-            spinner.error(pastel.red('(Option missing)'))
-            if prompt.yes?("\nNo --array was provided would you like to use the default (0-2)")
+            spinner.error(pastel.red('(Missing option)'))
+
+            if prompt.yes?('No --array value provided. Use default (0-2)?')
               options[:array] = '0-2'
             else
-              puts pastel.red("\nAborting\n")
+              puts pastel.yellow("\nGeneration cancelled.\n")
               exit(0)
             end
+
             puts
             spinner.auto_spin
           end
@@ -105,8 +119,12 @@ module AlcesJob
           generator = Services::ScriptGenerator.new(options)
           script = generator.generate
 
+          # ------------------------------------------------------------
+          # Dry run preview
+          # ------------------------------------------------------------
           if options[:dry_run]
-            spinner.success(pastel.green('(Successful)'))
+            spinner.success(pastel.green('(Generated)'))
+
             box_width = script.lines.map { |line| line.chomp.length }.max + 4
             puts
 
@@ -121,20 +139,32 @@ module AlcesJob
             )
           end
 
+          # ------------------------------------------------------------
+          # Check overwrite
+          # ------------------------------------------------------------
           begin
             if File.exist?(generator.file_path)
-              spinner.error(pastel.red('(File exists)'))
-              exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
+              spinner.error(pastel.red('(Exists)'))
+
+              unless prompt.yes?('A script already exists at this location. Overwrite?', default: false)
+                puts pastel.yellow("\nOperation cancelled.\n")
+                exit(0)
+              end
+
               puts
-              spinner.update(title: 'Overwriting SBATCH script')
+              spinner.update(title: 'overwriting script')
               spinner.auto_spin
             end
           rescue StandardError => e
-            spinner.error(pastel.red('(Failed to overwrite)'))
-            warn pastel.red("\nFailed to check if a script already exits with that name:\n#{e.message}\n")
+            spinner.error(pastel.red('(Check failed)'))
+            warn pastel.red('Unable to check existing script file:')
+            warn pastel.red(e.message)
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # Validate before saving
+          # ------------------------------------------------------------
           begin
             Tempfile.create(['generated_script', '.slurm']) do |tempfile|
               tempfile.write(script)
@@ -143,62 +173,77 @@ module AlcesJob
               validator = Services::SlurmScriptValidator.new(tempfile.path)
 
               unless validator.validate?
-                spinner.error(pastel.red('(Invalid)'))
+                spinner.error(pastel.red('(Invalid script)'))
 
-                puts pastel.bold.red("\nGenerated script may not be valid:\n")
-                validator.errors.each { |error| puts pastel.red("ERROR: #{error}") }
-                validator.warnings.each { |warning| puts pastel.yellow("WARNING: #{warning}") }
+                warn pastel.red("The generated SBATCH script is not valid and was not saved.\n")
 
-                puts pastel.yellow("\nScript was not saved.\n")
+                validator.errors.each do |error|
+                  warn pastel.red("Error: #{error}")
+                end
+
+                validator.warnings.each do |warning|
+                  warn pastel.yellow("Warning: #{warning}")
+                end
+
                 exit(1)
               end
             end
           rescue StandardError => e
-            warn pastel.red("\nFailed to validate file before saving:\n#{e.message}\n")
+            warn pastel.red('Failed to validate the generated script before saving:')
+            warn pastel.red(e.message)
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # Save script
+          # ------------------------------------------------------------
           begin
             script_path = generator.save(script)
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
-            warn pastel.red("\nUnable to validate the generated script because the disk is full.\n")
+            warn pastel.red('Cannot save script: the disk is full.')
             exit(1)
           rescue Errno::EACCES, Errno::EROFS
-            spinner.error(pastel.red('(Permissions issue)'))
-            warn pastel.red("\nUnable to create or write the temporary validating file due to permissions or a read-only filesystem")
+            spinner.error(pastel.red('(Permission denied)'))
+            warn pastel.red('Cannot write script due to filesystem permissions.')
             exit(1)
           rescue StandardError => e
-            spinner.error(pastel.red('(Failed to save)'))
-            warn pastel.red("\nAn error occurred while saving the script:\n#{e.message}\n")
+            spinner.error(pastel.red('(Save failed)'))
+            warn pastel.red('Failed to save SBATCH script:')
+            warn pastel.red(e.message)
             exit(1)
           end
 
-          spinner.success(pastel.green('(Successful)'))
+          spinner.success(pastel.green('(Complete)'))
 
-          puts pastel.green("\nThe SBATCH script has been generated and saved to #{script_path}\n")
+          puts pastel.green("\nSBATCH script created successfully:\n#{script_path}\n")
 
-          # Submit the sbatch file to sbatch if user adds submit flag
+          # ------------------------------------------------------------
+          # Submit job
+          # ------------------------------------------------------------
           exit(0) unless options[:submit]
 
-          unless options[:yes] || prompt.yes?("\nWould you like to submit this script?", default: false)
-            puts pastel.yellow("\nSkipping submission\n")
+          unless options[:yes] || prompt.yes?('Submit this job to Slurm?', default: false)
+            puts pastel.yellow('Submission skipped.')
             exit(0)
           end
 
-          spinner.update(title: 'submitting script')
+          spinner.update(title: 'submitting job')
           spinner.auto_spin
+
           begin
             stdout, status = generator.submit(script_path)
           rescue StandardError => e
-            spinner.error(pastel.red('(Failed to submit)'))
-            warn pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
+            spinner.error(pastel.red('(Submission failed)'))
+            warn pastel.red('Failed to submit job to Slurm:')
+            warn pastel.red(e.message)
             exit(1)
           end
 
           unless status.success?
             spinner.error(pastel.red('(Error)'))
-            warn pastel.red("\nAn error occurred.\n")
+            warn pastel.red('Slurm rejected the job submission.')
+            warn pastel.red(stdout.to_s)
             exit(1)
           end
 
@@ -207,8 +252,9 @@ module AlcesJob
           puts "\n#{stdout}\n"
           exit(0)
         rescue StandardError => e
-          spinner.error(pastel.red('(Command error)'))
-          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          spinner&.error(pastel.red('(Unexpected error)'))
+          warn pastel.red('An unexpected error occurred while running the command:')
+          warn pastel.red(e.message)
           exit(1)
         end
       end

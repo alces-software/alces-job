@@ -22,12 +22,12 @@ module AlcesJob
             scan_templates(paths.admin_config_path, 'admin', templates)
             scan_templates(paths.user_template_dir, 'user', templates)
           rescue StandardError => e
-            puts pastel.red("\nAn error occurred while scanning the directories:\n#{e.message}\n")
+            warn pastel.red("\nAn error occurred while scanning the directories:\n#{e.message}\n")
             exit(1)
           end
 
           if templates.empty?
-            puts pastel.red("\nNo templates found.\n")
+            warn pastel.red("\nNo templates found.\n")
             exit(0)
           end
 
@@ -39,7 +39,7 @@ module AlcesJob
 
           exit(0)
         rescue StandardError => e
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
           exit(1)
         end
 
