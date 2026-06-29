@@ -205,23 +205,61 @@ module AlcesJob
         array_expression = unwrap_array_brackets(array_value)
         return if array_expression.nil?
 
-        warnings << "Array value '#{array_value}' creates only one task. This is valid, but a normal job may be more appropriate." if array_expression.match?(/\A\d+\z/)
+        array_parts = array_expression.split('%', -1)
 
-        unless array_expression.match?(/\A[\d,\-:%]+\z/)
+        if array_parts.length > 2
+          errors << "Invalid array value: #{array_value}. Only one concurrency limit is allowed."
+          return
+        end
+
+        task_expression = array_parts[0]
+        concurrency_limit = array_parts[1]
+
+        if task_expression.empty?
+          errors << 'Array task indexes cannot be empty.'
+          return
+        end
+
+        if concurrency_limit
+          if concurrency_limit.empty?
+            errors << "Invalid array concurrency limit in '#{array_value}'. Expected a positive number after '%'."
+            return
+          end
+
+          unless concurrency_limit.match?(/\A\d+\z/) && concurrency_limit.to_i.positive?
+            errors << "Invalid array concurrency limit '#{concurrency_limit}'. Expected a positive whole number."
+            return
+          end
+        end
+
+        unless task_expression.match?(/\A[\d,\-:]+\z/)
           errors << "Invalid array value: #{array_value}."
           return
         end
 
-        array_expression.split(',').each do |array_part|
+        warnings << "Array value '#{array_value}' creates only one task. This is valid, but a normal job may be more appropriate." if task_expression.match?(/\A\d+\z/)
+
+        task_expression.split(',', -1).each do |array_part|
+          if array_part.empty?
+            errors << "Invalid array value: #{array_value}. Array indexes cannot be empty."
+            next
+          end
+
           next unless array_part.include?('-')
 
-          array_range = array_part.match(/\A(\d+)-(\d+)\z/)
-          next unless array_range
+          array_range = array_part.match(/\A(\d+)-(\d+)(?::(\d+))?\z/)
+
+          unless array_range
+            errors << "Invalid array range: #{array_part}."
+            next
+          end
 
           start_value = array_range[1].to_i
           end_value = array_range[2].to_i
+          step_value = array_range[3]&.to_i
 
           errors << "Invalid array range: #{array_part}. Start value must be less than or equal to end value." if start_value > end_value
+          errors << "Invalid array step value in #{array_part}. Step must be greater than 0." if step_value&.zero?
         end
       end
 
