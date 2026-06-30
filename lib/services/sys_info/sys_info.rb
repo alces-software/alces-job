@@ -114,6 +114,8 @@ module AlcesJob
           next if line.end_with?('/')
 
           name, version = line.split('/', 2)
+          next if version.nil?
+
           version = version.split('-', 2).first
 
           next if parsed.values.any? do |category_hash|

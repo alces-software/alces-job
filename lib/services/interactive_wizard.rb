@@ -19,11 +19,11 @@ module AlcesJob
       def initialize
         @info = AlcesJob::Services::SysInfo.load_info
 
-        # @info = YAML.load_file('test_data.yaml')
         @info = deep_symbolize_keys(@info || {})
-        @info = @info[:partitions]
+        @partition_info = @info[:partitions]
+        @package_info = @info[:packages]
 
-        @info = prompt_for_system_info unless valid_partition_info?(@info)
+        # @info = prompt_for_system_info unless valid_partition_info?(@info)
 
         @banner = <<~BANNER
           'o`
@@ -36,77 +36,9 @@ module AlcesJob
         BANNER
       end
 
-      def side_by_side(left, right, gap: 4)
-        left_lines = left.lines.map(&:chomp)
-        right_lines = right.lines.map(&:chomp)
-
-        height = [left_lines.length, right_lines.length].max
-        left_width = left_lines.map(&:length).max || 0
-
-        (0...height).map do |i|
-          left_part = left_lines[i] || ''
-          right_part = right_lines[i] || ''
-
-          left_part.ljust(left_width + gap) + right_part
-        end.join("\n")
-      end
-
-      def asciify_multiline(text, artii, banner: nil)
-        lines = text.split("\n", -1)
-
-        art_lines = lines.map.with_index do |line, index|
-          art = line.empty? ? '' : artii.asciify(line)
-
-          # Put banner inline beside the final line only
-          if banner && index == lines.length - 1
-            side_by_side(art, banner, gap: 4)
-          else
-            art
-          end
-        end
-
-        art_lines.join("\n")
-      end
-
-      def animated_artii_title(text, artii, pastel, delay: 0.12)
-        current = ''
-
-        text.each_char do |char|
-          current += char
-
-          system('clear')
-
-          show_banner = current == text
-
-          puts pastel.bold.cyan(
-            asciify_multiline(
-              current,
-              artii,
-              banner: show_banner ? @banner : nil
-            )
-          )
-
-          sleep(delay) unless char == "\n"
-        end
-      end
-
-      def valid_partition_info?(info)
-        return false unless info.is_a?(Hash)
-        return false if info.empty?
-
-        info.values.all? do |partition|
-          partition.is_a?(Hash) &&
-            partition.key?(:name) &&
-            partition.key?(:time_limit) &&
-            partition.key?(:max_memory_mb) &&
-            partition.key?(:max_cpu_cores)
-        end
-      end
-
       def call
         system('clear')
         pastel = Pastel.new
-
         artii = Artii::Base.new(font: 'standard')
 
         animated_artii_title("ALCES\nJOB\nINTERACTIVE", artii, pastel)
@@ -119,12 +51,6 @@ module AlcesJob
         system('clear')
 
         max_run_time = nil
-
-        partition_list = []
-
-        @info.each_key do |partition|
-          partition_list.append(partition)
-        end
 
         types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
@@ -183,10 +109,8 @@ module AlcesJob
             ntasks: 'How many MPI tasks would you like per node?',
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores would each MPI task require?',
-
             mem: 'How much memory will your job use? (MB)',
             command: 'What MPI command would you like to run?'
-
           },
 
           gpu: {
@@ -205,7 +129,6 @@ module AlcesJob
             array: 'What array range would you like to use (e.g. 1-100)?',
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores should each array task use?',
-
             mem: 'How much memory would you like per array task? (MB)',
             command: 'What command would you like to run?'
           }
@@ -229,7 +152,7 @@ module AlcesJob
 
         system('clear')
 
-        info = @info
+        info = @partition_info
 
         questions = question_bank[job_type.to_sym]
 
@@ -365,9 +288,8 @@ module AlcesJob
 
                   array_parts, concurrency_limit = array_value.split('%', 2)
 
-                  if concurrency_limit && !concurrency_limit.match?(/\A\d+\z/)
-                    valid_array = false
-                  elsif concurrency_limit && concurrency_limit.to_i < 1
+                  if concurrency_limit &&
+                     (!concurrency_limit.match?(/\A\d+\z/) || concurrency_limit.to_i < 1)
                     valid_array = false
                   end
 
@@ -564,7 +486,7 @@ module AlcesJob
               puts
               puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer. Each CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}. Ask for more only if your code uses threading, multiprocessing, or software that can run in parallel."
               puts
-              puts "The max number of cpu cores per node on partion #{selected_partition} is #{max_cpu_cores}."
+              puts "The max number of cpu cores per node on partition #{selected_partition} is #{max_cpu_cores}."
               puts
 
               key(item).ask(pastel.bold.green(question), default: defaults[item]) do |q|
@@ -1085,9 +1007,8 @@ module AlcesJob
 
                 array_parts, concurrency_limit = array_value.split('%', 2)
 
-                if concurrency_limit && !concurrency_limit.match?(/\A\d+\z/)
-                  valid_array = false
-                elsif concurrency_limit && concurrency_limit.to_i < 1
+                if concurrency_limit &&
+                   (!concurrency_limit.match?(/\A\d+\z/) || concurrency_limit.to_i < 1)
                   valid_array = false
                 end
 
@@ -1309,6 +1230,73 @@ module AlcesJob
             node_count: node_count,
             time_limit: time_limit
           }
+        end
+      end
+
+      def side_by_side(left, right, gap: 4)
+        left_lines = left.lines.map(&:chomp)
+        right_lines = right.lines.map(&:chomp)
+
+        height = [left_lines.length, right_lines.length].max
+        left_width = left_lines.map(&:length).max || 0
+
+        (0...height).map do |i|
+          left_part = left_lines[i] || ''
+          right_part = right_lines[i] || ''
+
+          left_part.ljust(left_width + gap) + right_part
+        end.join("\n")
+      end
+
+      def asciify_multiline(text, artii, banner: nil)
+        lines = text.split("\n", -1)
+
+        art_lines = lines.map.with_index do |line, index|
+          art = line.empty? ? '' : artii.asciify(line)
+
+          # Put banner inline beside the final line only
+          if banner && index == lines.length - 1
+            side_by_side(art, banner, gap: 4)
+          else
+            art
+          end
+        end
+
+        art_lines.join("\n")
+      end
+
+      def animated_artii_title(text, artii, pastel, delay: 0.12)
+        current = ''
+
+        text.each_char do |char|
+          current += char
+
+          system('clear')
+
+          show_banner = current == text
+
+          puts pastel.bold.cyan(
+            asciify_multiline(
+              current,
+              artii,
+              banner: show_banner ? @banner : nil
+            )
+          )
+
+          sleep(delay) unless char == "\n"
+        end
+      end
+
+      def valid_partition_info?(info)
+        return false unless info.is_a?(Hash)
+        return false if info.empty?
+
+        info.values.all? do |partition|
+          partition.is_a?(Hash) &&
+            partition.key?(:name) &&
+            partition.key?(:time_limit) &&
+            partition.key?(:max_memory_mb) &&
+            partition.key?(:max_cpu_cores)
         end
       end
     end
