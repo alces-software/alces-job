@@ -30,6 +30,8 @@ module AlcesJob
         option :dependency, type: :string, desc: 'Job dependency string'
 
         def call(**options)
+          options[:modules] = AlcesJob::Services.module_extractor(ARGV)
+
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 

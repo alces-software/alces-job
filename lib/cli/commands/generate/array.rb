@@ -26,7 +26,8 @@ module AlcesJob
         option :array, type: :string, desc: 'Slurm array task specification'
 
         def call(**options)
-          options[:module] = AlcesJob::Services.module_extractor(ARGV)
+          options[:modules] = AlcesJob::Services.module_extractor(ARGV)
+
           prompt = TTY::Prompt.new
           pastel = Pastel.new
 

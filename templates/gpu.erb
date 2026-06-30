@@ -38,6 +38,11 @@
 <%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
 
+<% unless Array(@context.modules).empty? -%>
+module purge
+<% end -%>
+
+
 <%- line = "module load cuda" -%>
 <%= line.ljust(50) %># Load CUDA for GPU support
 

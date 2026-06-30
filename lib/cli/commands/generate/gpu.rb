@@ -28,7 +28,8 @@ module AlcesJob
         option :gres, type: :string, desc: 'GPU or generic resource specification'
 
         def call(**options)
-          options[:module] = AlcesJob::Services.module_extractor(ARGV)
+          options[:modules] = AlcesJob::Services.module_extractor(ARGV)
+
           prompt = TTY::Prompt.new
           pastel = Pastel.new
 

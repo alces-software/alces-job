@@ -23,7 +23,8 @@ module AlcesJob
         desc 'Create a Slurm serial job script'
 
         def call(**options)
-          options[:module] = AlcesJob::Services.module_extractor(ARGV)
+          options[:modules] = AlcesJob::Services.module_extractor(ARGV)
+
           prompt = TTY::Prompt.new
           pastel = Pastel.new
 

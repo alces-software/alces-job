@@ -27,7 +27,8 @@ module AlcesJob
         option :cpus_per_task, type: :integer, aliases: ['-c'], desc: 'CPU cores per task'
 
         def call(**options)
-          options[:module] = AlcesJob::Services.module_extractor(ARGV)
+          options[:modules] = AlcesJob::Services.module_extractor(ARGV)
+
           prompt = TTY::Prompt.new
           pastel = Pastel.new
 

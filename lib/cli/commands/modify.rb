@@ -161,7 +161,6 @@ module AlcesJob
               inline_comment = line[/\s+(#.*)\z/, 1]
 
               option_key = nil
-              value = nil
 
               if option.include?('=')
                 name, raw_value = option.split('=', 2)
@@ -171,7 +170,7 @@ module AlcesJob
                   sbatch_name == long_name
                 end&.first
 
-                value = raw_value.to_s.sub(/\s+#.*\z/, '').strip
+                raw_value.to_s.sub(/\s+#.*\z/, '').strip
 
               elsif option.start_with?('--')
                 long_name = option.delete_prefix('--')
@@ -180,14 +179,14 @@ module AlcesJob
                   sbatch_name == long_name
                 end&.first
 
-                value = spaced_value.to_s.sub(/\s+#.*\z/, '').strip
+                spaced_value.to_s.sub(/\s+#.*\z/, '').strip
 
               else
                 short_name = option[0, 2]
                 option_key = @short_options[short_name]
 
                 compact_value = option.length > 2 ? option[2..] : nil
-                value = (compact_value || spaced_value).to_s.sub(/\s+#.*\z/, '').strip
+                (compact_value || spaced_value).to_s.sub(/\s+#.*\z/, '').strip
               end
 
               unless option_key
@@ -245,6 +244,8 @@ module AlcesJob
             end
 
           used_modules = []
+
+          edited_script << 'module purge' if modules_to_write.any
 
           modules_to_write.each do |m|
             m = m.to_s.strip
