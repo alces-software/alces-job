@@ -53,6 +53,10 @@
 <%= line.ljust(55) %># Start this job only after another job condition is met
 <% end -%>
 
+<% if @context.prepare -%>
+<%= @prepare.directives %>
+<% end -%>
+
 <% unless Array(@context.modules).empty? -%>
 module purge
 <% end -%>
@@ -65,6 +69,10 @@ module purge
 <% if @context.workdir -%>
 <%- line = "cd #{@context.workdir}" -%>
 <%= line.ljust(55) %># Move to the working directory
+<% end -%>
+
+<% if @context.prepare -%>
+<%= @prepare.helper %>
 <% end -%>
 
 <%- line = "echo \"Running job\"" -%>
