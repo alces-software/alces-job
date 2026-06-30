@@ -4,6 +4,7 @@ require 'dry/cli'
 require 'dry/cli/completion'
 require 'tty-prompt'
 require 'fileutils'
+require 'pastel'
 
 require_relative '../../services/paths/paths'
 
@@ -12,30 +13,44 @@ module AlcesJob
     module Commands
       class CompletionBash < Dry::CLI::Command
         AlcesJob::CLI.register 'completion', self
+
         desc 'Installs tab completion for Alces-Job'
 
         START_MARKER = '# >>> alces-job completion >>>'
         END_MARKER   = '# <<< alces-job completion <<<'
 
         def call(**)
+          pastel = Pastel.new
+
           puts
-          return unless TTY::Prompt.new.no?('Do you want to install tab completion for Alces-Job?')
+
+          prompt = TTY::Prompt.new
+          return unless prompt.yes?('Do you want to install tab completion for Alces-Job?', default: false)
 
           paths = Services::Paths.new
-          if Process.euid.zero?
-            install_system(paths)
-          else
-            install_user(paths)
-          end
 
-          puts
-          puts 'Tab completion has been installed. Restart your terminal to activate it.'
-          puts
+          begin
+            if Process.euid.zero?
+              install_system(paths)
+            else
+              install_user(paths)
+            end
+
+            puts pastel.green("\nTab completion installed successfully.")
+            puts pastel.green("Restart your terminal to activate it.\n")
+          rescue StandardError => e
+            warn pastel.red("\nAn unexpected error occurred while installing completion.")
+            warn pastel.red("#{e.message}\n")
+            exit(1)
+          end
         end
 
         private
 
-        def install_user(paths)
+        # ------------------------------------------------------------
+        # User install
+        # ------------------------------------------------------------
+        def install_user(paths, _pastel)
           FileUtils.mkdir_p(paths.user_bash_completion_dir)
 
           completion_path = paths.user_bash_completion_path
@@ -45,9 +60,12 @@ module AlcesJob
             Dry::CLI::Completion::Generator.new(AlcesJob::CLI).call(shell: 'bash')
           )
 
-          install_into_file(paths.user_bashrc_path, paths.user_bash_completion_path)
+          install_into_file(paths.user_bashrc_path, completion_path)
         end
 
+        # ------------------------------------------------------------
+        # System install
+        # ------------------------------------------------------------
         def install_system(paths)
           FileUtils.mkdir_p(paths.system_bash_completion_dir)
 
@@ -64,6 +82,9 @@ module AlcesJob
           install_profile_d(completion_path)
         end
 
+        # ------------------------------------------------------------
+        # Inject into shell files
+        # ------------------------------------------------------------
         def install_into_file(file, completion_path)
           return unless File.exist?(file)
 
@@ -83,6 +104,9 @@ module AlcesJob
           File.write(file, content)
         end
 
+        # ------------------------------------------------------------
+        # profile.d install
+        # ------------------------------------------------------------
         def install_profile_d(completion_path)
           path = '/etc/profile.d/alces-job.sh'
 

@@ -68,7 +68,7 @@ module AlcesJob
         SbatchDirectiveValidator.validate_directives(sbatch_lines, errors)
         IntegerDirectiveValidator.validate(sbatch_lines, errors)
         validate_job_name(sbatch_lines)
-        validate_mutually_excllusive_directives(sbatch_lines)
+        validate_mutually_exclusive_directives(sbatch_lines)
         validate_memory(sbatch_lines)
         validate_time(sbatch_lines)
         validate_gres(sbatch_lines)
@@ -370,7 +370,7 @@ module AlcesJob
 
       def validate_ntask_per_node(sbatch_lines); end
 
-      def validate_mutually_excllusive_directives(sbatch_lines)
+      def validate_mutually_exclusive_directives(sbatch_lines)
         memory_directives = [
           '--mem',
           '--mem-per-cpu',

@@ -59,19 +59,26 @@ module AlcesJob
           spinner.update(title: 'checking for existing configuration file')
           spinner.auto_spin
 
-          if File.exist?(path)
-            data = YAML.load_file(path)
+          begin
+            if File.exist?(path)
+              data = YAML.load_file(path)
 
-            unless data.nil?
-              spinner.error(pastel.red('(Already exists)'))
-              warn pastel.red("\nA configuration file already exists at:\n#{path}")
-              warn pastel.yellow("Remove it or edit it manually if you want to regenerate it.\n")
-              exit(1)
+              if data
+                spinner.error(pastel.red('(Already exists)'))
+                warn pastel.red("\nA configuration file already exists at:\n#{path}")
+                warn pastel.yellow("Remove it or edit it manually if you want to regenerate it.\n")
+                exit(1)
+              end
+
+              spinner.success(pastel.green('(Empty file)'))
+            else
+              spinner.success(pastel.green('(Not found)'))
             end
-
-            spinner.success(pastel.green('(Empty file found)'))
-          else
-            spinner.success(pastel.green('(No existing file)'))
+          rescue StandardError => e
+            spinner.error(pastel.red('(Failed to check)'))
+            warn pastel.red("\nFailed to check config.")
+            warn pastel.red("#{e.message}\n")
+            exit(1)
           end
 
           # ------------------------------------------------------------

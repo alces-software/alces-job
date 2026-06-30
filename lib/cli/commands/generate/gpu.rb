@@ -193,6 +193,7 @@ module AlcesJob
             warn pastel.red("\nCannot create temporary validation file due to permissions or read-only filesystem.\n")
             exit(1)
           rescue StandardError => e
+            spinner.error(pastel.red('(Failed to validate)'))
             warn pastel.red('Failed to validate script before saving.')
             warn pastel.red("#{e.message}\n")
             exit(1)

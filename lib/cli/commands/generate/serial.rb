@@ -54,7 +54,7 @@ module AlcesJob
             warn pastel.red("\nCannot read configuration file due to insufficient permissions.\n")
           rescue StandardError => e
             spinner.error(pastel.red('(Failed)'))
-            warn pastel.red("\nFailed to load configuration:")
+            warn pastel.red("\nFailed to load configuration.")
             warn pastel.red("#{e.message}\n")
             exit(1)
           end
@@ -85,7 +85,7 @@ module AlcesJob
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed)'))
-            warn pastel.red("\nFailed to load profile:")
+            warn pastel.red("\nFailed to load profile.")
             warn pastel.red("#{e.message}\n")
             exit(1)
           end
@@ -148,7 +148,7 @@ module AlcesJob
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Check failed)'))
-            warn pastel.red("\nFailed to check existing script:")
+            warn pastel.red("\nFailed to check existing script.")
             warn pastel.red("#{e.message}\n")
             exit(1)
           end
@@ -188,7 +188,8 @@ module AlcesJob
             warn pastel.red("\nCannot create temporary validation file due to permissions or read-only filesystem.\n")
             exit(1)
           rescue StandardError => e
-            warn pastel.red('Failed to validate script before saving:')
+            spinner.error(pastel.red('(Failed to validate)'))
+            warn pastel.red('Failed to validate script before saving.')
             warn pastel.red("#{e.message}\n")
             exit(1)
           end
@@ -212,7 +213,7 @@ module AlcesJob
             exit(1)
           rescue StandardError => e
             spinner.error(pastel.red('(Save failed)'))
-            warn pastel.red("\nFailed to save SBATCH script:")
+            warn pastel.red("\nFailed to save SBATCH script.")
             warn pastel.red("#{e.message}\n")
             exit(1)
           end
@@ -238,7 +239,7 @@ module AlcesJob
             stdout, status = generator.submit(script_path)
           rescue StandardError => e
             spinner.error(pastel.red('(Submission failed)'))
-            warn pastel.red("\nFailed to submit job:")
+            warn pastel.red("\nFailed to submit job.")
             warn pastel.red("#{e.message}\n")
             exit(1)
           end
@@ -260,7 +261,7 @@ module AlcesJob
         # ------------------------------------------------------------
         rescue StandardError => e
           spinner.error(pastel.red('(Unexpected error)'))
-          warn pastel.red("\nAn unexpected error occurred while generating the script:")
+          warn pastel.red("\nAn unexpected error occurred while generating the script.")
           warn pastel.red("#{e.message}\n")
           exit(1)
         end
