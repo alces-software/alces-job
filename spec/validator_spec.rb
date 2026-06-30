@@ -2,9 +2,9 @@
 
 require 'spec_helper'
 require 'tempfile'
-require_relative '../lib/services/slurm_script_validator'
+require_relative '../lib/services/validators/slurm_script_validator'
 
-RSpec.describe SlurmScriptValidator do
+RSpec.describe AlcesJob::Services::SlurmScriptValidator do
   def create_script(content)
     file = Tempfile.new(['job', '.sbatch'])
     file.write(content)
@@ -69,14 +69,14 @@ RSpec.describe SlurmScriptValidator do
 
       expect(result).to be false
       expect(errors).to include(
-        'Missing shebang, spelt incorrectly, or unsupported. Expected: #!/bin/bash.'
+        'Missing shebang, spelt incorrectly, or unsupported. Expected one of: #!/bin/bash,#!/usr/bin/bash,#!/usr/bin/env bash.'
       )
     end
 
-    it 'returns false when the shebang is incorrect' do
+    it 'returns false when the shebang is incorrect' do # Chang this to saysommat better
       result, errors, = validate_script(
         <<~SBATCH,
-          #!/usr/bin/env bash
+          #!/usr/bin/env bas
           #SBATCH --job-name=test_job
           #SBATCH --time=01:00:00
           #SBATCH --mem=4G
@@ -88,7 +88,7 @@ RSpec.describe SlurmScriptValidator do
 
       expect(result).to be false
       expect(errors).to include(
-        'Missing shebang, spelt incorrectly, or unsupported. Expected: #!/bin/bash.'
+        'Missing shebang, spelt incorrectly, or unsupported. Expected one of: #!/bin/bash,#!/usr/bin/bash,#!/usr/bin/env bash.'
       )
     end
 
