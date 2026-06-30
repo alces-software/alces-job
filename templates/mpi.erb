@@ -21,15 +21,14 @@
 <%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
 
-<% unless Array(@context.modules).empty? -%>
+<% unless Array(@context.module).empty? -%>
 module purge
 <% end -%>
-
 
 <%- line = "module load openmpi" -%>
 <%= line.ljust(50) %># Load OpenMPI so MPI programs can run
 
-<% Array(@context.modules).each do |mod| -%>
+<% Array(@context.module).each do |mod| -%>
 <%- line = "module load #{mod}" -%>
 <%= line.ljust(50) %># Load extra user-requested module
 <% end -%>

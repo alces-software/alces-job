@@ -51,43 +51,32 @@ module AlcesJob
         system('clear')
 
         max_run_time = nil
-
         types_of_job = ['serial (default)', 'mpi', 'gpu', 'array']
 
         puts
-
         puts pastel.underline.bold.cyan('Interactive Mode')
-
         puts "\nWelcome to Alces Job interactive mode."
         puts 'This wizard will help you build a SLURM batch script step by step.'
-
         puts "\nYou will be asked a few questions about your job, such as:"
         puts '  - what type of job you want to run'
         puts '  - how long the job should run for'
         puts '  - how much CPU and memory it needs'
         puts '  - what command should be executed'
-
         puts 'Helpful explanations and examples will be shown as you go.'
         puts "\nDo not worry if you are unsure - sensible default values will be provided."
-
         puts
         puts pastel.yellow('Tip: Enlarge your terminal screen for a better experience.')
-
         puts "\nAt the end, you will be able to preview the generated script before saving it.\n\n"
-
         key = prompt.keypress('[Press any key to continue, or q to quit]')
         system('clear')
         exit(0) if key == 'q'
-
         puts
-
         puts pastel.underline.magenta.bold('Job Types')
         puts "\nPlease specify what type of job you wish to run."
         puts "\n1) #{pastel.cyan('Serial job')}\n\nChoose this if your program runs normally on one machine and does not need GPUs or multiple parallel tasks.\n\n e.g. python script.py or Rscript analysis.R"
         puts "\n2) #{pastel.yellow('MPI (Message Passing Interface)')}\n\nChoose MPI if your program was written to run in parallel using MPI, or if the documentation tells you to run it with mpirun, mpiexec, or srun."
         puts "\n3) #{pastel.green('GPU (Graphics Processing Unit)')}\n\nChoose GPU if your code uses CUDA, PyTorch, TensorFlow, or another library that needs a GPU."
         puts "\n4) #{pastel.blue('Array')}\n\nChoose array if you need to repeat the same job many times, usually with different files, parameters, or random seeds."
-
         puts
 
         job_type = prompt.select(pastel.bold.magenta('What type of job would you like to run?'), types_of_job)
@@ -99,7 +88,8 @@ module AlcesJob
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores would you like to request?',
             mem: 'How much memory will your job use? (MB)',
-            command: 'What command would you like to run?'
+            command: 'What command would you like to run?',
+            module: 'What modules would you like to load?'
           },
 
           mpi: {
@@ -110,7 +100,8 @@ module AlcesJob
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores would each MPI task require?',
             mem: 'How much memory will your job use? (MB)',
-            command: 'What MPI command would you like to run?'
+            command: 'What MPI command would you like to run?',
+            module: 'What modules would you like to load?'
           },
 
           gpu: {
@@ -120,7 +111,8 @@ module AlcesJob
             gres: 'How many GPUs would you like to request?',
             cpus_per_task: 'How many CPU cores would you like to request?',
             mem: 'How much memory will your job use? (MB)',
-            command: 'What command would you like to run?'
+            command: 'What command would you like to run?',
+            module: 'What modules would you like to load?'
           },
 
           array: {
@@ -130,7 +122,8 @@ module AlcesJob
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores should each array task use?',
             mem: 'How much memory would you like per array task? (MB)',
-            command: 'What command would you like to run?'
+            command: 'What command would you like to run?',
+            module: 'What modules would you like to load?'
           }
         }
 
@@ -149,6 +142,7 @@ module AlcesJob
         job_type = job_type.split[0] if job_type.split.length > 1
         selected_partition = nil
         info = @partition_info
+        packages = @package_info
         questions = question_bank[job_type.to_sym]
 
         system('clear')
@@ -512,6 +506,18 @@ module AlcesJob
                 end
                 q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
               end
+            when :module
+              choices = {}
+
+              packages.each_value do |packages|
+                packages.each do |package|
+                  choices["#{package[:name]} - v#{package[:version]}"] = "#{package[:name]}/#{package[:version]}"
+                end
+              end
+
+              key(item).multi_select(question, choices, filter: true)
+
+              puts key(item)
             else
               key(item).ask(question)
             end
@@ -523,6 +529,8 @@ module AlcesJob
 
         loop do
           job_type = 'universal' if job_type == 'serial'
+
+          puts result
           generator = AlcesJob::Services::ScriptGenerator.new(result.merge(template: job_type))
           script = generator.generate
 
@@ -1021,10 +1029,10 @@ module AlcesJob
                 cleaned = input.strip.gsub(/\s+/, '_')
                 cleaned.match?(/\A[a-zA-Z0-9_.-]+\z/) && !cleaned.empty?
               end
-              q.messages[:valid?] ='Job name can only contain letters, numbers, underscores, dots, and hyphens.'
+              q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
             end
           else
-            result[field] = prompt.ask("Enter new value for #{field}:",default: result[field].to_s)
+            result[field] = prompt.ask("Enter new value for #{field}:", default: result[field].to_s)
           end
 
           system('clear')

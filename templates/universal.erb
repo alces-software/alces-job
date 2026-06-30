@@ -53,11 +53,11 @@
 <%= line.ljust(55) %># Start this job only after another job condition is met
 <% end -%>
 
-<% unless Array(@context.modules).empty? -%>
+<% unless Array(@context.module).empty? -%>
 module purge
 <% end -%>
 
-<% Array(@context.modules).each do |mod| -%>
+<% Array(@context.module).each do |mod| -%>
 <%- line = "module load #{mod}" -%>
 <%= line.ljust(55) %># Load required software/module before running
 <% end -%>
