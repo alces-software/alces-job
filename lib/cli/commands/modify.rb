@@ -80,6 +80,9 @@ module AlcesJob
           script = File.expand_path(script, Dir.pwd)
           pastel = Pastel.new
 
+          # ------------------------------------------------------------
+          # Input validation
+          # ------------------------------------------------------------
           if script.to_s.strip.empty?
             warn pastel.red("\nNo script path was provided.\n")
             exit(1)
@@ -95,6 +98,9 @@ module AlcesJob
           spinner.update(title: 'checking script exists')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Exist check
+          # ------------------------------------------------------------
           begin
             unless File.exist?(script)
               spinner.error(pastel.red('(Unable to find)'))
@@ -103,7 +109,8 @@ module AlcesJob
             end
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to find)'))
-            warn pastel.red("\nAn error occurred while checking if the file exists:\n#{e.message}\n")
+            warn pastel.red("\nFailed to check for script.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
@@ -111,12 +118,16 @@ module AlcesJob
           spinner.update(title: 'reading script')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Read script
+          # ------------------------------------------------------------
           begin
             old_content = File.read(script)
             lines = old_content.lines(chomp: true)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to read)'))
-            warn pastel.red("\nFailed to read file:\n#{e.message}\n")
+            warn pastel.red("\nFailed to read file.")
+            warn pastel.red("#{e.message}}\n")
             exit(1)
           end
 
@@ -124,6 +135,9 @@ module AlcesJob
           spinner.update(title: 'generating new script')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Edit script
+          # ------------------------------------------------------------
           edited_script = []
           found_options = []
 
@@ -254,10 +268,12 @@ module AlcesJob
           end
 
           spinner.success(pastel.green('(Successful)'))
+
+          # ------------------------------------------------------------
+          # Display changes
+          # ------------------------------------------------------------
           puts
-
           box_width = old_content.lines.map { |line| line.chomp.length }.max + 4
-
           puts TTY::Box.frame(
             old_content,
             title: {
@@ -269,11 +285,8 @@ module AlcesJob
           )
 
           puts
-
           modified_content = edited_script.join("\n")
-
           box_width = modified_content.lines.map { |line| line.chomp.length }.max + 4
-
           puts TTY::Box.frame(
             modified_content,
             title: {
@@ -293,6 +306,9 @@ module AlcesJob
           spinner.update(title: 'saving script')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Save script
+          # ------------------------------------------------------------
           file_path = if options[:output_file]
                         File.join(Dir.pwd, options[:output_file])
                       else
@@ -301,9 +317,22 @@ module AlcesJob
 
           begin
             File.write(file_path, "#{edited_script.join("\n")}\n")
+          rescue Errno::ENOSPC
+            spinner.error(pastel.red('(Disk full)'))
+            warn pastel.red("\nCannot save script: disk is full.\n")
+            exit(1)
+          rescue Errno::ENOENT, Errno::ENOTDIR
+            spinner.error(pastel.red('(Invalid path)'))
+            warn pastel.red("\nCannot save script: output path is invalid or missing.\n")
+            exit(1)
+          rescue Errno::EACCES, Errno::EROFS
+            spinner.error(pastel.red('(Permission denied)'))
+            warn pastel.red("\nCannot save script due to permissions or read-only filesystem.\n")
+            exit(1)
           rescue StandardError => e
-            spinner.error(pastel.red('(Failed to write)'))
-            warn pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
+            spinner.error(pastel.red('(Save failed)'))
+            warn pastel.red("\nFailed to save SBATCH script.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
@@ -311,18 +340,25 @@ module AlcesJob
           spinner.update(title: 'validating script')
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Validate script
+          # ------------------------------------------------------------
           begin
             validator = Services::SlurmScriptValidator.new(file_path)
           rescue StandardError => e
             spinner.error(pastel.red('(Failed to validate)'))
-            warn pastel.red("\nAn error occurred while validating the script:\n#{e.message}\n")
+            warn pastel.red('Failed to validate the script:')
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
           spinner.success(pastel.green('(Finished validating)'))
 
+          # ------------------------------------------------------------
+          # Revert changes if validation fails
+          # ------------------------------------------------------------
           if validator.validate?
-            if options[:submit] == true
+            if options[:submit]
               begin
                 stdout, stderr, status = Open3.capture3('sbatch', file_path)
                 puts 'sbatch finished.'
@@ -336,7 +372,8 @@ module AlcesJob
                   puts stderr
                 end
               rescue StandardError => e
-                puts pastel.red("\nAn error occurred while submitting to sbatch:\n#{e.message}\n")
+                warn pastel.red("\nFailed to submit job.")
+                warn pastel.red("#{e.message}\n")
                 exit(1)
               end
             end
@@ -344,8 +381,22 @@ module AlcesJob
           else
             begin
               File.write(file_path, old_content)
+            rescue Errno::ENOSPC
+              spinner.error(pastel.red('(Disk full)'))
+              warn pastel.red("\nCannot restore script: disk is full.\n")
+              exit(1)
+            rescue Errno::ENOENT, Errno::ENOTDIR
+              spinner.error(pastel.red('(Invalid path)'))
+              warn pastel.red("\nCannot restore script: output path is invalid or missing.\n")
+              exit(1)
+            rescue Errno::EACCES, Errno::EROFS
+              spinner.error(pastel.red('(Permission denied)'))
+              warn pastel.red("\nCannot restore script due to permissions or read-only filesystem.\n")
+              exit(1)
             rescue StandardError => e
-              warn pastel.red("\nAn error occurred while writing to the file:\n#{e.message}\n")
+              spinner.error(pastel.red('(Restore failed)'))
+              warn pastel.red("\nFailed to restore SBATCH script.")
+              warn pastel.red("#{e.message}\n")
               exit(1)
             end
 
@@ -360,16 +411,22 @@ module AlcesJob
           validator.warnings.each do |warning|
             puts "#{pastel.yellow('WARNING:')} #{warning}"
           end
+
           exit(0)
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          spinner&.error(pastel.red('(Command failed)'))
-          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          spinner&.error(pastel.red('(Unexpected error)'))
+          warn pastel.red("\nAn unexpected error occurred while running the command.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
 
         private
 
-        # Finds the existing job nma in the file
+        # Finds the existing job name in the file
         # @param [Array<String>] lines
         # @return [String]
         def find_existing_job_name(lines)

@@ -16,8 +16,13 @@ module AlcesJob
         def call(*)
           pastel = Pastel.new
           AlcesJob::Services::InteractiveWizard.new.call
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn unexpected error occurred while running the command.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end

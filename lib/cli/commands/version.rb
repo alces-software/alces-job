@@ -8,10 +8,12 @@ module AlcesJob
     module Commands
       class Version < Dry::CLI::Command
         AlcesJob::CLI.register 'version', self, aliases: ['-v', '--version']
+
         desc 'Print version'
 
         def call(*)
           pastel = Pastel.new
+
           art = <<~ART
 
              'o`
@@ -27,8 +29,13 @@ module AlcesJob
 
           puts pastel.decorate(art, :bright_blue, :bold)
           exit(0)
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          warn pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn unexpected error occurred while running the command.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
       end

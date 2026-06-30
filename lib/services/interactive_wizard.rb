@@ -71,7 +71,6 @@ module AlcesJob
         puts
         puts pastel.yellow('Tip: Enlarge your terminal screen for a better experience.')
 
-
         puts "\nAt the end, you will be able to preview the generated script before saving it.\n\n"
 
         key = prompt.keypress('[Press any key to continue, or q to quit]')
