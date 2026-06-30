@@ -109,7 +109,8 @@ module AlcesJob
           begin
             if File.exist?(generator.file_path)
               spinner.error(pastel.red('(File exists)'))
-              exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch already exists do you want to overwrite it?", default: false)
+              filename = File.basename(generator.file_path)
+              exit(0) unless TTY::Prompt.new.yes?("\nAn sbatch file with the name #{pastel.cyan(filename)} already exists. Do you want to overwrite it?", default: false)
               puts
               spinner.update(title: 'Overwriting SBATCH script')
               spinner.auto_spin

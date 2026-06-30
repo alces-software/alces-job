@@ -1,9 +1,33 @@
 ---
-default:
-  :name: default
-  :default: true
-  :max_memory_mb: '5000'
-  :max_cpu_cores: 4
+:gpu:
+  :name: gpu
+  :default: false
+  :max_memory_mb: 514048
+  :max_cpu_cores: 64
   :max_gpus: 2
-  :node_count: 4
-  :time_limit: 0-07:00:00
+  :node_count: 22
+  :time_limit: 7-00:00:00
+:gpu_pri:
+  :name: gpu_pri
+  :default: false
+  :max_memory_mb: 514048
+  :max_cpu_cores: 64
+  :max_gpus: 2
+  :node_count: 22
+  :time_limit: 7-00:00:00
+:nodes:
+  :name: nodes
+  :default: true
+  :max_memory_mb: 1030144
+  :max_cpu_cores: 128
+  :max_gpus: 0
+  :node_count: 21
+  :time_limit: 7-00:00:00
+:pri:
+  :name: pri
+  :default: false
+  :max_memory_mb: 1030144
+  :max_cpu_cores: 128
+  :max_gpus: 0
+  :node_count: 21
+  :time_limit: 7-00:00:00
