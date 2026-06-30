@@ -265,7 +265,7 @@ module AlcesJob
         # ------------------------------------------------------------
         rescue StandardError => e
           spinner.error(pastel.red('(Unexpected error)'))
-          warn pastel.red("\nAn unexpected error occurred while generating the script:")
+          warn pastel.red("\nAn unexpected error occurred while generating the script.")
           warn pastel.red("#{e.message}\n")
           exit(1)
         end
