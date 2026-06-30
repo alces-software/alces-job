@@ -8,6 +8,7 @@ require 'fileutils'
 
 require_relative '../../../services/paths/paths'
 require_relative '../../../services/module_extractor/module_extractor'
+require_relative '../../../services/profile_manager/profile_manager'
 
 module AlcesJob
   module CLI
@@ -111,8 +112,7 @@ module AlcesJob
           # Create profile directory and save profile
           # ------------------------------------------------------------
           begin
-            FileUtils.mkdir_p(path.user_profile_dir)
-            File.write(profile_path, options.to_yaml)
+            AlcesJob::Services::ProfileManager.save_profile(profile_name, options)
 
             spinner.success(pastel.green('(Created)'))
 

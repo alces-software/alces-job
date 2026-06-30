@@ -10,6 +10,7 @@ require_relative 'sys_info/sys_info'
 require_relative 'paths/paths'
 require_relative 'converters/time_converter'
 require_relative 'converters/memory_converter'
+require_relative '../services/profile_manager/profile_manager'
 require 'artii'
 
 module AlcesJob
@@ -1184,9 +1185,30 @@ module AlcesJob
 
         job_type = 'universal' if job_type == 'serial'
 
-        generator = AlcesJob::Services::ScriptGenerator.new(
-          result.merge(template: job_type)
-        )
+        final_options = result.merge(template: job_type)
+        generator = AlcesJob::Services::ScriptGenerator.new(final_options)
+
+        if prompt.yes?('Would you like to save these settings to a profile?', default: false)
+          profile_name = prompt.ask('What would you like to call the profile?') do |q|
+            q.modify :strip
+            q.convert ->(input) { input.gsub(/\s+/, '_') }
+
+            q.validate do |input|
+              cleaned = input.strip.gsub(/\s+/, '_')
+              cleaned.match?(/\A[a-zA-Z0-9_.-]+\z/) && !cleaned.empty?
+            end
+
+            q.messages[:valid?] =
+              'Profile name can only contain letters, numbers, underscores, dots, and hyphens.'
+          end
+
+          saved_profile_path = AlcesJob::Services::ProfileManager.save_profile(
+            profile_name,
+            final_options
+          )
+
+          puts pastel.green("Profile saved to #{saved_profile_path}")
+        end
 
         exit(0) unless prompt.yes?('Write script to file?')
 

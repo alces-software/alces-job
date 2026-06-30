@@ -2,6 +2,7 @@
 
 require 'yaml'
 require 'pastel'
+require 'fileutils'
 
 require_relative '../paths/paths'
 
@@ -9,6 +10,16 @@ module AlcesJob
   module Services
     class ProfileManager
       attr_reader :profile, :output
+
+      def self.save_profile(profile_name, options)
+        paths = AlcesJob::Services::Paths.new
+        profile_path = paths.user_profile_path(profile_name.strip)
+
+        FileUtils.mkdir_p(paths.user_profile_dir)
+        File.write(profile_path, options.to_yaml)
+
+        profile_path
+      end
 
       # Loads the profile and adds it to the options
       # @param [String] profile_name
