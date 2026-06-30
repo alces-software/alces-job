@@ -10,6 +10,7 @@ module AlcesJob
     module Commands
       class TemplateList < Dry::CLI::Command
         AlcesJob::CLI.register 'template list', self
+
         desc 'Lists available templates from built-in, admin, and user locations'
 
         def call(*)
@@ -17,39 +18,46 @@ module AlcesJob
           pastel = Pastel.new
           templates = {}
 
+          # ------------------------------------------------------------
+          # Scan template directories
+          # ------------------------------------------------------------
           begin
             scan_templates(File.expand_path('../../../../templates', __dir__), 'built-in', templates)
             scan_templates(paths.admin_config_path, 'admin', templates)
             scan_templates(paths.user_template_dir, 'user', templates)
           rescue StandardError => e
-            puts pastel.red("\nAn error occurred while scanning the directories:\n#{e.message}\n")
+            warn pastel.red("\nFailed to scan template directories.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # No templates found
+          # ------------------------------------------------------------
           if templates.empty?
-            puts pastel.red("\nNo templates found.\n")
+            warn pastel.red("\nNo templates found.\n")
             exit(0)
           end
 
-          puts pastel.green("\nAvailable profiles:")
-          templates.each do |name, path|
-            puts "#{name} ~ #{path}"
+          # ------------------------------------------------------------
+          # Display templates
+          # ------------------------------------------------------------
+          puts pastel.green("\nAvailable templates:")
+          templates.each do |name, source|
+            puts "#{name} (#{source})"
           end
           puts
 
           exit(0)
         rescue StandardError => e
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn unexpected error occurred while running the command.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
 
         private
 
-        # Searches through a directory and and adds the available templates to an array
-        # @param [String] folder
-        # @param [String] source
-        # @param [Hash] templates
-        # @return [Hash]
+        # Searches directories for templates and collects results
         def scan_templates(folder, source, templates)
           return templates unless File.directory?(folder)
 

@@ -4,4 +4,15 @@
 root = File.expand_path('..', __dir__)
 require "#{root}/lib/cli/cli"
 
-Dry::CLI.new(AlcesJob::CLI).call
+begin
+  Dry::CLI.new(AlcesJob::CLI).call
+rescue ArgumentError => e
+  if (match = e.message.match(/missing keyword: :(\w+)/))
+    missing = match[1]
+    warn Pastel.new.red("\nMissing required argument: #{missing}\n")
+  end
+  exit(1)
+rescue StandardError => e
+  warn Pastel.new.red("\nAn error occurred while calling the command.\n")
+  exit(1)
+end

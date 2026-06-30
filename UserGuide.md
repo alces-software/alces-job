@@ -2,7 +2,7 @@
 
 ## Installation
 
-Ensure ruby is installed with
+Ensure ruby 4 is installed with
 
 ```
 $ ruby --version
@@ -12,49 +12,80 @@ $ gem --version
 
 If it is not, install ruby.
 
-### Installing Ruby
+### Install Ruby 4
 
-#### Debian and Ubuntu
-```
+#### Debian / Ubuntu
+```sh
 $ sudo apt update
-$ sudo apt install ruby-full build-essential ruby-dev
+$ sudo apt install -y ruby-full
 ```
-#### Fedora, Rocky Linux, AlmaLinux, RHEL, and CentOS Stream
+Note: Debian and Ubuntu will install the default Ruby version in their repositories. Ruby 4 will only be installed if your release includes it.
+
+#### Fedora
+```sh
+$ sudo dnf install -y ruby
 ```
-$ sudo dnf groupinstall "Development Tools"
-$ sudo dnf install ruby ruby-devel
+Fedora may provide Ruby 4 in newer releases. If available, this package will install it automatically.
+
+#### RHEL / AlmaLinux / Rocky Linux / CentOS Stream
+
+Check if Ruby 4 is available as a module:
+
+```sh
+$ sudo dnf module list ruby
 ```
-#### openSUSE Leap and Tumbleweed
+
+If a Ruby 4 stream exists:
+
+```sh
+$ sudo dnf module reset ruby -y
+$ sudo dnf module enable ruby:4.0 -y
+$ sudo dnf install -y ruby ruby-devel
 ```
-$ sudo zypper install -t pattern devel_basis
-$ sudo zypper install ruby ruby-devel
+
+If no Ruby 4 module is available, your distribution does not currently support Ruby 4 via system packages.
+
+#### openSUSE
+```sh
+$ sudo zypper install -y ruby
 ```
+
 #### Arch Linux
+
+```sh
+$ sudo pacman -S --noconfirm ruby
 ```
-$ sudo pacman -S ruby base-devel
-```
+
+Arch typically provides the latest stable Ruby version available at the time of release.
+
 #### Alpine Linux
+```sh
+$ sudo apk add ruby
 ```
-$ sudo apk add ruby ruby-dev build-base
+### Verify installation
+```sh
+ruby --version
+gem --version
 ```
-#### Verify the Installation
-```
-$ ruby --version
-$ gem --version
-```
+
+Confirm that the output shows Ruby 4.x.
+
+### Ruby Version Manager
+
+If you cannot install ruby 4 via your native package manager, install it via a version manager such as [mise](https://mise.jdx.dev/getting-started.html).
 
 ### Installing alces-job
 
 Go to the [releases](https://github.com/alces-software/alces-job/releases) page and download the gem file, or download it directly with
 
 ```sh
-$ wget https://github.com/alces-software/alces-job/releases/download/v1.0.0/alces-job-1.0.0.gem
+$ wget https://github.com/alces-software/alces-job/releases/download/v1.0.1/alces-job-1.0.1.gem
 ```
 
 Run:
 
 ```sh
-$ gem install alces-job-1.0.0.gem
+$ gem install alces-job-1.0.1.gem
 ```
 
 Verify installation with
@@ -109,7 +140,7 @@ When you run alces-job generate universal, the tool takes values you pass via fl
 
 Conditional blocks (like <% if @context.mem -%>) mean sections are only included if you provide those options, keeping the final script clean and tailored to your job.
 
-For an example of a template, look inside `/templates`
+For an example of a template, look inside [/templates](https://github.com/alces-software/alces-job/tree/main/templates) on the repo.
 
 #### Where you would put your own template
 

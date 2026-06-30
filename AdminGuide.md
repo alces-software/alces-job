@@ -5,14 +5,14 @@
 Install the gem as root so system-wide config and templates are available to all users:
 
 ```sh
-$ sudo gem install alces-job-1.0.0.gem
+$ sudo gem install alces-job-1.0.1.gem
 ```
 
 If you are installing from source, build and install as root:
 
 ```sh
 $ sudo gem build alces-job.gemspec
-$ sudo gem install alces-job-1.0.0.gem
+$ sudo gem install alces-job-1.0.1.gem
 ```
 
 ### NOTE

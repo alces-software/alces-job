@@ -10,9 +10,10 @@ module AlcesJob
     module Commands
       class TemplateShow < Dry::CLI::Command
         AlcesJob::CLI.register 'template show', self
+
         desc 'Displays the contents of an available template'
 
-        argument :template_name, require: true, type: :string, desc: 'The name of the template to display'
+        argument :template_name, required: true, type: :string, desc: 'The name of the template to display'
 
         def initialize
           paths = Services::Paths.new
@@ -24,18 +25,29 @@ module AlcesJob
         def call(template_name:, **)
           pastel = Pastel.new
 
-          if template_name.nil?
-            puts pastel.red("\nNo template name supplied.\n")
+          # ------------------------------------------------------------
+          # Validate input
+          # ------------------------------------------------------------
+          if template_name.to_s.strip.empty?
+            warn pastel.red("\nNo template name was provided.\n")
             exit(1)
           end
 
+          template_name = template_name.strip
           path = template_path(template_name)
 
+          # ------------------------------------------------------------
+          # Check template exists
+          # ------------------------------------------------------------
           unless path
-            puts pastel.red("\nTemplate #{template_name} not found.\n")
+            warn pastel.red("\nTemplate not found: #{template_name}")
+            warn pastel.yellow("Check the template name and try again.\n")
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # Read template
+          # ------------------------------------------------------------
           begin
             puts
             puts "# Template: #{template_name}"
@@ -43,20 +55,33 @@ module AlcesJob
             puts
             puts File.read(path)
             puts
+
+            exit(0)
+          rescue Errno::ENOENT
+            warn pastel.red("\nTemplate file not found.")
+            warn pastel.yellow("It may have been moved or deleted.\n")
+            exit(1)
+          rescue Errno::EACCES
+            warn pastel.red("\nYou do not have permission to read this template.\n")
+            exit(1)
           rescue StandardError => e
-            puts pastel.red("\nAn error occurred while reading the template:\n#{e.message}\n")
+            warn pastel.red("\nFailed to read template.")
+            warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
-          exit(0)
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          puts pastel.red("\nAn error occurred while running the command:\n#{e.message}\n")
+          warn pastel.red("\nAn unexpected error occurred while running the command.")
+          warn pastel.red("#{e.message}\n")
           exit(1)
         end
 
         private
 
-        # Searches for the directories for where the template is stored
+        # Finds template in user/admin/built-in locations
         # @param [String] name
         # @return [String]
         def template_path(name)
@@ -69,12 +94,12 @@ module AlcesJob
           candidate_paths.find { |path| File.exist?(path) }
         end
 
-        # Determines where the template is stored e.g. user, admin or built in
+        # Determines template source
         # @return [String]
         def template_source(path)
           case path
-          when /#{Regexp.escape(@user_templates_folder)}/ then 'user'
-          when /#{Regexp.escape(@admin_templates_folder)}/ then 'admin'
+          when /#{Regexp.escape(@user_templates_folder)}/ then 'user'
+          when /#{Regexp.escape(@admin_templates_folder)}/ then 'admin'
           else 'built-in'
           end
         end

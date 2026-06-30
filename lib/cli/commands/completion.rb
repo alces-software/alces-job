@@ -19,10 +19,7 @@ module AlcesJob
 
         def call(**)
           puts
-          return unless TTY::Prompt.new.yes?(
-            'Do you want to install tab completion for Alces-Job?',
-            default: false
-          )
+          return unless TTY::Prompt.new.no?('Do you want to install tab completion for Alces-Job?')
 
           paths = Services::Paths.new
           if Process.euid.zero?
