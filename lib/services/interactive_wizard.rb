@@ -89,7 +89,7 @@ module AlcesJob
             cpus_per_task: 'How many CPU cores would you like to request?',
             mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?',
-            module: 'What modules would you like to load?'
+            modules: 'What modules would you like to load?'
           },
 
           mpi: {
@@ -101,7 +101,7 @@ module AlcesJob
             cpus_per_task: 'How many CPU cores would each MPI task require?',
             mem: 'How much memory will your job use? (MB)',
             command: 'What MPI command would you like to run?',
-            module: 'What modules would you like to load?'
+            modules: 'What modules would you like to load?'
           },
 
           gpu: {
@@ -112,7 +112,7 @@ module AlcesJob
             cpus_per_task: 'How many CPU cores would you like to request?',
             mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?',
-            module: 'What modules would you like to load?'
+            modules: 'What modules would you like to load?'
           },
 
           array: {
@@ -123,7 +123,7 @@ module AlcesJob
             cpus_per_task: 'How many CPU cores should each array task use?',
             mem: 'How much memory would you like per array task? (MB)',
             command: 'What command would you like to run?',
-            module: 'What modules would you like to load?'
+            modules: 'What modules would you like to load?'
           }
         }
 

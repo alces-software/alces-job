@@ -21,12 +21,11 @@
 <%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
 
-<% unless Array(@context.module).empty? -%>
+<% unless Array(@context.modules).empty? -%>
 module purge
 <% end -%>
 
-
-<% Array(@context.module).each do |mod| -%>
+<% Array(@context.modules).each do |mod| -%>
 <%- line = "module load #{mod}" -%>
 <%= line.ljust(50) %># Load required software/module before running
 <% end -%>
