@@ -12,7 +12,7 @@ require_relative '../../../services/module_extractor/module_extractor'
 module AlcesJob
   module CLI
     module Commands
-      class Remove < Dry::CLI::Command
+      class ModifyRemove < Dry::CLI::Command
         AlcesJob::CLI.register 'modify remove', self
 
         desc 'Remove SBATCH flags from a Slurm script'

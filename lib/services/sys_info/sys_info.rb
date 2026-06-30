@@ -78,9 +78,7 @@ module AlcesJob
             clean_gres = gres.to_s.sub(/\(.+\)\z/, '')
 
             gpu_count =
-              if clean_gres =~ /gpu:[^:,\s]+:(\d+)/
-                Regexp.last_match(1).to_i
-              elsif clean_gres =~ /gpu:(\d+)/
+              if clean_gres =~ /gpu:(?:[^:,\s]+:)?(\d+)/
                 Regexp.last_match(1).to_i
               else
                 0
@@ -94,17 +92,50 @@ module AlcesJob
       end
 
       # Gets a list of the names
-      # @return [Array<String>, nil]
+      # @return [Hash]
       def self.package_info
-        stdout, _, status = Open3.capture3('module avail')
+        stdout, _, status = Open3.capture3('module -t avail 2>&1')
 
-        return [] unless status.success?
+        return {} unless status.success?
 
-        stdout.lines.map do |line|
-          line.gsub(%r{/[^ ]*}, '').strip
+        parsed = Hash.new { |h, k| h[k] = [] }
+        category = nil
+
+        stdout.lines.map(&:strip).reject(&:empty?).each do |line|
+          line = line.strip
+          next if line.empty?
+          next if line.downcase == 'null'
+
+          if line.end_with?(':')
+            category = line.split('/').last.chop
+            next
+          end
+
+          next if line.end_with?('/')
+
+          name, version = line.split('/', 2)
+          version = version.split('-', 2).first
+
+          next if parsed.values.any? do |category_hash|
+            category_hash.any? { |v| v[:name] == name && v[:version] == version }
+          end
+
+          deprecated =
+            line.downcase.include?('deprecated') ||
+            line.downcase.include?('legacy') ||
+            line.downcase.include?('old') ||
+            line.downcase.include?('(deprecated)')
+
+          parsed[category] << {
+            name: name,
+            version: version,
+            deprecated: deprecated
+          }
         end
+
+        parsed
       rescue Errno::ENOENT
-        []
+        {}
       end
     end
   end
