@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#SBATCH --job-name=default-job                    # Name shown for this job in the Slurm queue
+#SBATCH --nodes=2                                 # Number of nodes/machines requested
+#SBATCH --ntasks=32                               # Total number of MPI tasks/processes
+#SBATCH --cpus-per-task=1                         # CPU cores per MPI task
+
+module load openmpi                               # Load OpenMPI so MPI programs can run
+
+
+
+echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"        # Print MPI resource information
+
+srun                                              # Launch the MPI program using Slurm's task launcher
