@@ -506,7 +506,7 @@ module AlcesJob
                 end
                 q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
               end
-            when :module
+            when :modules
               choices = {}
 
               packages.each_value do |packages|
