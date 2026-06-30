@@ -6,6 +6,7 @@ require 'open3'
 require 'tty-prompt'
 require 'tty-spinner'
 require 'shellwords'
+require 'diffy'
 
 require_relative '../../services/validators/slurm_script_validator'
 require_relative '../../services/module_extractor/module_extractor'
@@ -146,6 +147,7 @@ module AlcesJob
           lines.each do |line|
             if line.start_with?('#!')
               edited_script << line
+              edited_script << ''
             elsif line.start_with?('#SBATCH')
               match = line.match(/\A#SBATCH\s+(?<option>\S+)(?:\s+(?<spaced_value>.*))?\z/)
 
@@ -156,6 +158,7 @@ module AlcesJob
 
               option = match[:option]
               spaced_value = match[:spaced_value]
+              inline_comment = line[/\s+(#.*)\z/, 1]
 
               option_key = nil
               value = nil
@@ -200,10 +203,14 @@ module AlcesJob
                  !(options[option_key].respond_to?(:empty?) && options[option_key].empty?)
 
                 new_value = options[option_key]
-                edited_script << "#SBATCH --#{@sbatch_options.fetch(option_key)}=#{new_value}"
+                directive = "#SBATCH --#{@sbatch_options.fetch(option_key)}=#{new_value}"
+
               else
-                edited_script << "#SBATCH --#{@sbatch_options.fetch(option_key)}=#{value}"
+                edited_script << line
+                next
+
               end
+              edited_script << format_directive(directive, inline_comment)
 
             end
           end
@@ -253,7 +260,12 @@ module AlcesJob
           edited_script << ''
 
           if options[:command]
+            lines.each do |line|
+              next unless line.strip.start_with?('#')
+              next if line.start_with?('#!', '#SBATCH')
 
+              edited_script << line
+            end
             edited_script << options[:command]
           else
             lines.each do |line|
@@ -261,8 +273,7 @@ module AlcesJob
               next if line.start_with?('#SBATCH')
               next if line.strip.start_with?('module load ')
               next if line.strip.start_with?('cd ')
-              next if line.strip.start_with?('#')
-              next if line.strip.start_with?('echo "Running job ')
+              next if line.strip.match?(/\Aecho\s+["']Running job\b/)
               next if line.empty? && edited_script.last == ''
 
               edited_script << line
@@ -275,22 +286,32 @@ module AlcesJob
           # Display changes
           # ------------------------------------------------------------
           puts
+
+          modified_content = "#{edited_script.join("\n")}\n"
+
+          diff = Diffy::Diff.new(
+            remove_empty_lines(old_content),
+            remove_empty_lines(modified_content),
+            context: 0
+          ).to_s(:color)
+
           box_width = old_content.lines.map { |line| line.chomp.length }.max + 4
+
+          highlighted_old_content, highlighted_modified_content =
+            highlighted_scripts(old_content, modified_content, pastel)
+
           puts TTY::Box.frame(
-            old_content,
+            highlighted_old_content,
             title: {
-              top_center: pastel.bold.yellow(' ORIGINAL SCRIPT ')
+              top_center: pastel.bold.red(' ORIGINAL SCRIPT ')
             },
             padding: 1,
             border: :thick,
             width: box_width
           )
-
           puts
-          modified_content = edited_script.join("\n")
-          box_width = modified_content.lines.map { |line| line.chomp.length }.max + 4
           puts TTY::Box.frame(
-            modified_content,
+            highlighted_modified_content,
             title: {
               top_center: pastel.bold.green(' MODIFIED SCRIPT ')
             },
@@ -299,7 +320,15 @@ module AlcesJob
             width: box_width
           )
 
-          unless prompt.yes?("\nWould you like to save this script?", default: false)
+          puts pastel.bold("\nChanges made:")
+          puts "#{pastel.red('-')} original line"
+          puts "#{pastel.green('+')} modified/new line"
+          puts
+
+          puts diff
+          puts
+
+          unless TTY::Prompt.new.yes?("\nWould you like to save this script?", default: false)
             puts 'Aborting...'
             puts
             exit(0)
@@ -433,7 +462,52 @@ module AlcesJob
 
         private
 
-        # Finds the existing job name in the file
+        def highlighted_scripts(old_content, modified_content, pastel)
+          diff = Diffy::Diff.new(
+            remove_empty_lines(old_content),
+            remove_empty_lines(modified_content),
+            context: 0
+          ).to_s
+
+          removed_lines = []
+          added_lines = []
+
+          diff.lines.each do |line|
+            if line.start_with?('-') && !line.start_with?('---')
+              removed_lines << line[1..].chomp
+            elsif line.start_with?('+') && !line.start_with?('+++')
+              added_lines << line[1..].chomp
+            end
+          end
+
+          highlighted_old = old_content.lines.map do |line|
+            clean_line = line.chomp
+
+            if removed_lines.include?(clean_line)
+              "#{pastel.red(line.chomp)}\n"
+            else
+              line
+            end
+          end.join
+
+          highlighted_new = modified_content.lines.map do |line|
+            clean_line = line.chomp
+
+            if added_lines.include?(clean_line)
+              "#{pastel.green(line.chomp)}\n"
+            else
+              line
+            end
+          end.join
+
+          [highlighted_old, highlighted_new]
+        end
+
+        def remove_empty_lines(content)
+          content.lines.reject { |line| line.strip.empty? }.join
+        end
+
+        # Finds the existing job nma in the file
         # @param [Array<String>] lines
         # @return [String]
         def find_existing_job_name(lines)
@@ -441,6 +515,15 @@ module AlcesJob
           return nil unless job_line
 
           job_line.split('=', 2).last
+        end
+
+        # Align an inherited directive comment with the generated templates.
+        def format_directive(directive, inline_comment)
+          return directive unless inline_comment
+
+          return "#{directive.ljust(50)}#{inline_comment}" if directive.length < 50
+
+          "#{directive} #{inline_comment}"
         end
       end
     end

@@ -63,7 +63,7 @@
 <%= line.ljust(55) %># Move to the working directory
 <% end -%>
 
-<%- line = "echo \"Running job#{@context.job_name ? ": '#{@context.job_name}'" : ''}\"" -%>
+<%- line = "echo \"Running job\"" -%>
 <%= line.ljust(70) %># Print which job is running
 
 <%- line = @context.command || "echo 'No command provided'" -%>
