@@ -39,3 +39,6 @@ require_relative 'commands/modify'
 
 # Load completion command
 require_relative 'commands/completion'
+
+# Load job status command
+require_relative 'commands/job/status'
