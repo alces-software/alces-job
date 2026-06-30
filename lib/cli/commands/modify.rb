@@ -6,6 +6,7 @@ require 'open3'
 require 'tty-prompt'
 require 'tty-spinner'
 require 'shellwords'
+require 'diffy'
 
 require_relative '../../services/validators/slurm_script_validator'
 require_relative '../../services/module_extractor/module_extractor'
@@ -22,26 +23,27 @@ module AlcesJob
 
         argument :script, required: true, desc: 'The script to modify'
 
-        option :job_name, aliases: ['-j'], type: :string, desc: 'Sets the Slurm job name'
+        option :job_name, type: :string, aliases: ['-J'], desc: 'Set the job name shown in Slurm'
         option :nodes, aliases: ['-N'], type: :integer, desc: 'Requests the number of compute nodes'
         option :ntasks, aliases: ['-n'], type: :integer, desc: 'Specifies the total number of tasks'
         option :cpus_per_task, aliases: ['-c'], type: :integer, desc: 'Specifies CPU cores per task'
-        option :mem, type: :string, desc: 'Sets the memory requirement for the job, e.g. 4G or 2000M'
-        option :time, aliases: ['-t'], type: :string, desc: 'Sets the job walltime limit, e.g. 02:00:00 or 1-00:00:00'
-        option :partition, aliases: ['-p'], type: :string, desc: 'Specifies the Slurm partition or queue to use'
-        option :account, aliases: ['-A'], type: :string, desc: 'Specifies the Slurm account to charge'
+        option :mem, type: :string, desc: 'Request memory for the job (for example: 4G or 2000M)'
+        option :time, type: :string, aliases: ['-t'], desc: 'Set the maximum runtime for the job e.g. 02:00:00 or 1-00:00:00'
+        option :partition, type: :string, aliases: ['-p'], desc: 'Choose which Slurm partition (queue) to run on'
+        option :command, type: :string, desc: 'Command to run in the job script'
+        option :account, type: :string, aliases: ['-A'], desc: 'Charge the job to the specified Slurm account'
         option :gres, type: :string, desc: 'Specifies generic resources such as GPUs, e.g. gpu:1'
-        option :output, type: :string, desc: 'Sets the Slurm stdout file path'
-        option :error, aliases: ['-e'], type: :string, desc: 'Sets the Slurm stderr file path'
-        option :mail_user, type: :string, desc: 'Sets the email address for Slurm notifications'
-        option :mail_type, type: :string, desc: 'Sets the Slurm mail notification type, e.g. BEGIN, END, FAIL'
+        option :output, type: :string, aliases: ['-o'], desc: 'Save the generated job script to this file'
+        option :error, type: :string, aliases: ['-e'], desc: 'Write standard error to this file'
+        option :mail_user, type: :string, desc: 'Email address for job notifications'
+        option :mail_type, type: :string, desc: 'When to send email notifications (for example: BEGIN, END, or FAIL)'
         option :array, type: :string, desc: 'Sets a Slurm array task specification'
         option :dependency, type: :string, desc: 'Sets a Slurm dependency string'
-        option :module, aliases: ['-m'], type: :array, default: [], desc: 'Loads one or more environment modules before running the job'
-        option :workdir, type: :string, desc: 'Changes to the specified working directory in the job script'
-        option :command, type: :string, desc: 'Specifies the shell command to execute in the script'
+        option :module, type: :array, aliases: ['-m'], default: [], desc: 'Load one or more environment modules before running the job'
+        option :workdir, type: :string, desc: 'Run the job from the specified working directory'
         option :output_file, aliases: ['-o'], type: :string, desc: 'Writes the modified script to this output filename'
-        option :submit, type: :boolean, default: false, desc: 'Submits the script to Slurm automatically'
+        option :submit, type: :boolean, default: false, desc: 'Submit the generated job script to Slurm automatically'
+        option :yes, type: :boolean, default: false, desc: 'Skip the confirmation prompt when submitting'
 
         def initialize
           @sbatch_options = {
@@ -79,6 +81,7 @@ module AlcesJob
           options[:module] = AlcesJob::Services.module_extractor(ARGV)
           script = File.expand_path(script, Dir.pwd)
           pastel = Pastel.new
+          prompt = TTY::Prompt.new
 
           # ------------------------------------------------------------
           # Input validation
@@ -144,6 +147,7 @@ module AlcesJob
           lines.each do |line|
             if line.start_with?('#!')
               edited_script << line
+              edited_script << ''
             elsif line.start_with?('#SBATCH')
               match = line.match(/\A#SBATCH\s+(?<option>\S+)(?:\s+(?<spaced_value>.*))?\z/)
 
@@ -154,9 +158,9 @@ module AlcesJob
 
               option = match[:option]
               spaced_value = match[:spaced_value]
+              inline_comment = line[/\s+(#.*)\z/, 1]
 
               option_key = nil
-              value = nil
 
               if option.include?('=')
                 name, raw_value = option.split('=', 2)
@@ -166,7 +170,7 @@ module AlcesJob
                   sbatch_name == long_name
                 end&.first
 
-                value = raw_value.to_s.sub(/\s+#.*\z/, '').strip
+                raw_value.to_s.sub(/\s+#.*\z/, '').strip
 
               elsif option.start_with?('--')
                 long_name = option.delete_prefix('--')
@@ -175,14 +179,14 @@ module AlcesJob
                   sbatch_name == long_name
                 end&.first
 
-                value = spaced_value.to_s.sub(/\s+#.*\z/, '').strip
+                spaced_value.to_s.sub(/\s+#.*\z/, '').strip
 
               else
                 short_name = option[0, 2]
                 option_key = @short_options[short_name]
 
                 compact_value = option.length > 2 ? option[2..] : nil
-                value = (compact_value || spaced_value).to_s.sub(/\s+#.*\z/, '').strip
+                (compact_value || spaced_value).to_s.sub(/\s+#.*\z/, '').strip
               end
 
               unless option_key
@@ -198,10 +202,14 @@ module AlcesJob
                  !(options[option_key].respond_to?(:empty?) && options[option_key].empty?)
 
                 new_value = options[option_key]
-                edited_script << "#SBATCH --#{@sbatch_options.fetch(option_key)}=#{new_value}"
+                directive = "#SBATCH --#{@sbatch_options.fetch(option_key)}=#{new_value}"
+
               else
-                edited_script << "#SBATCH --#{@sbatch_options.fetch(option_key)}=#{value}"
+                edited_script << line
+                next
+
               end
+              edited_script << format_directive(directive, inline_comment)
 
             end
           end
@@ -237,6 +245,8 @@ module AlcesJob
 
           used_modules = []
 
+          edited_script << 'module purge' if modules_to_write.any
+
           modules_to_write.each do |m|
             m = m.to_s.strip
             next if m.empty?
@@ -251,7 +261,12 @@ module AlcesJob
           edited_script << ''
 
           if options[:command]
+            lines.each do |line|
+              next unless line.strip.start_with?('#')
+              next if line.start_with?('#!', '#SBATCH')
 
+              edited_script << line
+            end
             edited_script << options[:command]
           else
             lines.each do |line|
@@ -259,8 +274,7 @@ module AlcesJob
               next if line.start_with?('#SBATCH')
               next if line.strip.start_with?('module load ')
               next if line.strip.start_with?('cd ')
-              next if line.strip.start_with?('#')
-              next if line.strip.start_with?('echo "Running job ')
+              next if line.strip.match?(/\Aecho\s+["']Running job\b/)
               next if line.empty? && edited_script.last == ''
 
               edited_script << line
@@ -273,22 +287,32 @@ module AlcesJob
           # Display changes
           # ------------------------------------------------------------
           puts
+
+          modified_content = "#{edited_script.join("\n")}\n"
+
+          diff = Diffy::Diff.new(
+            remove_empty_lines(old_content),
+            remove_empty_lines(modified_content),
+            context: 0
+          ).to_s(:color)
+
           box_width = old_content.lines.map { |line| line.chomp.length }.max + 4
+
+          highlighted_old_content, highlighted_modified_content =
+            highlighted_scripts(old_content, modified_content, pastel)
+
           puts TTY::Box.frame(
-            old_content,
+            highlighted_old_content,
             title: {
-              top_center: pastel.bold.yellow(' ORIGINAL SCRIPT ')
+              top_center: pastel.bold.red(' ORIGINAL SCRIPT ')
             },
             padding: 1,
             border: :thick,
             width: box_width
           )
-
           puts
-          modified_content = edited_script.join("\n")
-          box_width = modified_content.lines.map { |line| line.chomp.length }.max + 4
           puts TTY::Box.frame(
-            modified_content,
+            highlighted_modified_content,
             title: {
               top_center: pastel.bold.green(' MODIFIED SCRIPT ')
             },
@@ -296,6 +320,14 @@ module AlcesJob
             border: :thick,
             width: box_width
           )
+
+          puts pastel.bold("\nChanges made:")
+          puts "#{pastel.red('-')} original line"
+          puts "#{pastel.green('+')} modified/new line"
+          puts
+
+          puts diff
+          puts
 
           unless TTY::Prompt.new.yes?("\nWould you like to save this script?", default: false)
             puts 'Aborting...'
@@ -359,6 +391,11 @@ module AlcesJob
           # ------------------------------------------------------------
           if validator.validate?
             if options[:submit]
+              unless options[:yes] || prompt.yes?('Submit this job to Slurm?', default: false)
+                puts pastel.yellow("\nSubmission skipped.\n")
+                exit(0)
+              end
+
               begin
                 stdout, stderr, status = Open3.capture3('sbatch', file_path)
                 puts 'sbatch finished.'
@@ -426,7 +463,52 @@ module AlcesJob
 
         private
 
-        # Finds the existing job name in the file
+        def highlighted_scripts(old_content, modified_content, pastel)
+          diff = Diffy::Diff.new(
+            remove_empty_lines(old_content),
+            remove_empty_lines(modified_content),
+            context: 0
+          ).to_s
+
+          removed_lines = []
+          added_lines = []
+
+          diff.lines.each do |line|
+            if line.start_with?('-') && !line.start_with?('---')
+              removed_lines << line[1..].chomp
+            elsif line.start_with?('+') && !line.start_with?('+++')
+              added_lines << line[1..].chomp
+            end
+          end
+
+          highlighted_old = old_content.lines.map do |line|
+            clean_line = line.chomp
+
+            if removed_lines.include?(clean_line)
+              "#{pastel.red(line.chomp)}\n"
+            else
+              line
+            end
+          end.join
+
+          highlighted_new = modified_content.lines.map do |line|
+            clean_line = line.chomp
+
+            if added_lines.include?(clean_line)
+              "#{pastel.green(line.chomp)}\n"
+            else
+              line
+            end
+          end.join
+
+          [highlighted_old, highlighted_new]
+        end
+
+        def remove_empty_lines(content)
+          content.lines.reject { |line| line.strip.empty? }.join
+        end
+
+        # Finds the existing job nma in the file
         # @param [Array<String>] lines
         # @return [String]
         def find_existing_job_name(lines)
@@ -434,6 +516,15 @@ module AlcesJob
           return nil unless job_line
 
           job_line.split('=', 2).last
+        end
+
+        # Align an inherited directive comment with the generated templates.
+        def format_directive(directive, inline_comment)
+          return directive unless inline_comment
+
+          return "#{directive.ljust(50)}#{inline_comment}" if directive.length < 50
+
+          "#{directive} #{inline_comment}"
         end
       end
     end

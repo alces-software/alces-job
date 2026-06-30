@@ -53,6 +53,10 @@
 <%= line.ljust(55) %># Start this job only after another job condition is met
 <% end -%>
 
+<% unless Array(@context.modules).empty? -%>
+module purge
+<% end -%>
+
 <% Array(@context.modules).each do |mod| -%>
 <%- line = "module load #{mod}" -%>
 <%= line.ljust(55) %># Load required software/module before running
@@ -63,7 +67,7 @@
 <%= line.ljust(55) %># Move to the working directory
 <% end -%>
 
-<%- line = "echo \"Running job#{@context.job_name ? ": '#{@context.job_name}'" : ''}\"" -%>
+<%- line = "echo \"Running job\"" -%>
 <%= line.ljust(70) %># Print which job is running
 
 <%- line = @context.command || "echo 'No command provided'" -%>

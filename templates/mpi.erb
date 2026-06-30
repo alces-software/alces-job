@@ -4,7 +4,7 @@
 <%= line.ljust(50) %># Name shown for this job in the Slurm queue
 <%- line = "#SBATCH --nodes=#{@context.nodes || 2}" -%>
 <%= line.ljust(50) %># Number of nodes/machines requested
-<%- line = "#SBATCH --ntasks=#{@context.ntasks || 32}" -%>
+<%- line = "#SBATCH --ntasks=#{@context.ntasks || 1}" -%>
 <%= line.ljust(50) %># Total number of MPI tasks/processes
 <%- line = "#SBATCH --cpus-per-task=#{@context.cpus_per_task || 1}" -%>
 <%= line.ljust(50) %># CPU cores per MPI task
@@ -20,6 +20,11 @@
 <%- line = "#SBATCH --mem=#{@context.mem}" -%>
 <%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
+
+<% unless Array(@context.modules).empty? -%>
+module purge
+<% end -%>
+
 
 <%- line = "module load openmpi" -%>
 <%= line.ljust(50) %># Load OpenMPI so MPI programs can run
@@ -37,5 +42,6 @@
 <%- line = 'echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"' -%>
 <%= line.ljust(80) %># Print MPI resource information
 
-<%- line = "srun #{@context.command}" -%>
+<%- line = "#{@context.command}" -%>
 <%= line.ljust(50) %># Launch the MPI program using Slurm's task launcher
+

@@ -31,7 +31,11 @@ end
 
 gem 'open3', '~> 0.2.1'
 
+gem 'diffy'
+
 gem 'xdg', '~> 10.2'
+
+gem 'artii'
 
 gem 'dry-cli-completion'
 

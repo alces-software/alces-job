@@ -32,7 +32,8 @@ module AlcesJob
         '-o' => '--output',
         '-e' => '--error',
         '-a' => '--array',
-        '-A' => '--account'
+        '-A' => '--account',
+        '-c' => '--cpus-per-task'
       }.freeze
 
       def self.convert_alias_to_full_name(directive)
