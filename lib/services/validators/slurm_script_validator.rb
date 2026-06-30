@@ -52,11 +52,11 @@ module AlcesJob
         NONE
       ].freeze
 
-      def initialize(file_path)
+      def initialize(file_path, system_info: SysInfo.load_info)
         @file_path = file_path
         @errors = []
         @warnings = []
-        @system_info = SysInfo.load_info
+        @system_info = system_info
       end
 
       def validate?
