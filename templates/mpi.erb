@@ -20,23 +20,30 @@
 <%- line = "#SBATCH --mem=#{@context.mem}" -%>
 <%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
-
 <%- line = "module load openmpi" -%>
 <%= line.ljust(50) %># Load OpenMPI so MPI programs can run
-
 <% Array(@context.modules).each do |mod| -%>
 <%- line = "module load #{mod}" -%>
 <%= line.ljust(50) %># Load extra user-requested module
-<% end -%>
 
+<% end -%>
+<% if @context.track %>
+# Tracking Functions:
+<%= "source #{@context.tracking_path}" %>
+<%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
+
+<%= "alces_start_job" %>
+<% end %>
 <% if @context.workdir -%>
 <%- line = "cd #{@context.workdir}" -%>
-<%= line.ljust(50) %># Move to the working directory
-<% end -%>
+<%= line.ljust(55) %># Move to the working directory
 
+<% end -%>
 <%- line = 'echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"' -%>
 <%= line.ljust(80) %># Print MPI resource information
 
-<%- line = "#{@context.command}" -%>
-<%= line.ljust(50) %># Launch the MPI program using Slurm's task launcher
-
+<%- line = @context.command || "echo 'No command provided'" -%>
+<%= line.ljust(70) %># Run the user's command
+<% if @context.track %>
+<%= "alces_end_job" %>
+<% end %>

@@ -22,6 +22,12 @@ module AlcesJob
         @xdg.config_home.join('alces-job', 'profiles').to_s
       end
 
+      # Gets the path to the users job dir
+      # @return [String]
+      def user_job_dir
+        @xdg.config_home.join('alces-job', 'tracking').to_s
+      end
+
       # Gets the path to a user specific profile
       # @param [String] profile_name
       # @return [String]

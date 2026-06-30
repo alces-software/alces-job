@@ -52,19 +52,26 @@
 <%- line = "#SBATCH --dependency=#{@context.dependency}" -%>
 <%= line.ljust(55) %># Start this job only after another job condition is met
 <% end -%>
-
 <% Array(@context.modules).each do |mod| -%>
 <%- line = "module load #{mod}" -%>
 <%= line.ljust(55) %># Load required software/module before running
 <% end -%>
+<% if @context.track %>
+# Tracking Functions:
+<%= "source #{@context.tracking_path}" %>
+<%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
 
+<%= "alces_start_job" %>
+<% end %>
 <% if @context.workdir -%>
 <%- line = "cd #{@context.workdir}" -%>
 <%= line.ljust(55) %># Move to the working directory
 <% end -%>
-
 <%- line = "echo \"Running job\"" -%>
 <%= line.ljust(70) %># Print which job is running
 
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(70) %># Run the user's command
+<% if @context.track %>
+<%= "alces_end_job" %>
+<% end %>

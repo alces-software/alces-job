@@ -24,6 +24,7 @@ module AlcesJob
           option :site_config, type: :boolean, default: true, desc: 'whether or not to use the admins specified config file'
           option :yes, type: :boolean, default: false, desc: 'Submits the generated script without prompting'
           option :dry_run, type: :boolean, default: false, desc: 'Does not save the file if set to true'
+          option :track, type: :boolean, default: false, desc: 'Adds tracking calls to script'
         end
       end
     end
