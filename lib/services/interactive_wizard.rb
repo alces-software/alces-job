@@ -114,7 +114,7 @@ module AlcesJob
 
         puts
         prompt = TTY::Prompt.new
-        prompt.keypress("[Press #{pastel.bold('enter')} to continue]")
+        prompt.keypress("[Press #{pastel.bold('enter')} to continue] ")
         system('clear')
 
         max_run_time = nil
