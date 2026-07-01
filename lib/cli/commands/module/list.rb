@@ -14,7 +14,7 @@ module AlcesJob
 
         option :show_description, type: :boolean, aliases: ['-d'], default: false, desc: 'Displays the description for the package'
 
-        def call(*)
+        def call(**options)
           pastel = Pastel.new
           package_categories = AlcesJob::Services::SysInfo.load_info[:packages]
 
