@@ -27,6 +27,8 @@ module AlcesJob
           option :track, type: :boolean, default: false, desc: 'Adds tracking calls to script'
           option :edit, type: :boolean, default: false, desc: 'Open generated script in your editor before saving'
           option :prepare, type: :boolean, default: false, desc: 'Creates a dedicated working directory and sets standard Slurm output and error files'
+          option :local_scratch, type: :boolean, default: false, desc: 'Runs the job from your local scratch directory then copies the results back to your home directory'
+          option :scratch_path, type: :string, desc: 'Sets the to path of local_scratch to a different directory'
         end
       end
     end
