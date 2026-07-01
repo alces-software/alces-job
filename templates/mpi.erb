@@ -21,10 +21,13 @@
 <%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
 
+<% if @context.prepare -%>
+<%= @prepare.directives %>
+<% end -%>
+
 <% unless Array(@context.modules).empty? -%>
 module purge
 <% end -%>
-
 
 <%- line = "module load openmpi" -%>
 <%= line.ljust(50) %># Load OpenMPI so MPI programs can run
@@ -39,9 +42,12 @@ module purge
 <%= line.ljust(50) %># Move to the working directory
 <% end -%>
 
+<% if @context.prepare -%>
+<%= @prepare.helper %>
+<% end -%>
+
 <%- line = 'echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"' -%>
 <%= line.ljust(80) %># Print MPI resource information
 
-<%- line = "#{@context.command}" -%>
+<%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(50) %># Launch the MPI program using Slurm's task launcher
-

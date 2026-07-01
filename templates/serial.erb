@@ -21,6 +21,10 @@
 <%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
 
+<%if @context.prepare -%>
+<%= @prepare.directives %>
+<%end -%>
+
 <% unless Array(@context.modules).empty? -%>
 module purge
 <% end -%>
@@ -34,6 +38,10 @@ module purge
 <% if @context.workdir -%>
 <%- line = "cd #{@context.workdir}" -%>
 <%= line.ljust(50) %># Move to the working directory
+<% end -%>
+
+<% if @context.prepare -%>
+<%= @prepare.helper %>
 <% end -%>
 
 <%- line = "echo \"Running serial job: #{@context.job_name}\"" -%>
