@@ -668,7 +668,8 @@ module AlcesJob
 
           field = prompt.select(
             "Which input would you like to edit? #{pastel.dim('(scrollable)')}",
-            result.keys
+            result.keys,
+            per_page: 10
           )
 
           system('clear')

@@ -11,6 +11,10 @@ module AlcesJob
         "alces_prepare_job() {\n  " \
           "job_dir=\"$HOME/${SLURM_JOB_NAME}-${SLURM_JOB_ID}\"\n" \
           "\n  " \
+          "if [ -n \"$SLURM_ARRAY_TASK_ID\" ]; then\n    " \
+          "job_dir=\"${job_dir}-${SLURM_ARRAY_TASK_ID}\"\n  " \
+          "fi\n" \
+          "\n  " \
           "mkdir -p \"$job_dir\"\n  " \
           "cd \"$job_dir\" || exit 1\n" \
           "}\n" \
