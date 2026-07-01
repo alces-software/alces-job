@@ -10,9 +10,13 @@ alces_start_job() {
     echo "startTime:$(date -u +%s)" >> "$ALCES_HOMEPATH/$SLURM_JOB_ID"
 }
 
-alces_end_stage() {
+alces_start_stage() {
     ALCES_CURRENT_STAGE=$((ALCES_CURRENT_STAGE + 1))
-    echo "stage$ALCES_CURRENT_STAGE:$(date -u +%s)" >> "$ALCES_HOMEPATH/$SLURM_JOB_ID"
+    echo "stageStart$ALCES_CURRENT_STAGE:$(date -u +%s)" >> "$ALCES_HOMEPATH/$SLURM_JOB_ID"
+}
+
+alces_end_stage() {
+    echo "stageEnd$ALCES_CURRENT_STAGE:$(date -u +%s)" >> "$ALCES_HOMEPATH/$SLURM_JOB_ID"
 }
 
 alces_end_job() {
