@@ -2,6 +2,7 @@
 
 require 'yaml'
 require 'pastel'
+require 'fileutils'
 
 require_relative '../paths/paths'
 
@@ -36,6 +37,20 @@ module AlcesJob
         end
 
         @profile = profile.merge(options)
+      end
+
+      # Saves the profile to the users directory
+      # @param [String] profile_name
+      # @param [Hash] options
+      # @return [String]
+      def self.save_profile(profile_name, options)
+        paths = AlcesJob::Services::Paths.new
+        profile_path = paths.user_profile_path(profile_name.strip)
+
+        FileUtils.mkdir_p(paths.user_profile_dir)
+        File.write(profile_path, options.to_yaml)
+
+        profile_path
       end
     end
   end

@@ -1,5 +1,4 @@
 #!/bin/bash
-
 <%- line = "#SBATCH --job-name=#{@context.job_name}" -%>
 <%= line.ljust(50) %># Name shown for this job in the Slurm queue
 <%- line = "#SBATCH --nodes=1" -%>
@@ -9,21 +8,26 @@
 <%- line = "#SBATCH --cpus-per-task=1" -%>
 <%= line.ljust(50) %># Use one CPU core for the task
 <% if @context.partition -%>
-<%- line = "#SBATCH --partition=#{@context.partition}" -%>
-<%= line.ljust(50) %># Partition/queue where the job should run
+  <%- line = "#SBATCH --partition=#{@context.partition}" -%>
+  <%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
 <% if @context.time -%>
-<%- line = "#SBATCH --time=#{@context.time}" -%>
-<%= line.ljust(50) %># Maximum runtime before Slurm stops the job
+  <%- line = "#SBATCH --time=#{@context.time}" -%>
+  <%= line.ljust(50) %># Maximum runtime before Slurm stops the job
 <% end -%>
 <% if @context.mem -%>
-<%- line = "#SBATCH --mem=#{@context.mem}" -%>
-<%= line.ljust(50) %># Amount of memory requested for the job
+  <%- line = "#SBATCH --mem=#{@context.mem}" -%>
+  <%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
-
+<%if @context.prepare -%>
+  <%= @prepare.directives %>
+<%end -%>
+<% unless Array(@context.modules).empty? -%>
+  module purge
+<% end -%>
 <% Array(@context.modules).each do |mod| -%>
-<%- line = "module load #{mod}" -%>
-<%= line.ljust(50) %># Load required software/module before running
+  <%- line = "module load #{mod}" -%>
+  <%= line.ljust(50) %># Load required software/module before running
 <% end -%>
 
 <% if @context.track %>
@@ -35,14 +39,17 @@ export ALCES_TOTAL_STAGES=0
 <%= "alces_start_job" %>
 <% end %>
 <% if @context.workdir -%>
-<%- line = "cd #{@context.workdir}" -%>
-<%= line.ljust(55) %># Move to the working directory
+  <%- line = "cd #{@context.workdir}" -%>
+  <%= line.ljust(50) %># Move to the working directory
 <% end -%>
-<%- line = "echo \"Running serial job\"" -%>
-<%= line.ljust(70) %># Print which job is running
-
+<% if @context.prepare -%>
+  <%= @prepare.helper %>
+<% end -%>
+<%- line = "echo \"Running serial job: #{@context.job_name}\"" -%>
+<%= line.ljust(50) %># Print which job is running
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(70) %># Run the user's command
 <% if @context.track %>
+
 <%= "alces_end_job" %>
 <% end %>

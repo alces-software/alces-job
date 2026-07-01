@@ -7,6 +7,8 @@ require 'tty-prompt'
 require 'yaml'
 require 'tempfile'
 require 'fileutils'
+require 'shellwords'
+require 'English'
 
 require_relative 'command_templates/generate_command_template'
 
@@ -16,6 +18,7 @@ require_relative '../../../services/module_extractor/module_extractor'
 require_relative '../../../services/config_manager/config_manager'
 require_relative '../../../services/profile_manager/profile_manager'
 require_relative '../../../services/paths/paths'
+require_relative '../../../services/editor/edit'
 
 module AlcesJob
   module CLI
@@ -32,6 +35,8 @@ module AlcesJob
         option :dependency, type: :string, desc: 'Job dependency string'
 
         def call(**options)
+          options[:modules] = AlcesJob::Services.module_extractor(ARGV)
+
           pastel = Pastel.new
           prompt = TTY::Prompt.new
 
@@ -116,11 +121,21 @@ module AlcesJob
           generator = Services::ScriptGenerator.new(options)
           script = generator.generate
 
+          spinner.success(pastel.green('(Generated)'))
+
+          if options[:edit]
+            script = AlcesJob::Services::Editor.edit_script_in_editor(script)
+
+            if options[:output_file].nil?
+              job_name = AlcesJob::Services::Editor.edited_job_name(script)
+              generator = Services::ScriptGenerator.new(options.merge(job_name: job_name)) if job_name
+            end
+          end
+
           # ------------------------------------------------------------
           # Dry run
           # ------------------------------------------------------------
           if options[:dry_run]
-            spinner.success(pastel.green('(Generated)'))
 
             box_width = script.lines.map { |line| line.chomp.length }.max + 4
             puts
