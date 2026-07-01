@@ -3,17 +3,17 @@
 require_relative 'lib/alces_job/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'alces-job'
-  spec.version       = AlcesJob::VERSION
+  spec.name = 'alces-job'
+  spec.version = AlcesJob::VERSION
 
-  spec.summary       = 'Generate Slurm job scripts from templates'
-  spec.description   = 'alces-job is a small CLI tool for generating Slurm sbatch scripts from templates, profiles, and site defaults.'
+  spec.summary = 'Generate Slurm job scripts from templates'
+  spec.description = 'alces-job is a small CLI tool for generating Slurm sbatch scripts from templates, profiles, and site defaults.'
 
-  spec.homepage      = AlcesJob::GITHUB_URL
-  spec.executables   = ['alces-job']
-  spec.bindir        = 'bin'
-  spec.authors       = ['Oscar Thomson', 'Alex Wood', 'Calum Murphy', 'Arun Bhatti']
-  spec.email         = [
+  spec.homepage = AlcesJob::GITHUB_URL
+  spec.executables = ['alces-job']
+  spec.bindir = 'bin'
+  spec.authors = ['Oscar Thomson', 'Alex Wood', 'Calum Murphy', 'Arun Bhatti']
+  spec.email = [
     'oscar.thomson@alces-software.com',
     'alexander.wood@alces-software.com',
     'calum.murphy@alces-software.com',

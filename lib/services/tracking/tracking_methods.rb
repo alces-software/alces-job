@@ -46,7 +46,7 @@ module AlcesJob
 
             unless valid_keys.include?(key) || valid_pattern.match(key)
               spinner.error(pastel.red('(Malformed status file)'))
-              warn pastel.red("\nThe status file located at #{File.join(path, job_id)} was incorrectily formed and the data could not be parsed\n")
+              warn pastel.red("\nThe status file located at #{File.join(path, job_id)} was incorrectly formed and the data could not be parsed\n")
               exit(1)
             end
 
@@ -70,7 +70,7 @@ module AlcesJob
           next unless data[key].nil?
 
           spinner.error(pastel.red('(Malformed status file)'))
-          warn pastel.red("\nThe status file located at #{File.join(path, job_id)} was incorrectily formed. It does not have all the necessary values\n")
+          warn pastel.red("\nThe status file located at #{File.join(path, job_id)} was incorrectly formed. It does not have all the necessary values\n")
           exit(1)
         end
 
@@ -83,10 +83,10 @@ module AlcesJob
         pastel = Pastel.new
 
         file_job_id = data['jobId']&.to_i
-        output      = data['outputFile']
-        error       = data['errorFile']
-        start_time  = data['startTime']&.to_i
-        end_time    = data['endTime'].to_s.empty? ? nil : data['endTime'].to_i
+        output = data['outputFile']
+        error = data['errorFile']
+        start_time = data['startTime']&.to_i
+        end_time = data['endTime'].to_s.empty? ? nil : data['endTime'].to_i
         total_steps = data['totalSteps']&.to_i
 
         completed_steps =
@@ -238,7 +238,11 @@ module AlcesJob
         Time.at(epoch.to_i).strftime('%Y-%m-%d %H:%M:%S')
       end
 
-      def self.format_duration(start_epoch, end_epoch = nil)
+      # Formats the duration
+      # @param [Integer] start_epoch
+      # @param [Integer | nil] end_epoch
+      # @return [String]
+      def format_duration(start_epoch, end_epoch = nil)
         return nil unless start_epoch
 
         start_time = Time.at(start_epoch.to_i)
@@ -249,16 +253,19 @@ module AlcesJob
         format_seconds(seconds)
       end
 
-      def self.format_seconds(total_seconds)
+      # Formats the seconds for displaying
+      # @param [Integer] total_seconds
+      # @return [String]
+      def format_seconds(total_seconds)
         minutes, seconds = total_seconds.divmod(60)
         hours, minutes = minutes.divmod(60)
 
         if hours.positive?
-          format('%02dh %02dm %02ds', hours, minutes, seconds)
+          format('%<h>02dh %<m>02dm %<s>02ds', h: hours, m: minutes, s: seconds)
         elsif minutes.positive?
-          format('%02dm %02ds', minutes, seconds)
+          format('%<m>02dm %<s>02ds', m: minutes, s: seconds)
         else
-          format('%02ds', seconds)
+          format('%<s>02ds', s: seconds)
         end
       end
     end

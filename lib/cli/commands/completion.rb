@@ -17,7 +17,7 @@ module AlcesJob
         desc 'Installs tab completion for Alces-Job'
 
         START_MARKER = '# >>> alces-job completion >>>'
-        END_MARKER   = '# <<< alces-job completion <<<'
+        END_MARKER = '# <<< alces-job completion <<<'
 
         def call(**)
           pastel = Pastel.new

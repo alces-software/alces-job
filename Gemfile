@@ -43,4 +43,4 @@ gem 'tty-box', '~> 0.7.0'
 
 gem 'unicode-display_width', '~> 2.6'
 
-gem "ruby-lsp", "~> 0.26.9"
+gem 'ruby-lsp', '~> 0.26.9'

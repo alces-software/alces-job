@@ -125,7 +125,10 @@ module AlcesJob
           if status.success?
             description = mod_out[/whatis\("description:\s*(.*?)"\)/i, 1] ||
                           mod_out[/description:\s*(.*)/i, 1]
-            category    = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
+            description = description.strip
+
+            category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
+            category = category.strip
           end
 
           description ||= 'No description available'
