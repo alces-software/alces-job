@@ -94,43 +94,50 @@ module AlcesJob
       # Gets a list of the names
       # @return [Hash]
       def self.package_info
-        stdout, _, status = Open3.capture3('module -t avail 2>&1')
+        stdout, _, status = Open3.capture3("module -t spider  2>&1 | grep -E '^[^/]+/.+$'")
 
         return {} unless status.success?
 
-        parsed = Hash.new { |h, k| h[k] = [] }
-        category = nil
+        parsed = {}
 
         stdout.lines.map(&:strip).reject(&:empty?).each do |line|
-          line = line.strip
-          next if line.empty?
+          next if line.end_with?('/')
           next if line.downcase == 'null'
 
-          if line.end_with?(':')
-            category = line.split('/').last.chop
-            next
-          end
-
-          next if line.end_with?('/')
-
-          name, version = line.split('/', 2)
-          next if version.nil?
-
-          version = version.split('-', 2).first
-
-          next if parsed.values.any? do |category_hash|
-            category_hash.any? { |v| v[:name] == name && v[:version] == version }
-          end
+          parts = line.split('/')
+          name = parts.first
+          version = if parts[2].to_s.downcase == 'none-none'
+                      parts[1]
+                    else
+                      parts[1, 2].join('/')
+                    end
 
           deprecated =
             line.downcase.include?('deprecated') ||
             line.downcase.include?('legacy') ||
-            line.downcase.include?('old') ||
-            line.downcase.include?('(deprecated)')
+            line.downcase.include?('old')
+
+          mod_out, _, status = Open3.capture3("bash -lc \"module show #{line} 2>&1\"")
+
+          description = nil
+          category = nil
+
+          if status.success?
+            description = mod_out[/whatis\("description:\s*(.*?)"\)/i, 1] ||
+                          mod_out[/description:\s*(.*)/i, 1]
+            category    = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
+          end
+
+          description ||= 'No description available'
+          category ||= line.split('/').first
+
+          parsed[category] ||= []
 
           parsed[category] << {
+            full_name: line,
             name: name,
             version: version,
+            description: description,
             deprecated: deprecated
           }
         end

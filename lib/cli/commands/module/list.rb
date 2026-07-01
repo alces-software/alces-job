@@ -12,6 +12,8 @@ module AlcesJob
 
         desc 'Lists all available modules on the system'
 
+        option :show_description, type: :boolean, aliases: ['-d'], default: false, desc: 'Displays the description for the package'
+
         def call(*)
           pastel = Pastel.new
           package_categories = AlcesJob::Services::SysInfo.load_info[:packages]
@@ -23,11 +25,10 @@ module AlcesJob
 
           package_categories.each do |category_name, packages|
             puts pastel.green.bold("\n#{category_name}:")
-
             packages.each do |package|
               output = "#{package[:name]} - v#{package[:version]}"
               output <<= " - #{pastel.red('DEPRECATED')}" if package[:deprecated]
-
+              output <<= pastel.yellow("\n#{package[:description]}") if options[:show_description]
               puts output
             end
           end
