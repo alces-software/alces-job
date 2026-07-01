@@ -6,6 +6,7 @@ require 'open3'
 
 require_relative '../paths/paths'
 require_relative '../prepare/prepare'
+require_relative '../local_scratch/local_scratch'
 
 module AlcesJob
   module Services
@@ -17,6 +18,7 @@ module AlcesJob
         @template = @context.template || 'universal'
         @context.job_name = 'default-job' if @context.job_name.nil?
         @prepare = AlcesJob::Services::Prepare
+        @local_scratch = AlcesJob::Services::LocalScratch
         @file_path = File.join(Dir.pwd, @context.output_file.nil? ? "job-#{@context.job_name || 'default'}.slurm" : @context.output_file)
       end
 

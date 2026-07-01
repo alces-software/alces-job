@@ -40,7 +40,9 @@ module purge
 <%= line.ljust(50) %># Move to the working directory
 <% end -%>
 
-<% if @context.prepare -%>
+<% if @context.local_scratch -%>
+<%= @local_scratch.helper %>
+<% elsif @context.prepare -%>
 <%= @prepare.helper %>
 <% end -%>
 
