@@ -58,7 +58,6 @@ export ALCES_TOTAL_STAGES=0
 <%= "alces_start_job" %>
 <% end %>
 <% if @context.workdir -%>
-<% if @context.workdir -%>
   <%- line = "cd #{@context.workdir}" -%>
   <%= line.ljust(50) %># Move to the working directory
 <% end -%>
