@@ -5,18 +5,24 @@ require 'terminal-table'
 require 'pastel'
 require 'erb'
 require 'tty-box'
+require 'artii'
 
 require_relative 'sys_info/sys_info'
 require_relative 'paths/paths'
 require_relative 'converters/time_converter'
 require_relative 'converters/memory_converter'
+require_relative 'config_manager/config_manager'
 require_relative '../services/profile_manager/profile_manager'
-require 'artii'
+require_relative 'editor/edit'
+require_relative 'validators/slurm_script_validator'
 
 module AlcesJob
   module Services
     class InteractiveWizard
       def initialize
+        config_manager = AlcesJob::Services::ConfigManager.new({})
+        @editor = config_manager.config[:editor]
+
         @info = AlcesJob::Services::SysInfo.load_info
 
         # @info = YAML.load_file('test_data.yaml')
@@ -99,17 +105,22 @@ module AlcesJob
             partition.key?(:name) &&
             partition.key?(:time_limit) &&
             partition.key?(:max_memory_mb) &&
-            partition.key?(:max_cpu_cores)
+            partition.key?(:max_cpu_cores) &&
+            partition.key?(:node_count) &&
+            partition.key?(:max_gpus)
         end
       end
 
       def call
         system('clear')
         pastel = Pastel.new
+        puts
 
         artii = Artii::Base.new(font: 'standard')
 
-        animated_artii_title("ALCES\nJOB\nINTERACTIVE", artii, pastel)
+        puts pastel.bold.cyan(
+          asciify_multiline("ALCES\nJOB\nINTERACTIVE", artii, banner: @banner)
+        )
 
         puts pastel.bold.cyan('Welcome to the interactive wizard!')
 
@@ -564,7 +575,7 @@ module AlcesJob
               puts
               puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer. Each CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}. Ask for more only if your code uses threading, multiprocessing, or software that can run in parallel."
               puts
-              puts "The max number of cpu cores per node on partion #{selected_partition} is #{max_cpu_cores}."
+              puts "The max number of cpu cores per node on partition #{selected_partition} is #{max_cpu_cores}."
               puts
 
               key(item).ask(pastel.bold.green(question), default: defaults[item]) do |q|
@@ -626,17 +637,23 @@ module AlcesJob
         end
 
         # Edit Loop
+        manual_editing = false
+        valid_manual_editing = false
+        final_script = nil
+
+        editing_methods = ['Interactively', 'Manually (ADVANCED - only select if you have strong experience with text editors like vim, vi or nano.)']
 
         loop do
           job_type = 'universal' if job_type == 'serial'
 
-          generator = AlcesJob::Services::ScriptGenerator.new(
-            result.merge(template: job_type)
-          )
+          unless manual_editing
+            generator = AlcesJob::Services::ScriptGenerator.new(
+              result.merge(template: job_type)
+            )
+          end
 
-          script = generator.generate
+          script = final_script || generator.generate
 
-          # puts script
           puts
 
           box_width = script.lines.map { |line| line.chomp.length }.max + 4
@@ -650,8 +667,103 @@ module AlcesJob
             border: :thick,
             width: box_width
           )
+          puts
 
           break unless prompt.yes?('Would you like to edit any of your inputs?')
+
+          editing_type = nil
+
+          loop do
+            backed_out = false
+            puts
+            editing_type = prompt.select('How would you like to edit your inputs?', editing_methods)
+
+            break unless editing_type.start_with?('Manually')
+
+            unless valid_manual_editing
+              puts
+              backed_out = prompt.no?(
+                "#{pastel.bold.yellow('WARNING:')} Manual editing disables further interactive edits and profile saving for this session. Continue?"
+              )
+            end
+
+            next if backed_out
+
+            editing_methods.delete('Interactively')
+            break
+          end
+
+          if editing_type.start_with?('Manually')
+            manual_editing = true
+
+            system('clear')
+
+            old_script = script
+            script = AlcesJob::Services::Editor.edit_script_in_editor(script, editor: @editor)
+
+            Tempfile.create(['generated_script', '.slurm']) do |tempfile|
+              tempfile.write(script)
+              tempfile.flush
+
+              validator = Services::SlurmScriptValidator.new(tempfile.path)
+
+              if validator.validate?
+
+                highlighted_script = AlcesJob::Services::Editor.highlight_added_lines(old_script, script, pastel)
+
+                box_width = script.lines.map { |line| line.chomp.length }.max + 4
+                puts
+
+                puts TTY::Box.frame(
+                  highlighted_script,
+                  title: {
+                    top_center: pastel.bold.green(' Edited Script Preview ')
+                  },
+                  padding: 1,
+                  border: :thick,
+                  width: box_width
+                )
+
+                AlcesJob::Services::Editor.show_removed_lines(old_script, script, pastel)
+
+                puts
+                if prompt.yes?('Do you want to save these changes?', default: true)
+                  valid_manual_editing = true
+                  final_script = script
+                else
+                  script = old_script
+                  final_script = old_script
+                  valid_manual_editing = true
+                end
+              else
+
+                manual_editing = false
+                editing_methods.unshift('Interactively') unless editing_methods.include?('Interactively') || valid_manual_editing
+                script = old_script
+                puts
+                puts pastel.bold.red('INVALID SCRIPT')
+
+                warn pastel.red("\nThe generated SBATCH script is not valid and changes were reverted.\n")
+
+                validator.errors.each do |error|
+                  warn "#{pastel.bold.red('ERROR')}: #{pastel.red(error)}"
+                end
+
+                validator.warnings.each do |warning|
+                  warn pastel.yellow("Warning: #{warning}")
+                end
+
+                puts
+                prompt.keypress("[Press #{pastel.bold('enter')} to return to editing]")
+
+              end
+            end
+
+            system('clear')
+            next
+
+          end
+          puts
 
           field = prompt.select(
             "Which input would you like to edit? #{pastel.dim('(scrollable)')}",
@@ -1141,7 +1253,20 @@ module AlcesJob
           when :command
             puts
             puts pastel.bold.cyan('Command')
-
+            puts
+            puts "This is the command that Slurm will run inside your batch script.\nUse the same command you would normally type into the terminal."
+            puts
+            puts "Examples:\n"
+            puts
+            puts "#{pastel.bold.bright_magenta('python')} script.py"
+            puts
+            puts "#{pastel.bold.bright_magenta('R')} analysis.R"
+            puts
+            puts "#{pastel.bold.bright_magenta('node')} app.js"
+            puts
+            puts "#{pastel.bold.bright_magenta('srun')} ./my_mpi_program"
+            puts
+            puts
             result[:command] = prompt.ask(
               pastel.bold.cyan(questions[:command]),
               default: result[:command]
@@ -1185,29 +1310,52 @@ module AlcesJob
 
         job_type = 'universal' if job_type == 'serial'
 
+        if valid_manual_editing && final_script
+          final_script.lines.each do |line|
+            next unless line.start_with?('#SBATCH')
+
+            directive = line.sub(/\s+#.*\z/, '').strip
+            option, value = directive.sub(/\A#SBATCH\s+/, '').split(/[=\s]+/, 2)
+            value = value&.split&.first
+
+            next unless option
+
+            if ['--job-name', '-J'].include?(option)
+              result[:job_name] = value
+              break
+            elsif option.start_with?('-J') && option.length > 2
+              result[:job_name] = option[2..]
+              break
+            end
+          end
+        end
+
         final_options = result.merge(template: job_type)
         generator = AlcesJob::Services::ScriptGenerator.new(final_options)
 
-        if prompt.yes?('Would you like to save these settings to a profile?', default: false)
-          profile_name = prompt.ask('What would you like to call the profile?') do |q|
-            q.modify :strip
-            q.convert ->(input) { input.gsub(/\s+/, '_') }
+        unless valid_manual_editing
+          puts
+          if prompt.yes?('Would you like to save these settings to a reusable profile?', default: false)
+            profile_name = prompt.ask('What would you like to call the profile?') do |q|
+              q.modify :strip
+              q.convert ->(input) { input.gsub(/\s+/, '_') }
 
-            q.validate do |input|
-              cleaned = input.strip.gsub(/\s+/, '_')
-              cleaned.match?(/\A[a-zA-Z0-9_.-]+\z/) && !cleaned.empty?
+              q.validate do |input|
+                cleaned = input.strip.gsub(/\s+/, '_')
+                cleaned.match?(/\A[a-zA-Z0-9_.-]+\z/) && !cleaned.empty?
+              end
+
+              q.messages[:valid?] =
+                'Profile name can only contain letters, numbers, underscores, dots, and hyphens.'
             end
 
-            q.messages[:valid?] =
-              'Profile name can only contain letters, numbers, underscores, dots, and hyphens.'
+            saved_profile_path = AlcesJob::Services::ProfileManager.save_profile(
+              profile_name,
+              final_options
+            )
+
+            puts pastel.green("Profile saved to #{saved_profile_path}")
           end
-
-          saved_profile_path = AlcesJob::Services::ProfileManager.save_profile(
-            profile_name,
-            final_options
-          )
-
-          puts pastel.green("Profile saved to #{saved_profile_path}")
         end
 
         exit(0) unless prompt.yes?('Write script to file?')
@@ -1216,7 +1364,9 @@ module AlcesJob
 
         exit(0) if File.exist?(generator.file_path) && !prompt.yes?("\nAn sbatch file with the name #{pastel.cyan(filename)} already exists. Do you want to overwrite it?", default: false)
 
-        file_path = generator.save(generator.generate)
+        script_to_save = final_script || generator.generate
+
+        file_path = generator.save(script_to_save)
 
         puts "Script has been saved to #{file_path}"
 

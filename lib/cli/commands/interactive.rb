@@ -21,7 +21,7 @@ module AlcesJob
         # Unexpected errors
         # ------------------------------------------------------------
         rescue StandardError => e
-          spinner&.error(pastel.red('(Unexpected error)'))
+          puts pastel.red('(Unexpected error)')
           warn pastel.red("\nAn unexpected error occurred while running the command.")
           warn pastel.red("#{e.message}\n")
           exit(1)

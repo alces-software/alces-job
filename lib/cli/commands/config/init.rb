@@ -28,6 +28,7 @@ module AlcesJob
         option :mail_user, type: :string, desc: 'Email address for job notifications'
         option :mail_type, type: :string, desc: 'Notification type (BEGIN, END, FAIL, etc.)'
         option :submit, type: :boolean, default: false, desc: 'Submit the job immediately after generation'
+        option :editor, type: :string, desc: 'Default editor to use for manual script editing'
 
         def call(**options)
           pastel = Pastel.new

@@ -8,6 +8,7 @@ require 'yaml'
 require 'tempfile'
 require 'shellwords'
 require 'English'
+require 'diffy'
 
 require_relative 'command_templates/generate_command_template'
 
@@ -57,6 +58,8 @@ module AlcesJob
               options = config_manager.config
 
               spinner.success(pastel.green('(Loaded)'))
+              # puts
+              # puts options['values']
 
               config_manager.output.each { |line| puts line }
             end
@@ -114,7 +117,24 @@ module AlcesJob
           spinner.success(pastel.green('(Generated)'))
 
           if options[:edit]
-            script = AlcesJob::Services::Editor.edit_script_in_editor(script)
+            edited_script = AlcesJob::Services::Editor.edit_script_with_preview(
+              script,
+              prompt: prompt,
+              pastel: pastel,
+              validator_class: Services::SlurmScriptValidator,
+              editor: options[:editor]
+            )
+
+            case edited_script[:status]
+            when :saved
+              script = edited_script[:script]
+            when :cancelled
+              puts pastel.yellow("\nEdited changes discarded.\n")
+              exit(0)
+            when :invalid
+              spinner.error(pastel.red('(Invalid script)'))
+              exit(1)
+            end
 
             if options[:output_file].nil?
               job_name = AlcesJob::Services::Editor.edited_job_name(script)
@@ -139,6 +159,8 @@ module AlcesJob
               border: :thick,
               width: box_width
             )
+
+            exit(0)
           end
 
           # ------------------------------------------------------------

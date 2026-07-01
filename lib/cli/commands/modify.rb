@@ -245,7 +245,7 @@ module AlcesJob
 
           used_modules = []
 
-          edited_script << 'module purge' if modules_to_write.any
+          edited_script << 'module purge' if modules_to_write.any?
 
           modules_to_write.each do |m|
             m = m.to_s.strip
@@ -255,6 +255,8 @@ module AlcesJob
             edited_script << "module load #{m}"
             used_modules << m
           end
+
+          job_name = job_name.split.first if job_name
 
           edited_script << ''
           edited_script << %(echo "Running job '#{job_name}'") if job_name
