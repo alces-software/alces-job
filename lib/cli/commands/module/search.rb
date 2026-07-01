@@ -20,11 +20,17 @@ module AlcesJob
         def call(**options)
           pastel = Pastel.new
 
+          # ------------------------------------------------------------
+          # Check options
+          # ------------------------------------------------------------
           if options.length == 1
             puts pastel.red.bold("\nNo filter options were provided. Use --help to see available flags.\n")
             exit(1)
           end
 
+          # ------------------------------------------------------------
+          # Get packages
+          # ------------------------------------------------------------
           packages = AlcesJob::Services::SysInfo.package_info
 
           if packages.empty?
@@ -35,49 +41,31 @@ module AlcesJob
           # ------------------------------------------------------------
           # Filter name
           # ------------------------------------------------------------
-          unless options[:module_name].nil?
-            filtered_packages = {}
-            packages.each do |category_name, packages|
-              packages.each do |package|
-                if package[:name].to_s.downcase.include?(options[:module_name].to_s.downcase)
-                  filtered_packages[category_name] ||= []
-                  filtered_packages[category_name] << package
-                end
-              end
-            end
-            packages = filtered_packages
+          packages = filter_name(options, packages) unless options[:module_name].nil?
+
+          if packages.empty?
+            puts pastel.red.bold("\nNo modules found\n")
+            exit(0)
           end
 
           # ------------------------------------------------------------
           # Filter version
           # ------------------------------------------------------------
-          unless options[:version].nil?
-            filtered_packages = {}
-            packages.each do |category_name, packages|
-              packages.each do |package|
-                if package[:version].to_s.downcase.include?(options[:version].to_s.downcase)
-                  filtered_packages[category_name] ||= []
-                  filtered_packages[category_name] << package
-                end
-              end
-            end
-            packages = filtered_packages
+          packages = filter_version(options, packages) unless options[:version].nil?
+
+          if packages.empty?
+            puts pastel.red.bold("\nNo modules found\n")
+            exit(0)
           end
 
           # ------------------------------------------------------------
           # Filter category
           # ------------------------------------------------------------
-          unless options[:category].nil?
-            filtered_packages = {}
-            packages.each do |category_name, packages|
-              next unless category_name.to_s.downcase.include?(options[:category].to_s.downcase)
+          packages = filter_category(options, packages) unless options[:category].nil?
 
-              packages.each do |package|
-                filtered_packages[category_name] ||= []
-                filtered_packages[category_name] << package
-              end
-            end
-            packages = filtered_packages
+          if packages.empty?
+            puts pastel.red.bold("\nNo modules found\n")
+            exit(0)
           end
 
           # ------------------------------------------------------------
@@ -103,6 +91,59 @@ module AlcesJob
           warn pastel.red("\nAn unexpected error occurred while modifying the script:")
           warn pastel.red("#{e.message}\n")
           exit(1)
+        end
+
+        private
+
+        # Filters the modules by name
+        # @param [Hash] options
+        # @param [Hash] packages
+        # @return [Hash]
+        def filter_name(options, packages)
+          filtered_packages = {}
+          packages.each do |category_name, packages|
+            packages.each do |package|
+              if package[:version].to_s.downcase.include?(options[:version].to_s.downcase)
+                filtered_packages[category_name] ||= []
+                filtered_packages[category_name] << package
+              end
+            end
+          end
+          filtered_packages
+        end
+
+        # Filters the modules by version
+        # @param [Hash] options
+        # @param [Hash] packages
+        # @return [Hash]
+        def filter_version(options, packages)
+          filtered_packages = {}
+          packages.each do |category_name, packages|
+            packages.each do |package|
+              if package[:version].to_s.downcase.include?(options[:version].to_s.downcase)
+                filtered_packages[category_name] ||= []
+                filtered_packages[category_name] << package
+              end
+            end
+          end
+          filtered_packages
+        end
+
+        # Filters the modules by category
+        # @param [Hash] options
+        # @param [Hash] packages
+        # @return [Hash]
+        def filter_category(options, packages)
+          filtered_packages = {}
+          packages.each do |category_name, packages|
+            next unless category_name.to_s.downcase.include?(options[:category].to_s.downcase)
+
+            packages.each do |package|
+              filtered_packages[category_name] ||= []
+              filtered_packages[category_name] << package
+            end
+          end
+          filtered_packages
         end
       end
     end

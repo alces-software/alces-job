@@ -16,13 +16,20 @@ module AlcesJob
 
         def call(**options)
           pastel = Pastel.new
-          package_categories = AlcesJob::Services::SysInfo.load_info[:packages]
+
+          # ------------------------------------------------------------
+          # Get packages
+          # ------------------------------------------------------------
+          package_categories = AlcesJob::Services::SysInfo.package_info
 
           if package_categories.empty?
             puts pastel.red.bold("\nNo packages available\n")
             exit(0)
           end
 
+          # ------------------------------------------------------------
+          # Display packages
+          # ------------------------------------------------------------
           package_categories.each do |category_name, packages|
             puts pastel.green.bold("\n#{category_name}:")
             packages.each do |package|
