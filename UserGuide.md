@@ -232,6 +232,30 @@ If you no longer need it:
 $ alces-job profile delete --profile fast
 ```
 
+### Inspecting a job
+
+Creating a job with the `--track` flag will allow the tool to be able to track the progress of the job script. It will automatically inject `alces_start_job` and `alces_end_job` helper functions that tell the tool when the script has started or finished.
+If your script has multiple distinct sections, they can be wrapped with the `alces_start_stage` and `alces_end_stage` helper functions so this information can also be tracked. Make sure to set the number of stages in the `ALCES_TOTAL_STAGES` environment variable.
+
+To view the status of a tracked script run
+
+```sh
+$ alces-job status <jobId>
+```
+
+This will show information about how far the job has progressed and if it has completed. More information about the stages can be displayed with the `--verbose -v` flag.
+
+`--live` will show a table with information that updates in real time.
+
+#### History
+
+The history of tracked jobs can be accessed with
+```sh
+$ alces-job history
+```
+This will show a list of recent jobs. The amount of jobs it shows can be capped with the `--limit` flag, and the results can be filtered with the `--status` flag.
+These can be combined with the `--interactive -i` flag, which will let you select one of the options and view the full details about it.
+
 ## All Commands
 
 - `alces-job version` (`-v`, `--version`)
@@ -432,3 +456,16 @@ $ alces-job profile delete --profile fast
 - `alces-job profile edit remove --profile_name <name> [flags]`
   - Removes stored flags from a profile.
   - Use boolean flags for each field to remove.
+
+- `alces-job status <jobId> [flags]`
+  - Gets the status of a job
+  - Flags:
+    - `--verbose -v`
+    - `--live`
+
+- `alces-job history [flags]`
+  - Gets a history of the jobs
+  - Flags:
+    - `--status`
+    - `--limit`
+    - `--interactive -i`
