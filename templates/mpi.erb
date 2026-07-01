@@ -28,9 +28,17 @@
 <%- line = "module load openmpi" -%>
 <%= line.ljust(50) %># Load OpenMPI so MPI programs can run
 <% Array(@context.modules).each do |mod| -%>
-  <%- line = "module load #{mod}" -%>
-  <%= line.ljust(50) %># Load extra user-requested module
+<%- line = "module load #{mod}" -%>
+<%= line.ljust(50) %># Load extra user-requested module
 <% end -%>
+<% if @context.track %>
+# Tracking Functions:
+<%= "source #{@context.tracking_path}" %>
+<%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
+export ALCES_TOTAL_STAGES=0
+
+<%= "alces_start_job" %>
+<% end %>
 <% if @context.workdir -%>
   <%- line = "cd #{@context.workdir}" -%>
   <%= line.ljust(50) %># Move to the working directory
@@ -42,3 +50,7 @@
 <%= line.ljust(80) %># Print MPI resource information
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(50) %># Launch the MPI program using Slurm's task launcher
+<% if @context.track %>
+
+<%= "alces_end_job" %>
+<% end %>

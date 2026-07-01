@@ -61,6 +61,14 @@
   <%- line = "module load #{mod}" -%>
   <%= line.ljust(55) %># Load required software/module before running
 <% end -%>
+<% if @context.track %>
+# Tracking Functions:
+<%= "source #{@context.tracking_path}" %>
+<%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
+export ALCES_TOTAL_STAGES=0
+
+<%= "alces_start_job" %>
+<% end %>
 <% if @context.workdir -%>
   <%- line = "cd #{@context.workdir}" -%>
   <%= line.ljust(55) %># Move to the working directory
@@ -72,3 +80,7 @@
 <%= line.ljust(70) %># Print which job is running
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(70) %># Run the user's command
+<% if @context.track %>
+
+<%= "alces_end_job" %>
+<% end %>
