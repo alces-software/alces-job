@@ -173,7 +173,8 @@ module AlcesJob
             time: 'How long would you like your job to run for?',
             cpus_per_task: 'How many CPU cores would you like to request?',
             mem: 'How much memory will your job use? (MB)',
-            command: 'What command would you like to run?'
+            command: 'What command would you like to run?',
+            prepare: 'Would you like to prepare this job with a dedicated working directory'
           },
 
           mpi: {
@@ -185,7 +186,8 @@ module AlcesJob
             cpus_per_task: 'How many CPU cores would each MPI task require?',
 
             mem: 'How much memory will your job use? (MB)',
-            command: 'What MPI command would you like to run?'
+            command: 'What MPI command would you like to run?',
+            prepare: 'Would you like to prepare this job with a dedicated working directory'
 
           },
 
@@ -196,7 +198,8 @@ module AlcesJob
             gres: 'How many GPUs would you like to request?',
             cpus_per_task: 'How many CPU cores would you like to request?',
             mem: 'How much memory will your job use? (MB)',
-            command: 'What command would you like to run?'
+            command: 'What command would you like to run?',
+            prepare: 'Would you like to prepare this job with a dedicated working directory'
           },
 
           array: {
@@ -207,7 +210,8 @@ module AlcesJob
             cpus_per_task: 'How many CPU cores should each array task use?',
 
             mem: 'How much memory would you like per array task? (MB)',
-            command: 'What command would you like to run?'
+            command: 'What command would you like to run?',
+            prepare: 'Would you like to prepare this job with a dedicated working directory'
           }
         }
 
@@ -577,6 +581,15 @@ module AlcesJob
                 q.messages[:valid?] = "Please enter a whole number between 1 and #{max_cpu_cores}"
                 q.convert :int
               end
+
+            when :prepare
+              puts
+              puts pastel.bold.cyan('Job Preparation')
+              puts
+              puts 'This creates a dedicated working directory using the slurm job name and job ID.'
+              puts 'It also adds output and errors to this directory.'
+              puts
+              key(item).yes?(pastel.bold.cyan(question), default: false)
 
             when :command
               puts
@@ -1145,6 +1158,18 @@ module AlcesJob
             result[:command] = prompt.ask(
               pastel.bold.cyan(questions[:command]),
               default: result[:command]
+            )
+
+          when :prepare
+            puts
+            puts pastel.bold.cyan('Prepare')
+            puts
+            puts 'This creates a dedicated working directory using the slurm job name and job id'
+            puts
+
+            result[:prepare] = prompt.yes?(
+              pastel.bold.cyan(questions[:prepare]),
+              default: result[:prepare]
             )
 
           when :job_name

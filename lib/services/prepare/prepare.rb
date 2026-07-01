@@ -9,7 +9,7 @@ module AlcesJob
 
       def self.helper
         "alces_prepare_job() {\n  " \
-          "job_dir=\"$HOME/prepared/${SLURM_JOB_NAME}-${SLURM_JOB_ID}\"\n" \
+          "job_dir=\"$HOME/${SLURM_JOB_NAME}-${SLURM_JOB_ID}\"\n" \
           "\n  " \
           "mkdir -p \"$job_dir\"\n  " \
           "cd \"$job_dir\" || exit 1\n" \
