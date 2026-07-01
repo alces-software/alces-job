@@ -1,65 +1,65 @@
 #!/bin/bash
 <% if @context.job_name -%>
-  <%- line = "#SBATCH --job-name=#{@context.job_name}" -%>
-  <%= line.ljust(55) %># Name shown for this job in the Slurm queue
+<%- line = "#SBATCH --job-name=#{@context.job_name}" -%>
+<%= line.ljust(55) %># Name shown for this job in the Slurm queue
 <% end -%>
 <% if @context.nodes -%>
-  <%- line = "#SBATCH --nodes=#{@context.nodes}" -%>
-  <%= line.ljust(55) %># Number of nodes/machines requested
+<%- line = "#SBATCH --nodes=#{@context.nodes}" -%>
+<%= line.ljust(55) %># Number of nodes/machines requested
 <% end -%>
 <% if @context.ntasks -%>
-  <%- line = "#SBATCH --ntasks=#{@context.ntasks}" -%>
-  <%= line.ljust(55) %># Number of tasks/processes to run
+<%- line = "#SBATCH --ntasks=#{@context.ntasks}" -%>
+<%= line.ljust(55) %># Number of tasks/processes to run
 <% end -%>
 <% if @context.cpus_per_task -%>
-  <%- line = "#SBATCH --cpus-per-task=#{@context.cpus_per_task}" -%>
-  <%= line.ljust(55) %># CPU cores available to each task
+<%- line = "#SBATCH --cpus-per-task=#{@context.cpus_per_task}" -%>
+<%= line.ljust(55) %># CPU cores available to each task
 <% end -%>
 <% if @context.mem -%>
-  <%- line = "#SBATCH --mem=#{@context.mem}" -%>
-  <%= line.ljust(55) %># Amount of memory requested for the job
+<%- line = "#SBATCH --mem=#{@context.mem}" -%>
+<%= line.ljust(55) %># Amount of memory requested for the job
 <% end -%>
 <% if @context.time -%>
-  <%- line = "#SBATCH --time=#{@context.time}" -%>
-  <%= line.ljust(55) %># Maximum runtime before Slurm stops the job
+<%- line = "#SBATCH --time=#{@context.time}" -%>
+<%= line.ljust(55) %># Maximum runtime before Slurm stops the job
 <% end -%>
 <% if @context.partition -%>
-  <%- line = "#SBATCH --partition=#{@context.partition}" -%>
-  <%= line.ljust(55) %># Partition/queue where the job should run
+<%- line = "#SBATCH --partition=#{@context.partition}" -%>
+<%= line.ljust(55) %># Partition/queue where the job should run
 <% end -%>
 <% if @context.account -%>
-  <%- line = "#SBATCH --account=#{@context.account}" -%>
-  <%= line.ljust(55) %># Account/project to charge the job to
+<%- line = "#SBATCH --account=#{@context.account}" -%>
+<%= line.ljust(55) %># Account/project to charge the job to
 <% end -%>
 <% if @context.gres -%>
-  <%- line = "#SBATCH --gres=#{@context.gres}" -%>
-  <%= line.ljust(55) %># Generic resources, commonly used for GPUs, e.g. gpu:1
+<%- line = "#SBATCH --gres=#{@context.gres}" -%>
+<%= line.ljust(55) %># Generic resources, commonly used for GPUs, e.g. gpu:1
 <% end -%>
 <% if @context.mail_user -%>
-  <%- line = "#SBATCH --mail-user=#{@context.mail_user}" -%>
-  <%= line.ljust(55) %># Email address for Slurm job notifications
+<%- line = "#SBATCH --mail-user=#{@context.mail_user}" -%>
+<%= line.ljust(55) %># Email address for Slurm job notifications
 <% end -%>
 <% if @context.mail_type -%>
-  <%- line = "#SBATCH --mail-type=#{@context.mail_type}" -%>
-  <%= line.ljust(55) %># When to send emails, e.g. BEGIN, END, FAIL, ALL
+<%- line = "#SBATCH --mail-type=#{@context.mail_type}" -%>
+<%= line.ljust(55) %># When to send emails, e.g. BEGIN, END, FAIL, ALL
 <% end -%>
 <% if @context.array -%>
-  <%- line = "#SBATCH --array=#{@context.array}" -%>
-  <%= line.ljust(55) %># Run as an array job; each task gets a SLURM_ARRAY_TASK_ID
+<%- line = "#SBATCH --array=#{@context.array}" -%>
+<%= line.ljust(55) %># Run as an array job; each task gets a SLURM_ARRAY_TASK_ID
 <% end -%>
 <% if @context.dependency -%>
-  <%- line = "#SBATCH --dependency=#{@context.dependency}" -%>
-  <%= line.ljust(55) %># Start this job only after another job condition is met
+<%- line = "#SBATCH --dependency=#{@context.dependency}" -%>
+<%= line.ljust(55) %># Start this job only after another job condition is met
 <% end -%>
 <% if @context.prepare -%>
-  <%= @prepare.directives %>
+<%= @prepare.directives %>
 <% end -%>
 <% unless Array(@context.modules).empty? -%>
-  module purge
+module purge
 <% end -%>
 <% Array(@context.modules).each do |mod| -%>
-  <%- line = "module load #{mod}" -%>
-  <%= line.ljust(55) %># Load required software/module before running
+<%- line = "module load #{mod}" -%>
+<%= line.ljust(55) %># Load required software/module before running
 <% end -%>
 <% if @context.track %>
 # Tracking Functions:
@@ -70,8 +70,8 @@ export ALCES_TOTAL_STAGES=0
 <%= "alces_start_job" %>
 <% end %>
 <% if @context.workdir -%>
-  <%- line = "cd #{@context.workdir}" -%>
-  <%= line.ljust(55) %># Move to the working directory
+<%- line = "cd #{@context.workdir}" -%>
+<%= line.ljust(55) %># Move to the working directory
 <% end -%>
 
 <% if @context.local_scratch -%>
