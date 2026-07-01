@@ -8,8 +8,8 @@ module AlcesJob
       def initialize
         @xdg = XDG.new
         @system_root = '/etc/alces-job'
-        @system_info_file_name = 'system-info'
-        @user_system_info_file_name = 'system-info-user'
+        @system_info_file_name = 'admin-system-info'
+        @user_system_info_file_name = 'user-system-info'
         @admin_config_file_name = 'admin-config'
         @user_config_file_name = 'user-config'
       end

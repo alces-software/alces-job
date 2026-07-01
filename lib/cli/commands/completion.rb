@@ -50,7 +50,7 @@ module AlcesJob
         # ------------------------------------------------------------
         # User install
         # ------------------------------------------------------------
-        def install_user(paths, _pastel)
+        def install_user(paths)
           FileUtils.mkdir_p(paths.user_bash_completion_dir)
 
           completion_path = paths.user_bash_completion_path
