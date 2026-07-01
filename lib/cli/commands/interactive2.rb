@@ -395,7 +395,7 @@ module AlcesJob
         def modules_question(key, question, flags, pastel, prompt, packages_info)
           puts pastel.yellow.bold("\nScript Modules\n")
           puts "These are the modules that will be loaded into your script so they can be used within the script.\n"
-          puts "\nThis is optional - you can either select multiple or none at all.\n\n"
+          puts "\nThis is optional - you can either select multiple or none at all.\n"
           puts "\nTo select a modules, scroll down and press 'space'. If a module is selected, the icon will appear green.\n"
           puts "\nPress 'enter' with no sections to skip this stage.\n"
 
