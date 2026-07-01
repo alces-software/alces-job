@@ -5,13 +5,14 @@ require 'pastel'
 require 'terminal-table'
 require 'tty-box'
 require 'time'
+require 'tty-prompt'
 
 require_relative '../paths/paths'
 
 module AlcesJob
   module Services
     module Tracking
-      def self.load_job_status(job_id)
+      def self.load_job_status(job_id, silent = false)
         path = Services::Paths.new.user_job_dir
         pastel = Pastel.new
 
@@ -21,9 +22,11 @@ module AlcesJob
           error_mark: pastel.red('✗')
         )
 
-        puts
-        spinner.update(title: 'Loading job data')
-        spinner.auto_spin
+        unless silent
+          puts
+          spinner.update(title: 'Loading job data')
+          spinner.auto_spin
+        end
 
         begin
           data = {}
@@ -71,7 +74,7 @@ module AlcesJob
           exit(1)
         end
 
-        spinner.success(pastel.green('(Loaded)'))
+        spinner.success(pastel.green('(Loaded)')) unless silent
 
         data
       end
@@ -154,12 +157,82 @@ module AlcesJob
         end
       end
 
-      private
+      def self.get_job_history(status: nil, limit: nil)
+        path = Services::Paths.new.user_job_dir
 
-      # Formats the time
-      # @param [Integer] epoch
-      # @return [String]
-      def format_time(epoch)
+        jobs = Dir.children(path).map do |job|
+          load_job_status(job, true)
+        end
+
+        jobs = jobs.select do |job|
+          next true unless status
+
+          current_status = job['endTime'].to_s.empty? ? :running : :completed
+          current_status == status
+        end
+
+        jobs = jobs.sort_by { |j| j['jobId'].to_i }
+        jobs = jobs.first(limit.to_i) if limit
+
+        jobs
+      end
+
+      def self.display_jobs(jobs)
+        rows = jobs
+          .map do |job|
+            [job['jobId'], job_status(job)]
+          end
+
+        puts Terminal::Table.new(
+          headings: ['Job ID', 'Status'],
+          rows: rows,
+          style: {
+            border: :unicode,
+            padding_left: 1,
+            padding_right: 1
+          }
+        )
+      end
+
+      def self.display_jobs_interactive(jobs)
+        prompt = TTY::Prompt.new
+
+        choices = jobs.each_with_index.map do |job, index|
+          {
+            name: "#{job['jobId'].ljust(20)} #{job_status(job)}",
+            value: index
+          }
+        end
+
+        title = TTY::Box.frame(
+          width: 50,
+          height: 3,
+          align: :center,
+          padding: 0
+        ) do
+          'Select a Job'
+        end
+
+        while true
+          system('clear')
+
+          puts title
+
+          index = prompt.select('Choose a job:', choices)
+
+          system('clear')
+          puts generate_table(jobs[index], true)
+          key = prompt.keypress('[Press any key to continue, or q to quit]')
+          exit(0) if key == 'q'
+        end
+      end
+
+      def self.job_status(job)
+        pastel = Pastel.new
+        job['endTime'].to_s.empty? ? pastel.yellow('RUNNING') : pastel.green('COMPLETED')
+      end
+
+      def self.format_time(epoch)
         return nil unless epoch
 
         Time.at(epoch.to_i).strftime('%Y-%m-%d %H:%M:%S')
