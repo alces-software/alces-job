@@ -93,15 +93,13 @@ module AlcesJob
           # System information
           # ------------------------------------------------------------
           all_info = Services::SysInfo.load_info
-
-          partition_info = if valid_partition_info?(all_info[:partitions])
-                             all_info[:partitions]
-                           else
-                             prompt_for_partition_info
-                           end
-
+          partition_info = all_info[:partitions]
           package_info = all_info[:packages]
-          puts package_info
+
+          unless valid_partition_info?(partition_info)
+            partition_info = prompt_for_partition_info(prompt)
+            package_info = prompt_for_packages(prompt)
+          end
 
           # ------------------------------------------------------------
           # Welcome message
@@ -137,10 +135,7 @@ module AlcesJob
           puts "\n2) #{pastel.yellow('MPI (Message Passing Interface)')}\n\nChoose MPI if your program was written to run in parallel using MPI, or if the documentation tells you to run it with mpirun, mpiexec, or srun."
           puts "\n3) #{pastel.green('GPU (Graphics Processing Unit)')}\n\nChoose GPU if your code uses CUDA, PyTorch, TensorFlow, or another library that needs a GPU."
           puts "\n4) #{pastel.blue('Array')}\n\nChoose array if you need to repeat the same job many times, usually with different files, parameters, or random seeds.\n"
-
           job_type = prompt.select(pastel.bold.magenta('What type of job would you like to run?'), types_of_job).split.first
-          type_specific_questions = QUESTION_BANK[job_type.to_sym]
-
           system('clear')
 
           max_run_time = nil
@@ -150,17 +145,33 @@ module AlcesJob
           # ------------------------------------------------------------
           # Ask initial questions
           # ------------------------------------------------------------
-          type_specific_questions.each_key do |key|
+          QUESTION_BANK[job_type.to_sym].each do |key, question|
             system('clear')
             case key
             when :partition
-              partition_question(flags, prompt, job_type, partition_info, pastel)
+              partition_question(key, question, flags, pastel, prompt, job_type, partition_info)
             when :job_name
-              job_name_question(flags, prompt, pastel)
+              job_name_question(key, question, flags, pastel, prompt)
             when :time
-              time_question(flags, partition_info, prompt, pastel)
+              time_question(key, question, flags, pastel, prompt, partition_info)
             when :cpus_per_task
-              cpus_per_task_question(flags, partition_info, pastel, prompt)
+              cpus_per_task_question(key, question, flags, pastel, prompt, partition_info)
+            when :mem
+              mem_question(key, question, flags, pastel, prompt, partition_info)
+            when :command
+              command_question(key, question, flags, pastel, prompt)
+            when :prepare
+              prepare_question(key, question, flags, pastel, prompt)
+            when :modules
+              modules_question(key, question, flags, pastel, prompt, package_info)
+            when :nodes
+              nodes_question(key, question, flags, pastel, prompt, partition_info)
+            when :ntask
+              ntask_question(key, question, flags, pastel, prompt, partition_info)
+            when :gres
+              gres_question(key, question, flags, pastel, prompt, partition_info)
+            when :array
+              array_question(key, question, flags, pastel, prompt)
             end
           end
 
@@ -181,16 +192,18 @@ module AlcesJob
         # Question functions
         # ------------------------------------------------------------
         # Prompts the user for the job name
+        # @param [Symbol] key
+        # @param [String] question
         # @param [Hash] flags
         # @param [TTY::Prompt] prompt
         # @param [Pastel::Delegator] pastel
-        def job_name_question(flags, prompt, pastel)
+        def job_name_question(key, question, flags, pastel, prompt)
           puts pastel.bold.blue("\nJob Name\n")
           puts "This is the name that will appear in the #{pastel.bold('SLURM queue')}."
           puts "Use a short, clear name so you can recognise the job later.\n"
           puts pastel.bright_black("Example: my_python_job\n")
 
-          flags[:job_name] = prompt.ask(QUESTION_BANK[:partition], default: DEFAULT_VALUES[:job_name]) do |q|
+          flags[key] = prompt.ask(question, default: DEFAULT_VALUES[key]) do |q|
             q.modify :strip
             q.convert ->(input) { input.gsub(/\s+/, '_') }
             q.validate do |input|
@@ -202,12 +215,14 @@ module AlcesJob
         end
 
         # Prompts the user for the partition they want
+        # @param [Symbol] key
+        # @param [String] question
         # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
         # @param [String] job_type
         # @param [Hash] partition_info
-        # @param [Pastel::Delegator] pastel
-        def partition_question(flags, prompt, job_type, partition_info, pastel)
+        def partition_question(key, question, flags, pastel, prompt, job_type, partition_info)
           puts pastel.bold.cyan("\nPartition\n")
           puts "A partition is a queue or #{pastel.bold.underline('group of machines')} that your job can run on."
           puts "\nDifferent partitions may have different time limits, hardware, or waiting times."
@@ -244,15 +259,17 @@ module AlcesJob
           )
           puts
 
-          flags[:partition] = prompt.select(pastel.bold.cyan(QUESTION_BANK[:partition]), available_partitions.map { |partition| partition[:name] })
+          flags[key] = prompt.select(pastel.bold.cyan(question), available_partitions.map { |partition| partition[:name] })
         end
 
         # Prompts the user for the max time of the script
+        # @param [Symbol] key
+        # @param [String] question
         # @param [Hash] flags
-        # @param [Hash] partition_info
-        # @param [TTY::Prompt] prompt
         # @param [Pastel::Delegator] pastel
-        def time_question(flags, partition_info, prompt, pastel)
+        # @param [TTY::Prompt] prompt
+        # @param [Hash] partition_info
+        def time_question(key, question, flags, pastel, prompt, partition_info)
           selected_partition = get_selected_partition(flags, partition_info, pastel)
 
           puts pastel.bold.magenta("\nTime\n")
@@ -263,9 +280,9 @@ module AlcesJob
           max_run_time = selected_partition[:time_limit]
           human_readable_max_time = Services::TimeConverter.to_human_readable(max_run_time)
 
-          puts "\nThe max runtime for the partition #{pastel.bold(selected_partition[:name])} is #{max_run_time}, i.e. #{human_readable_max_time}\n"
+          puts "\nThe max runtime for the partition #{pastel.bold(selected_partition[:name])} is #{max_run_time}, i.e. #{human_readable_max_time}\n\n"
 
-          flags[:time] = prompt.ask(pastel.bold.magenta(QUESTION_BANK[:time]), default: DEFAULT_VALUES[:time]) do |q|
+          flags[key] = prompt.ask(pastel.bold.magenta(question), default: DEFAULT_VALUES[key]) do |q|
             q.validate do |input|
               Services::TimeConverter.valid_slurm_time?(input, max_run_time)
             end
@@ -274,11 +291,13 @@ module AlcesJob
         end
 
         # Prompts the user for the amount of cpus per task
+        # @param [Symbol] key
+        # @param [String] question
         # @param [Hash] flags
-        # @param [Hash] partition_info
         # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
-        def cpus_per_task_question(flags, partition_info, pastel, prompt)
+        # @param [Hash] partition_info
+        def cpus_per_task_question(key, question, flags, pastel, prompt, partition_info)
           selected_partition = get_selected_partition(flags, partition_info, pastel)
 
           max_cpu_cores = selected_partition[:max_cpu_cores].to_i
@@ -288,15 +307,280 @@ module AlcesJob
           puts "\nEach CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\n"
           puts "\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}.\n"
           puts "\nAsk for more only if your code uses threading, multiprocessing, or software that can run in parallel.\n"
-          puts "\nThe max number of cpu cores per node on partition #{selected_partition[:name]} is #{max_cpu_cores}.\n"
+          puts "\nThe max number of cpu cores per node on partition #{selected_partition[:name]} is #{max_cpu_cores}.\n\n"
 
-          flags[:cpus_per_task] = prompt.ask(pastel.bold.green(QUESTION_BANK[:cpus_per_task]), default: DEFAULT_VALUES[:cpus_per_task]) do |q|
+          flags[key] = prompt.ask(pastel.bold.green(question), default: DEFAULT_VALUES[key]) do |q|
             q.validate(/\A\d+\z/)
             q.messages[:valid?] = 'Please enter a whole number'
             q.validate do |input|
               input.to_i.between?(1, max_cpu_cores)
             end
             q.messages[:valid?] = "Please enter a whole number between 1 and #{max_cpu_cores}"
+            q.convert :int
+          end
+        end
+
+        # Prompts the user for the amount of mem for the script
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
+        # @param [TTY::Prompt] prompt
+        # @param [Hash] partition_info
+        def mem_question(key, question, flags, pastel, prompt, partition_info)
+          selected_partition = get_selected_partition(flags, partition_info, pastel)
+
+          max_memory = selected_partition[:max_memory_mb].to_i
+
+          puts pastel.bold.yellow("\nMemory\n")
+          puts "Memory is the amount of #{pastel.yellow('RAM')} (Random Access Memory) your job needs while it is running.\n"
+          puts "\nYour program uses RAM to hold #{pastel.bold('data')}, #{pastel.bold('variables')}, #{pastel.bold('files')} and #{pastel.bold('calculations')}.\n"
+          puts "\nIf your job uses more memory than requested then Slurm may stop it.\n"
+          puts "\nFor small scripts, 1024 - 2048 MB is often enough.\n"
+          puts "\nThe maximum memory per node on partition #{selected_partition} is #{max_memory} MB.\n\n"
+
+          flags[key] = prompt.ask(pastel.bold.yellow(question), default: DEFAULT_VALUES[key]) do |q|
+            q.validate do |input|
+              requested_memory_mb = Services::MemoryConverter.to_mb(input)
+              !requested_memory_mb.nil? &&
+                requested_memory_mb >= 1 &&
+                requested_memory_mb <= max_memory
+            end
+            q.messages[:valid?] = "Enter memory between 1 MB and #{max_memory} MB, such as 500, 500M, or 2G."
+            q.convert do |input|
+              Services::MemoryConverter.to_mb(input)
+            end
+          end
+        end
+
+        # Prompts the user for the command they want in the script
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
+        # @param [TTY::Prompt] prompt
+        def command_question(key, question, flags, pastel, prompt)
+          puts pastel.bold.cyan("\nCommand\n")
+          puts "This is the command that Slurm will run inside your batch script.\nUse the same command you would normally type into the terminal.\n"
+          puts "\nExamples:\n\n"
+          puts "#{pastel.bold.bright_magenta('python')} script.py\n\n"
+          puts "#{pastel.bold.bright_magenta('R')} analysis.R\n\n"
+          puts "#{pastel.bold.bright_magenta('node')} app.js\n\n"
+          puts "#{pastel.bold.bright_magenta('srun')} ./my_mpi_program\n\n"
+
+          flags[key] = prompt.ask(pastel.bold.cyan(question), default: DEFAULT_VALUES[key])
+        end
+
+        # Prompts the user whether they want prepare enabled
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
+        # @param [TTY::Prompt] prompt
+        def prepare_question(key, question, flags, pastel, prompt)
+          puts pastel.bold.cyan("\nJob Preparation\n")
+          puts "This creates a dedicated working directory using the slurm job name and job ID.\n"
+          puts "\nIt also adds output and errors to this directory.\n\n"
+
+          flags[key] = prompt.yes?(pastel.bold.cyan(question), default: false)
+        end
+
+        # Prompts the user for which modules they want to load in their script
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
+        # @param [TTY::Prompt] prompt
+        # @param [Hash] packages_info
+        def modules_question(key, question, flags, pastel, prompt, packages_info)
+          puts pastel.yellow.bold("\nScript Modules\n")
+          puts "These are the modules that will be loaded into your script so they can be used within the script.\n"
+          puts "\nThis is optional - you can either select multiple or none at all.\n\n"
+          puts "\nTo select a modules, scroll down and press 'space'. If a module is selected, the icon will appear green.\n"
+          puts "\nPress 'enter' with no sections to skip this stage.\n"
+
+          options = {}
+          packages_info.to_h.each_value do |package_group|
+            package_group.each do |package|
+              options["#{package[:name]} - v#{package[:version]}"] = package[:full_name] || "#{package[:name]}/#{package[:version]}"
+            end
+          end
+
+          flags[key] = prompt.multi_select(pastel.bold.yellow(question), options, filter: true)
+        end
+
+        # Prompts the user for how many nodes they want to use for the script
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
+        # @param [TTY::Prompt] prompt
+        # @param [Hash] partition_info
+        def nodes_question(key, question, flags, pastel, prompt, partition_info)
+          selected_partition = get_selected_partition(flags, partition_info, pastel)
+
+          node_count = selected_partition[:node_count].to_i
+
+          puts pastel.bold.blue("\nNodes\n")
+          puts "A node is a #{pastel.bold.underline('single machine/computer')} in the cluster.\n"
+          puts "\nMPI jobs may use multiple nodes to run work in parallel across machines.\n"
+          puts "\nThe total number of nodes for partition #{selected_partition[:name]} is #{node_count}\n\n"
+
+          flags[key] = prompt.ask(pastel.bold.blue(question), default: DEFAULT_VALUES[key]) do |q|
+            q.validate(/\A\d+\z/)
+            q.messages[:valid?] = 'Please enter a whole number'
+            q.validate do |input|
+              input.to_i.between?(1, node_count)
+            end
+            q.messages[:valid?] = "Please enter a whole number between 1 and #{node_count}"
+            q.convert :int
+          end
+        end
+
+        # Prompts the user for the array information for the script
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
+        # @param [TTY::Prompt] prompt
+        def array_question(key, question, flags, pastel, prompt)
+          max_array_size = 1001
+
+          puts pastel.bold.bright_magenta("\nArray Job\n")
+          puts "A Slurm array job runs the #{pastel.bold.underline('same job many times')} with different task IDs.\n"
+          puts "\nThis is useful when you want to run the same script for many inputs, files, seeds, or parameters.\n"
+          puts "\nEach array task gets its own ID through:\n\n"
+          puts pastel.bold.green("$SLURM_ARRAY_TASK_ID\n")
+          puts "Your script can use this ID to choose which file, row, or parameter to process.\n"
+          puts pastel.bold("\nExamples:\n")
+          puts "#{pastel.bold.bright_magenta('1-10')}       runs task IDs 1 through 10"
+          puts "#{pastel.bold.bright_magenta('0-9')}        runs task IDs 0 through 9"
+          puts "#{pastel.bold.bright_magenta('1,5,9')}      runs only task IDs 1, 5, and 9"
+          puts "#{pastel.bold.bright_magenta('1-100%10')}   creates 100 tasks, but only runs 10 at the same time"
+          puts "#{pastel.bold.bright_magenta('1-20:2')}     runs every 2nd task, e.g. 1, 3, 5 ... 19\n"
+          puts "\nThe #{pastel.bold('%')} part limits how many array tasks can run at once."
+          puts "For example, #{pastel.bold('1-100%10')} means run at most 10 tasks at the same time.\n"
+          puts "\nIf you are unsure, start small, such as 1-5 or 1-10.\n\n"
+
+          flags[key] = prompt.ask(pastel.bold.bright_magenta(question), default: DEFAULT_VALUES[key]) do |q|
+            q.modify :strip
+            q.validate do |input|
+              array_value = input.strip
+              next false if array_value.empty?
+              next false unless array_value.match?(/\A[\d,\-:%]+\z/)
+
+              max_array_index = max_array_size - 1
+              valid_array = true
+              array_parts, concurrency_limit = array_value.split('%', 2)
+
+              if concurrency_limit &&
+                 (!concurrency_limit.match?(/\A\d+\z/) || concurrency_limit.to_i < 1)
+                valid_array = false
+              end
+
+              array_parts.split(',').each do |array_part|
+                break unless valid_array
+
+                range_part, step_value = array_part.split(':', 2)
+
+                if step_value && (!step_value.match?(/\A\d+\z/) || step_value.to_i < 1)
+                  valid_array = false
+                  break
+                end
+
+                if range_part.include?('-')
+                  array_range = range_part.match(/\A(\d+)-(\d+)\z/)
+
+                  unless array_range
+                    valid_array = false
+                    break
+                  end
+
+                  end_value = array_range[2].to_i
+
+                  if array_range[1].to_i > end_value || end_value > max_array_index
+                    valid_array = false
+                    break
+                  end
+                else
+                  unless range_part.match?(/\A\d+\z/)
+                    valid_array = false
+                    break
+                  end
+
+                  if range_part.to_i > max_array_index
+                    valid_array = false
+                    break
+                  end
+                end
+              end
+
+              valid_array
+            end
+            q.messages[:valid?] = "Enter a valid array value between 0 and #{max_array_size - 1}, such as 1-10, 0-9, 1,5,9, 1-100%10, or 1-20:2."
+          end
+        end
+
+        # Prompts the user for the gres settings for the script
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
+        # @param [TTY::Prompt] prompt
+        # @param [Hash] partition_info
+        def gres_question(key, question, flags, pastel, prompt, partition_info)
+          selected_partition = get_selected_partition(flags, partition_info, pastel)
+
+          max_gpus = selected_partition&.dig(:max_gpus).to_i
+
+          puts pastel.bold.blue("\nGPUs\n")
+          puts "\nA GPU (Graphics Processing Unit) is special processor used for highly parallel work, such as machine learning, simulations, and some scientific workloads.\n"
+
+          if max_gpus.positive?
+            puts "\nThe maximum number of GPUs on partition #{pastel.bold(selected_partition[:name])} is #{pastel.bold(max_gpus)} per node.\n"
+          else
+            puts pastel.red("\nThis partition does not appear to have any GPUs.\n")
+            exit(1)
+          end
+
+          puts
+
+          flags[key] = prompt.ask(pastel.bold.blue(question), default: DEFAULT_VALUES[key] || 1) do |q|
+            q.validate do |input|
+              input.to_s.match?(/\A\d+\z/) &&
+                input.to_i.between?(1, max_gpus)
+            end
+            q.messages[:valid?] = "Please enter a whole number between 1 and #{max_gpus}"
+            q.convert ->(input) { "gpu:#{input.to_i}" }
+          end
+        end
+
+        # Prompts the user for the ntask settings for the script
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
+        # @param [TTY::Prompt] prompt
+        # @param [Hash] partition_info
+        def ntask_question(key, question, flags, pastel, prompt, partition_info)
+          selected_partition = get_selected_partition(flags, partition_info, pastel)
+
+          node_count = selected_partition[:node_count].to_i
+          max_cpu_cores = selected_partition[:max_cpu_cores].to_i
+          max_ntasks = node_count * max_cpu_cores
+
+          puts pastel.bold.yellow("\nMPI Tasks\n")
+          puts 'An MPI task is one parallel process in your MPI job.'
+          puts "\nFor most beginner MPI jobs, each task is one copy of your MPI program running in parallel.\n"
+          puts "\nFor partition #{selected_partition}, the rough maximum number of MPI tasks is #{max_ntasks}.\n"
+          puts "\nThis is based on #{node_count} nodes multiplied by #{max_cpu_cores} CPU cores per node.\n\n"
+
+          flags[key] = prompt.ask(pastel.bold.yellow(question), default: DEFAULT_VALUES[key]) do |q|
+            q.validate do |input|
+              input.to_s.match?(/\A\d+\z/) &&
+                input.to_i.between?(1, max_ntasks)
+            end
+            q.messages[:valid?] = "Please enter a whole number between 1 and #{max_ntasks}"
             q.convert :int
           end
         end
@@ -414,10 +698,9 @@ module AlcesJob
         # Prompt for system info
         # ------------------------------------------------------------
         # Prompts the user for the partition information
+        # @param [TTY::Prompt] prompt
         # @return [Hash]
-        def prompt_for_partition_info
-          prompt = TTY::Prompt.new
-
+        def prompt_for_partition_info(prompt)
           puts Pastel.new.red("\nUnable to detect a Slurm environment. Please enter fallback cluster configuration for the system you wish to run the script on\n")
 
           partition_input = prompt.ask('Partition names (comma-separated)', default: 'default') do |q|
@@ -429,7 +712,7 @@ module AlcesJob
 
           partition_names.each_with_object({}).with_index do |(name, info), index|
             time_limit = prompt.ask("Max time for partition #{name}", default: '0-07:00:00') do |q|
-              q.validate { |input| !TimeConverter.to_seconds(input).nil? }
+              q.validate { |input| !Services::TimeConverter.to_seconds(input).nil? }
               q.messages[:valid?] = 'time must be in format HH:MM:SS or D-HH:MM:SS'
             end
 
@@ -441,13 +724,13 @@ module AlcesJob
 
             max_memory_mb = prompt.ask("Maximum memory per node for partition #{name} (MB)", default: '5000') do |q|
               q.validate do |input|
-                !MemoryConverter.to_mb(input).nil?
+                !Services::MemoryConverter.to_mb(input).nil?
               end
 
               q.messages[:valid?] = 'Please enter memory using M, MB, G, GB e.g. 5000M or 4G'
 
               q.convert do |input|
-                MemoryConverter.to_mb(input)
+                Services::MemoryConverter.to_mb(input)
               end
             end
 
@@ -473,6 +756,35 @@ module AlcesJob
               time_limit: time_limit
             }
           end
+        end
+
+        # Prompts the user for packages information
+        # @param [TTY::Prompt] prompt
+        # @return [Hash]
+        def prompt_for_packages(prompt)
+          module_input = prompt.ask('Available script modules/packages (comma-separated)', default: 'python/3.11,gcc/12.2,openmpi/4.1') do |q|
+            q.convert ->(input) { input.to_s.strip }
+          end
+
+          module_names = module_input.split(',').map(&:strip).reject(&:empty?)
+
+          return {} if module_names.empty?
+
+          {
+            custom: module_names.map do |full_name|
+              parts = full_name.split('/')
+              name = parts.first
+              version = parts[1..]&.join('/')
+
+              {
+                full_name: full_name,
+                name: name,
+                version: version || 'default',
+                description: 'User-provided module',
+                deprecated: false
+              }
+            end
+          }
         end
       end
     end

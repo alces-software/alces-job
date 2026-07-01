@@ -213,7 +213,7 @@ module AlcesJob
           'Select a Job'
         end
 
-        while true
+        loop do
           system('clear')
 
           puts title
