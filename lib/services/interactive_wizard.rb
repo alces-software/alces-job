@@ -476,8 +476,6 @@ module AlcesJob
               end
 
               key(item).multi_select(question, choices, filter: true)
-
-              puts key(item)
             else
               key(item).ask(question)
             end
@@ -911,6 +909,20 @@ module AlcesJob
               end
               q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
             end
+          when :modules
+            puts pastel.yellow.bold("\nScript Modules\n")
+            puts 'These are the modules that will be loaded into your script so'
+            puts "they can be used within the script\n"
+            puts "\nThis is optional you can select multiple or none\n"
+            choices = {}
+
+            packages.each_value do |packages|
+              packages.each do |package|
+                choices["#{package[:name]} - v#{package[:version]}"] = "#{package[:name]}/#{package[:version]}"
+              end
+            end
+
+            result[:modules] = prompt.multi_select(questions[:modules], choices, filter: true)
           else
             result[field] = prompt.ask("Enter new value for #{field}:", default: result[field].to_s)
           end

@@ -38,13 +38,15 @@ module AlcesJob
           return
         end
 
-        config_keys = config['values'].keys
-
         unless options.empty?
           options.each_key do |key|
             key_str = key.to_s
-            @output.push(pastel.yellow("You are overwriting the system admin defined #{key_str}")) if config_keys.include?(key_str) && config['values'][key_str]['warn']
+            @output.push(pastel.yellow("You are overwriting the system admin defined #{key_str}")) if config['values'].key?(key_str) && config['values'][key_str]['warn']
           end
+        end
+
+        config = config['values'].to_h do |key, value|
+          [key.to_sym, value['default']]
         end
 
         @config = config.merge(options)
