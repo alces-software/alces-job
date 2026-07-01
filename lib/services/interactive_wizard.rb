@@ -156,13 +156,10 @@ module AlcesJob
           questions.each do |item, question|
             case item
             when :partition
-              puts
-              puts pastel.bold.cyan('Partition')
+              puts pastel.bold.cyan("\nPartition\n")
               puts "\nA partition is a queue or #{pastel.bold.underline('group of machines')} that your job can run on.\nDifferent partitions may have different time limits, hardware, or waiting times.\n"
-              puts 'If you are unsure, choose the default partition.'
-              puts
-              puts "For a #{pastel.bold("#{job_type} job")}, the available partitions are:"
-              puts
+              puts "f you are unsure, choose the default partition.\n"
+              puts "For a #{pastel.bold("#{job_type} job")}, the available partitions are:\n"
 
               available_partitions =
                 if [:gpu, 'gpu'].include?(job_type)
@@ -201,7 +198,7 @@ module AlcesJob
               end
 
               unless selected_partition_info
-                puts "Could not find partition information for #{selected_partition}"
+                puts pastel.red("\nCould not find partition information for #{selected_partition}\n")
                 exit(1)
               end
 
@@ -209,16 +206,11 @@ module AlcesJob
               max_cpu_cores = selected_partition_info[:max_cpu_cores].to_i
               max_ntasks = node_count * max_cpu_cores
 
-              puts
-              puts pastel.bold.blue('MPI Tasks')
-              puts
+              puts pastel.bold.blue("\nMPI Tasks\n")
               puts 'An MPI task is one parallel process in your MPI job.'
-              puts 'For most beginner MPI jobs, each task is one copy of your MPI program running in parallel.'
-              puts
-              puts "For partition #{selected_partition}, the rough maximum number of MPI tasks is #{max_ntasks}."
-              puts
-              puts "This is based on #{node_count} nodes × #{max_cpu_cores} CPU cores per node."
-              puts
+              puts "For most beginner MPI jobs, each task is one copy of your MPI program running in parallel.\n"
+              puts "For partition #{selected_partition}, the rough maximum number of MPI tasks is #{max_ntasks}.\n"
+              puts "This is based on #{node_count} nodes X #{max_cpu_cores} CPU cores per node.\n"
 
               key(item).ask(pastel.bold.blue(question), default: defaults[item]) do |q|
                 q.validate do |input|
@@ -234,32 +226,21 @@ module AlcesJob
             when :array
               max_array_size = 1001
 
-              puts
-              puts pastel.bold.bright_magenta('Array Job')
-              puts
-              puts "A Slurm array job runs the #{pastel.bold.underline('same job many times')} with different task IDs."
-              puts
-              puts 'This is useful when you want to run the same script for many inputs, files, seeds, or parameters.'
-              puts
-              puts 'Each array task gets its own ID through:'
-              puts
-              puts pastel.bold.green('$SLURM_ARRAY_TASK_ID')
-              puts
-              puts 'Your script can use this ID to choose which file, row, or parameter to process.'
-              puts
-              puts pastel.bold('Examples:')
-              puts
+              puts pastel.bold.bright_magenta("\nArray Job\n")
+              puts "A Slurm array job runs the #{pastel.bold.underline('same job many times')} with different task IDs.\n"
+              puts "This is useful when you want to run the same script for many inputs, files, seeds, or parameters.\n"
+              puts "Each array task gets its own ID through:\n"
+              puts pastel.bold.green("$SLURM_ARRAY_TASK_ID\n")
+              puts "Your script can use this ID to choose which file, row, or parameter to process.\n"
+              puts pastel.bold("Examples:\n")
               puts "#{pastel.bold.bright_magenta('1-10')}       runs task IDs 1 through 10"
               puts "#{pastel.bold.bright_magenta('0-9')}        runs task IDs 0 through 9"
               puts "#{pastel.bold.bright_magenta('1,5,9')}      runs only task IDs 1, 5, and 9"
               puts "#{pastel.bold.bright_magenta('1-100%10')}   creates 100 tasks, but only runs 10 at the same time"
-              puts "#{pastel.bold.bright_magenta('1-20:2')}     runs every 2nd task, e.g. 1, 3, 5 ... 19"
-              puts
+              puts "#{pastel.bold.bright_magenta('1-20:2')}     runs every 2nd task, e.g. 1, 3, 5 ... 19\n"
               puts "The #{pastel.bold('%')} part limits how many array tasks can run at once."
-              puts "For example, #{pastel.bold('1-100%10')} means run at most 10 tasks at the same time."
-              puts
-              puts 'If you are unsure, start small, such as 1-5 or 1-10.'
-              puts
+              puts "For example, #{pastel.bold('1-100%10')} means run at most 10 tasks at the same time.\n"
+              puts "If you are unsure, start small, such as 1-5 or 1-10.\n"
 
               key(item).ask(pastel.bold.bright_magenta(question), default: defaults[item]) do |q|
                 q.modify :strip
@@ -328,16 +309,13 @@ module AlcesJob
 
               max_gpus = selected_partition_info&.dig(:max_gpus).to_i
 
-              puts
-              puts pastel.bold.blue('GPUs')
-              puts
-              puts 'A GPU (Graphics Processing Unit) is special processor used for highly parallel work, such as machine learning, simulations, and some scientific workloads.'
-              puts
+              puts pastel.bold.blue("\nGPUs\n")
+              puts "\nA GPU (Graphics Processing Unit) is special processor used for highly parallel work, such as machine learning, simulations, and some scientific workloads.\n"
 
               if max_gpus.positive?
-                puts "The maximum number of GPUs on partition #{pastel.bold(selected_partition)} is #{pastel.bold(max_gpus)} per node."
+                puts "\nThe maximum number of GPUs on partition #{pastel.bold(selected_partition)} is #{pastel.bold(max_gpus)} per node.\n"
               else
-                puts pastel.red('This partition does not appear to have any GPUs.')
+                puts pastel.red("\nThis partition does not appear to have any GPUs.\n")
                 exit(1)
               end
 
@@ -359,12 +337,9 @@ module AlcesJob
 
               node_count = selected_partition_info[:node_count].to_i
 
-              puts
-              puts pastel.bold.blue('Nodes')
-              puts "\nA node is a #{pastel.bold.underline('single machine/computer')} in the cluster. MPI jobs may use multiple nodes to run work in parallel across machines."
-              puts
-              puts "The total number of nodes for partition #{selected_partition} is #{node_count}"
-              puts
+              puts pastel.bold.blue("\nNodes\n")
+              puts "\nA node is a #{pastel.bold.underline('single machine/computer')} in the cluster. MPI jobs may use multiple nodes to run work in parallel across machines.\n"
+              puts "The total number of nodes for partition #{selected_partition} is #{node_count}\n"
 
               key(item).ask(pastel.bold.blue(question), default: defaults[item]) do |q|
                 q.validate(/\A\d+\z/)
@@ -381,20 +356,17 @@ module AlcesJob
               end
 
               unless selected_partition_info
-                puts "Could not find partition information for #{selected_partition}"
+                puts pastel.red("\nCould not find partition information for #{selected_partition}\n")
                 exit(1)
               end
 
-              puts
-              puts pastel.bold.magenta('Time')
-              puts
-              puts "In Slurm, time specifies the #{pastel.bold.underline('maximum time limit for a job')}. Choose enough time for your job to finish, but avoid asking for much more than you need. Shorter jobs can sometimes start sooner."
+              puts pastel.bold.magenta("\nTime\n")
+              puts "In Slurm, time specifies the #{pastel.bold.underline('maximum time limit for a job')}. Choose enough time for your job to finish, but avoid asking for much more than you need. Shorter jobs can sometimes start sooner.\n"
 
               max_run_time = selected_partition_info[:time_limit]
               human_readable_max_time = TimeConverter.to_human_readable(max_run_time)
 
-              puts "\nThe max runtime for the partition #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}"
-              puts
+              puts "\nThe max runtime for the partition #{selected_partition} is #{max_run_time}, i.e. #{human_readable_max_time}\n"
 
               key(item).ask(pastel.bold.magenta(question), default: defaults[item]) do |q|
                 q.validate do |input|
@@ -410,22 +382,17 @@ module AlcesJob
               end
 
               unless selected_partition_info
-                puts "Could not find partition information for #{selected_partition}"
+                puts pastel.red("\nCould not find partition information for #{selected_partition}\n")
                 exit(1)
               end
 
               max_memory = selected_partition_info[:max_memory_mb].to_i
 
-              puts
-              puts pastel.bold.yellow('Memory')
-              puts
-              puts "Memory is the amount of #{pastel.yellow('RAM')} (Random Access Memory) your job needs while it is running.\nYour program uses RAM to hold #{pastel.bold('data')}, #{pastel.bold('variables')}, #{pastel.bold('files')} and #{pastel.bold('calculations')}."
-              puts
+              puts pastel.bold.yellow("\nMemory\n")
+              puts "Memory is the amount of #{pastel.yellow('RAM')} (Random Access Memory) your job needs while it is running.\nYour program uses RAM to hold #{pastel.bold('data')}, #{pastel.bold('variables')}, #{pastel.bold('files')} and #{pastel.bold('calculations')}.\n"
               puts "If your job uses more memory than requested then Slurm may stop it.\n"
-              puts 'For small scripts, 1024 - 2048 MB is often enough.'
-              puts
-              puts "The maximum memory per node on partition #{selected_partition} is #{max_memory} MB."
-              puts
+              puts "For small scripts, 1024 - 2048 MB is often enough.\n"
+              puts "The maximum memory per node on partition #{selected_partition} is #{max_memory} MB.\n"
 
               key(item).ask(pastel.bold.yellow(question), default: defaults[item]) do |q|
                 q.validate do |input|
@@ -449,19 +416,15 @@ module AlcesJob
               end
 
               unless selected_partition_info
-                puts "Could not find partition information for #{selected_partition}"
+                puts pastel.red("\nCould not find partition information for #{selected_partition}\n")
                 exit(1)
               end
 
               max_cpu_cores = selected_partition_info[:max_cpu_cores].to_i
 
-              puts
-              puts pastel.bold.green('CPU Cores')
-              puts
-              puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer. Each CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}. Ask for more only if your code uses threading, multiprocessing, or software that can run in parallel."
-              puts
-              puts "The max number of cpu cores per node on partition #{selected_partition} is #{max_cpu_cores}."
-              puts
+              puts pastel.bold.green("\nCPU Cores\n")
+              puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer. Each CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}. Ask for more only if your code uses threading, multiprocessing, or software that can run in parallel.\n"
+              puts "The max number of cpu cores per node on partition #{selected_partition} is #{max_cpu_cores}.\n"
 
               key(item).ask(pastel.bold.green(question), default: defaults[item]) do |q|
                 q.validate(/\A\d+\z/)
@@ -474,41 +437,26 @@ module AlcesJob
                 q.convert :int
               end
             when :prepare
-              puts
-              puts pastel.bold.cyan('Job Preparation')
-              puts
+              puts pastel.bold.cyan("\nJob Preparation\n")
               puts 'This creates a dedicated working directory using the slurm job name and job ID.'
-              puts 'It also adds output and errors to this directory.'
-              puts
+              puts "\nIt also adds output and errors to this directory.\n"
+
               key(item).yes?(pastel.bold.cyan(question), default: false)
             when :command
-              puts
-              puts pastel.bold.cyan('Command')
-              puts
-              puts "This is the command that Slurm will run inside your batch script.\nUse the same command you would normally type into the terminal."
-              puts
+              puts pastel.bold.cyan("\nCommand\n")
+              puts "This is the command that Slurm will run inside your batch script.\nUse the same command you would normally type into the terminal.\n"
               puts "Examples:\n"
-              puts
-              puts "#{pastel.bold.bright_magenta('python')} script.py"
-              puts
-              puts "#{pastel.bold.bright_magenta('R')} analysis.R"
-              puts
-              puts "#{pastel.bold.bright_magenta('node')} app.js"
-              puts
-              puts "#{pastel.bold.bright_magenta('srun')} ./my_mpi_program"
-              puts
-              puts
+              puts "#{pastel.bold.bright_magenta('python')} script.py\n"
+              puts "#{pastel.bold.bright_magenta('R')} analysis.R\n"
+              puts "#{pastel.bold.bright_magenta('node')} app.js\n"
+              puts "#{pastel.bold.bright_magenta('srun')} ./my_mpi_program\n"
 
               key(item).ask(pastel.bold.cyan(question), default: defaults[item])
             when :job_name
-              puts
-              puts pastel.bold.blue('Job Name')
-              puts
+              puts pastel.bold.blue("\nJob Name\n")
               puts "This is the name that will appear in the #{pastel.bold('SLURM queue')}."
-              puts 'Use a short, clear name so you can recognise the job later.'
-              puts
-              puts pastel.bright_black('Example: my_python_job')
-              puts
+              puts "Use a short, clear name so you can recognise the job later.\n"
+              puts pastel.bright_black("Example: my_python_job\n")
 
               key(item).ask(question, default: defaults[item]) do |q|
                 q.modify :strip
@@ -520,6 +468,10 @@ module AlcesJob
                 q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
               end
             when :modules
+              puts pastel.yellow.bold("\nScript Modules\n")
+              puts 'These are the modules that will be loaded into your script so'
+              puts "they can be used within the script\n"
+              puts "This is optional you can select multiple or none\n"
               choices = {}
 
               packages.each_value do |packages|
