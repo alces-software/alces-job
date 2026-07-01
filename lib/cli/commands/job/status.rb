@@ -74,6 +74,12 @@ module AlcesJob
             table = Terminal::Table.new do |t|
               t.title = pastel.bold.white('SLURM Job')
               t.rows = rows
+              t.align_column(1, :right)
+              t.style = {
+                border: :unicode,
+                padding_left: 1,
+                padding_right: 1
+              }
             end
 
             puts table
