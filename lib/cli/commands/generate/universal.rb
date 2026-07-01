@@ -6,6 +6,7 @@ require 'tty-spinner'
 require 'tty-prompt'
 require 'yaml'
 require 'tempfile'
+require 'fileutils'
 require 'shellwords'
 require 'English'
 require 'diffy'
@@ -17,6 +18,7 @@ require_relative '../../../services/script_generator/script_generator'
 require_relative '../../../services/module_extractor/module_extractor'
 require_relative '../../../services/config_manager/config_manager'
 require_relative '../../../services/profile_manager/profile_manager'
+require_relative '../../../services/paths/paths'
 require_relative '../../../services/editor/edit'
 
 module AlcesJob
@@ -103,7 +105,6 @@ module AlcesJob
             warn pastel.red("#{e.message}\n")
             exit(1)
           end
-
           # ------------------------------------------------------------
           # Generate script
           # ------------------------------------------------------------
@@ -111,6 +112,15 @@ module AlcesJob
           spinner.update(title: 'generating SBATCH script')
           spinner.auto_spin
 
+          if options[:track]
+            spec = Gem.loaded_specs['alces-job']
+            if spec
+              lib_path = File.join(spec.full_gem_path, 'lib/helper_functions/functions.bash')
+              job_path = Services::Paths.new.user_job_dir
+              options[:tracking_path] = lib_path
+              options[:job_path] = job_path
+            end
+          end
           generator = Services::ScriptGenerator.new(options)
           script = generator.generate
 

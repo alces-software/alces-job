@@ -5,6 +5,7 @@ require 'ostruct'
 require 'open3'
 
 require_relative '../paths/paths'
+require_relative '../prepare/prepare'
 
 module AlcesJob
   module Services
@@ -15,6 +16,7 @@ module AlcesJob
         @context = OpenStruct.new(options)
         @template = @context.template || 'universal'
         @context.job_name = 'default-job' if @context.job_name.nil?
+        @prepare = AlcesJob::Services::Prepare
         @file_path = File.join(Dir.pwd, @context.output_file.nil? ? "job-#{@context.job_name || 'default'}.slurm" : @context.output_file)
       end
 

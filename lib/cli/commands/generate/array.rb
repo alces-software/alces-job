@@ -117,6 +117,15 @@ module AlcesJob
           end
 
           options[:template] = 'array'
+          if options[:track]
+            spec = Gem.loaded_specs['alces-job']
+            if spec
+              lib_path = File.join(spec.full_gem_path, 'lib/helper_functions/functions.bash')
+              job_path = Services::Paths.new.user_job_dir
+              options[:tracking_path] = lib_path
+              options[:job_path] = job_path
+            end
+          end
 
           generator = Services::ScriptGenerator.new(options)
           script = generator.generate
