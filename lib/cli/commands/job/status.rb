@@ -17,9 +17,13 @@ module AlcesJob
 
         argument :job_id, required: true, desc: 'The ID of the job'
 
+        option :verbose, type: :boolean, aliases: ['-v'], default: false, desc: 'Show detailed stage information'
+
         desc 'Get the status of jobs'
 
-        def call(job_id:, **)
+        def call(job_id:, **options)
+          verbose = options[:verbose]
+
           pastel = Pastel.new
           path = Services::Paths.new.user_job_dir
           spinner = TTY::Spinner.new(
@@ -45,6 +49,28 @@ module AlcesJob
             error       = data['errorFile']
             start_time  = data['startTime']&.to_i
             end_time    = data['endTime'].to_s.empty? ? nil : data['endTime'].to_i
+            total_steps = data['totalSteps']&.to_i
+
+            stage_rows = []
+
+            if verbose && total_steps.positive?
+              (1..total_steps).each do |i|
+                key = "stage#{i}"
+                timestamp = data[key]
+
+                stage_rows << [
+                  pastel.cyan("Stage #{i}"),
+                  timestamp ? format_time(timestamp.to_i) : pastel.yellow('Pending')
+                ]
+              end
+            end
+
+            completed_steps =
+              (1..total_steps).count do |i|
+                !data["stage#{i}"].to_s.empty?
+              end
+
+            completed_steps = total_steps if end_time
 
             spinner.success(pastel.green('(Loaded)'))
 
@@ -52,8 +78,23 @@ module AlcesJob
               [pastel.cyan('Job ID'), file_job_id],
               [pastel.cyan('Output'), output],
               [pastel.cyan('Error'), error],
-              [pastel.cyan('Started'), format_time(start_time)]
+              [pastel.cyan('Started'), format_time(start_time)],
+              [pastel.cyan('Progress'), "#{completed_steps}/#{total_steps} stages"]
             ]
+
+            if verbose && total_steps.positive?
+              rows << [pastel.cyan('Stages'), '']
+
+              (1..total_steps).each do |i|
+                key = "stage#{i}"
+                timestamp = data[key]
+
+                rows << [
+                  pastel.cyan("  Stage #{i}"),
+                  timestamp ? format_time(timestamp.to_i) : pastel.yellow('Pending')
+                ]
+              end
+            end
 
             status =
               if end_time

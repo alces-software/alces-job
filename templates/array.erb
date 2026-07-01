@@ -26,6 +26,8 @@
 # Tracking Functions:
 <%= "source #{@context.tracking_path}" %>
 <%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
+export ALCES_TOTAL_STAGES=0
+
 <%= "alces_start_job" %>
 <% end %>
 <% if @context.workdir -%>
