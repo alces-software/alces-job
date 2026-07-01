@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#SBATCH --job-name=testingprep2                        # Name shown for this job in the Slurm queue
+
+#SBATCH --output=%x-%j.out
+#SBATCH --error=%x-%j.err
+
+
+
+
+
+alces_prepare_job() {
+  job_dir="$HOME/prepared/${SLURM_JOB_NAME}-${SLURM_JOB_ID}"
+
+  mkdir -p "$job_dir"
+  cd "$job_dir" || exit 1
+}
+
+alces_prepare_job
+
+
+echo "Running job"                                                    # Print which job is running
+
+echo 'No command provided'                                            # Run the user's command
