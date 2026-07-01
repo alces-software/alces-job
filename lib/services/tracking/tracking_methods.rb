@@ -43,7 +43,7 @@ module AlcesJob
 
             unless valid_keys.include?(key) || valid_pattern.match(key)
               spinner.error(pastel.red('(Malformed status file)'))
-              warn pastel.red("\nThe status file located at #{File.join(path, job_id)} was incorrectily formed and the data could not be parsed\n")
+              warn pastel.red("\nThe status file located at #{File.join(path, job_id)} was incorrectly formed and the data could not be parsed\n")
               exit(1)
             end
 
@@ -67,7 +67,7 @@ module AlcesJob
           next unless data[key].nil?
 
           spinner.error(pastel.red('(Malformed status file)'))
-          warn pastel.red("\nThe status file located at #{File.join(path, job_id)} was incorrectily formed. It does not have all the necessary values\n")
+          warn pastel.red("\nThe status file located at #{File.join(path, job_id)} was incorrectly formed. It does not have all the necessary values\n")
           exit(1)
         end
 
@@ -154,13 +154,22 @@ module AlcesJob
         end
       end
 
-      def self.format_time(epoch)
+      private
+
+      # Formats the time
+      # @param [Integer] epoch
+      # @return [String]
+      def format_time(epoch)
         return nil unless epoch
 
         Time.at(epoch.to_i).strftime('%Y-%m-%d %H:%M:%S')
       end
 
-      def self.format_duration(start_epoch, end_epoch = nil)
+      # Formats the duration
+      # @param [Integer] start_epoch
+      # @param [Integer | nil] end_epoch
+      # @return [String]
+      def format_duration(start_epoch, end_epoch = nil)
         return nil unless start_epoch
 
         start_time = Time.at(start_epoch.to_i)
@@ -171,7 +180,10 @@ module AlcesJob
         format_seconds(seconds)
       end
 
-      def self.format_seconds(total_seconds)
+      # Formats the seconds for displaying
+      # @param [Integer] total_seconds
+      # @return [String]
+      def format_seconds(total_seconds)
         minutes, seconds = total_seconds.divmod(60)
         hours, minutes = minutes.divmod(60)
 
