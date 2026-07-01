@@ -3,7 +3,9 @@
 module AlcesJob
   module Services
     class LocalScratch
-      def self.helper
+      def self.helper(scratch_path: '/tmp')
+        scratch_path ||= '/tmp'
+
         <<~BASH
           alces_setup_local_scratch() {
             if [ "${SLURM_JOB_NUM_NODES:-1}" -gt 1 ]; then
@@ -11,13 +13,13 @@ module AlcesJob
               exit 1
             fi
 
-            scratch_dir="/tmp/$USER/${SLURM_JOB_NAME}-${SLURM_JOB_ID}"
+            scratch_dir="#{scratch_path}/$USER/${SLURM_JOB_NAME}-${SLURM_JOB_ID}"
             result_dir="$HOME/${SLURM_JOB_NAME}-${SLURM_JOB_ID}"
 
             mkdir -p "$scratch_dir"
             mkdir -p "$result_dir"
 
-            cp -a "$SLURM_SUBMIT_DIR"/. "$scratch_dir"/let
+            cp -a "$SLURM_SUBMIT_DIR"/. "$scratch_dir"/
 
             cd "$scratch_dir" || exit 1
           }

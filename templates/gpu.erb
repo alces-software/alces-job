@@ -60,7 +60,7 @@ module purge
 <% end -%>
 
 <% if @context.local_scratch -%>
-<%= @local_scratch.helper %>
+<%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
 <% elsif @context.prepare -%>
 <%= @prepare.helper %>
 <% end -%>
