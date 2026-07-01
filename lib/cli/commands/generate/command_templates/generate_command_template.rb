@@ -24,6 +24,7 @@ module AlcesJob
           option :site_config, type: :boolean, default: true, desc: 'whether or not to use the admins specified config file'
           option :yes, type: :boolean, default: false, desc: 'Submits the generated script without prompting'
           option :dry_run, type: :boolean, default: false, desc: 'Does not save the file if set to true'
+          option :track, type: :boolean, default: false, desc: 'Adds tracking calls to script'
           option :edit, type: :boolean, default: false, desc: 'Open generated script in your editor before saving'
           option :prepare, type: :boolean, default: false, desc: 'Creates a dedicated working directory and sets standard Slurm output and error files'
           option :local_scratch, type: :boolean, default: false, desc: 'Runs the job from your local scratch directory then copies the results back to your home directory'

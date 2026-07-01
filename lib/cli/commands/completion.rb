@@ -17,7 +17,7 @@ module AlcesJob
         desc 'Installs tab completion for Alces-Job'
 
         START_MARKER = '# >>> alces-job completion >>>'
-        END_MARKER   = '# <<< alces-job completion <<<'
+        END_MARKER = '# <<< alces-job completion <<<'
 
         def call(**)
           pastel = Pastel.new
@@ -50,7 +50,7 @@ module AlcesJob
         # ------------------------------------------------------------
         # User install
         # ------------------------------------------------------------
-        def install_user(paths, _pastel)
+        def install_user(paths)
           FileUtils.mkdir_p(paths.user_bash_completion_dir)
 
           completion_path = paths.user_bash_completion_path

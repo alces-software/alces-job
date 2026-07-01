@@ -14,5 +14,6 @@ rescue ArgumentError => e
   exit(1)
 rescue StandardError => e
   warn Pastel.new.red("\nAn error occurred while calling the command.\n")
+  warn Pastel.new.red("#{e.message}\n")
   exit(1)
 end

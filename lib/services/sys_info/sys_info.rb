@@ -78,9 +78,7 @@ module AlcesJob
             clean_gres = gres.to_s.sub(/\(.+\)\z/, '')
 
             gpu_count =
-              if clean_gres =~ /gpu:[^:,\s]+:(\d+)/
-                Regexp.last_match(1).to_i
-              elsif clean_gres =~ /gpu:(\d+)/
+              if clean_gres =~ /gpu:(?:[^:,\s]+:)?(\d+)/
                 Regexp.last_match(1).to_i
               else
                 0
@@ -94,17 +92,62 @@ module AlcesJob
       end
 
       # Gets a list of the names
-      # @return [Array<String>, nil]
+      # @return [Hash]
       def self.package_info
-        stdout, _, status = Open3.capture3('module avail')
+        stdout, _, status = Open3.capture3("module -t spider  2>&1 | grep -E '^[^/]+/.+$'")
 
-        return [] unless status.success?
+        return {} unless status.success?
 
-        stdout.lines.map do |line|
-          line.gsub(%r{/[^ ]*}, '').strip
+        parsed = {}
+
+        stdout.lines.map(&:strip).reject(&:empty?).each do |line|
+          next if line.end_with?('/')
+          next if line.downcase == 'null'
+
+          parts = line.split('/')
+          name = parts.first
+          version = if parts[2].to_s.downcase == 'none-none'
+                      parts[1]
+                    else
+                      parts[1, 2].join('/')
+                    end
+
+          deprecated =
+            line.downcase.include?('deprecated') ||
+            line.downcase.include?('legacy') ||
+            line.downcase.include?('old')
+
+          mod_out, _, status = Open3.capture3("bash -lc \"module show #{line} 2>&1\"")
+
+          description = nil
+          category = nil
+
+          if status.success?
+            description = mod_out[/whatis\("description:\s*(.*?)"\)/i, 1] ||
+                          mod_out[/description:\s*(.*)/i, 1]
+            description = description.strip
+
+            category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
+            category = category.strip
+          end
+
+          description ||= 'No description available'
+          category ||= line.split('/').first
+
+          parsed[category] ||= []
+
+          parsed[category] << {
+            full_name: line,
+            name: name,
+            version: version,
+            description: description,
+            deprecated: deprecated
+          }
         end
+
+        parsed
       rescue Errno::ENOENT
-        []
+        {}
       end
     end
   end

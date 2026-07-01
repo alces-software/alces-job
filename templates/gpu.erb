@@ -1,62 +1,66 @@
 #!/bin/bash
-
 <%- line = "#SBATCH --job-name=#{@context.job_name}" -%>
 <%= line.ljust(50) %># Name shown for this job in the Slurm queue
 <%- line = "#SBATCH --gres=#{@context.gres || 'gpu:1'}" -%>
 <%= line.ljust(50) %># Request GPU resources
 <% if @context.nodes -%>
-<%- line = "#SBATCH --nodes=#{@context.nodes}" -%>
-<%= line.ljust(50) %># Number of nodes/machines requested
+  <%- line = "#SBATCH --nodes=#{@context.nodes}" -%>
+  <%= line.ljust(50) %># Number of nodes/machines requested
 <% else -%>
-<%- line = "#SBATCH --nodes=1" -%>
-<%= line.ljust(50) %># Number of nodes/machines requested
+  <%- line = "#SBATCH --nodes=1" -%>
+  <%= line.ljust(50) %># Number of nodes/machines requested
 <% end -%>
 <% if @context.ntasks -%>
-<%- line = "#SBATCH --ntasks=#{@context.ntasks}" -%>
-<%= line.ljust(50) %># Number of tasks/processes to run
+  <%- line = "#SBATCH --ntasks=#{@context.ntasks}" -%>
+  <%= line.ljust(50) %># Number of tasks/processes to run
 <% else -%>
-<%- line = "#SBATCH --ntasks=1" -%>
-<%= line.ljust(50) %># Number of tasks/processes to run
+  <%- line = "#SBATCH --ntasks=1" -%>
+  <%= line.ljust(50) %># Number of tasks/processes to run
 <% end -%>
 <% if @context.cpus_per_task -%>
-<%- line = "#SBATCH --cpus-per-task=#{@context.cpus_per_task}" -%>
-<%= line.ljust(50) %># CPU cores available to each task
+  <%- line = "#SBATCH --cpus-per-task=#{@context.cpus_per_task}" -%>
+  <%= line.ljust(50) %># CPU cores available to each task
 <% else -%>
-<%- line = "#SBATCH --cpus-per-task=4" -%>
-<%= line.ljust(50) %># CPU cores available to each task
+  <%- line = "#SBATCH --cpus-per-task=4" -%>
+  <%= line.ljust(50) %># CPU cores available to each task
 <% end -%>
 <% if @context.mem -%>
-<%- line = "#SBATCH --mem=#{@context.mem}" -%>
-<%= line.ljust(50) %># Amount of memory requested for the job
+  <%- line = "#SBATCH --mem=#{@context.mem}" -%>
+  <%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
 <% if @context.time -%>
-<%- line = "#SBATCH --time=#{@context.time}" -%>
-<%= line.ljust(50) %># Maximum runtime before Slurm stops the job
+  <%- line = "#SBATCH --time=#{@context.time}" -%>
+  <%= line.ljust(50) %># Maximum runtime before Slurm stops the job
 <% end -%>
 <% if @context.partition -%>
-<%- line = "#SBATCH --partition=#{@context.partition}" -%>
-<%= line.ljust(50) %># Partition/queue where the job should run
+  <%- line = "#SBATCH --partition=#{@context.partition}" -%>
+  <%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
-
 <% if @context.prepare -%>
-<%= @prepare.directives %>
+  <%= @prepare.directives %>
 <% end -%>
-
 <% unless Array(@context.modules).empty? -%>
-module purge
+  module purge
 <% end -%>
-
 <%- line = "module load cuda" -%>
 <%= line.ljust(50) %># Load CUDA for GPU support
-
 <% Array(@context.modules).each do |mod| -%>
-<%- line = "module load #{mod}" -%>
-<%= line.ljust(50) %># Load extra user-requested module
+  <%- line = "module load #{mod}" -%>
+  <%= line.ljust(50) %># Load extra user-requested module
 <% end -%>
 
+<% if @context.track %>
+# Tracking Functions:
+<%= "source #{@context.tracking_path}" %>
+<%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
+export ALCES_TOTAL_STAGES=0
+
+<%= "alces_start_job" %>
+<% end %>
 <% if @context.workdir -%>
-<%- line = "cd #{@context.workdir}" -%>
-<%= line.ljust(50) %># Move to the working directory
+<% if @context.workdir -%>
+  <%- line = "cd #{@context.workdir}" -%>
+  <%= line.ljust(50) %># Move to the working directory
 <% end -%>
 
 <% if @context.local_scratch -%>
@@ -64,9 +68,10 @@ module purge
 <% elsif @context.prepare -%>
 <%= @prepare.helper %>
 <% end -%>
-
 <%- line = "nvidia-smi" -%>
 <%= line.ljust(50) %># Show GPU status and confirm the GPU is available
-
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(50) %># Run the user's command
+<% if @context.track %>
+<%= "alces_end_job" %>
+<% end %>
