@@ -80,10 +80,10 @@ module AlcesJob
         pastel = Pastel.new
 
         file_job_id = data['jobId']&.to_i
-        output      = data['outputFile']
-        error       = data['errorFile']
-        start_time  = data['startTime']&.to_i
-        end_time    = data['endTime'].to_s.empty? ? nil : data['endTime'].to_i
+        output = data['outputFile']
+        error = data['errorFile']
+        start_time = data['startTime']&.to_i
+        end_time = data['endTime'].to_s.empty? ? nil : data['endTime'].to_i
         total_steps = data['totalSteps']&.to_i
 
         completed_steps =
