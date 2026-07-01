@@ -242,7 +242,7 @@ module AlcesJob
       # @param [Integer] start_epoch
       # @param [Integer | nil] end_epoch
       # @return [String]
-      def format_duration(start_epoch, end_epoch = nil)
+      def self.format_duration(start_epoch, end_epoch = nil)
         return nil unless start_epoch
 
         start_time = Time.at(start_epoch.to_i)
@@ -256,7 +256,7 @@ module AlcesJob
       # Formats the seconds for displaying
       # @param [Integer] total_seconds
       # @return [String]
-      def format_seconds(total_seconds)
+      def self.format_seconds(total_seconds)
         minutes, seconds = total_seconds.divmod(60)
         hours, minutes = minutes.divmod(60)
 
