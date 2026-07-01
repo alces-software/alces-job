@@ -543,6 +543,8 @@ module AlcesJob
                 q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
               end
             when :modules
+              next if packages.nil? || packages.empty?
+
               puts pastel.yellow.bold("\nScript Modules\n")
               puts "These are the modules that will be loaded into your script so they can be used within the script.\n"
               puts "This is optional - you can either select multiple or none at all.\n\n"
