@@ -188,11 +188,11 @@ module AlcesJob
         hours, minutes = minutes.divmod(60)
 
         if hours.positive?
-          format('%02dh %02dm %02ds', hours, minutes, seconds)
+          format('%<h>02dh %<m>02dm %<s>02ds', h: hours, m: minutes, s: seconds)
         elsif minutes.positive?
-          format('%02dm %02ds', minutes, seconds)
+          format('%<m>02dm %<s>02ds', m: minutes, s: seconds)
         else
-          format('%02ds', seconds)
+          format('%<s>02ds', s: seconds)
         end
       end
     end

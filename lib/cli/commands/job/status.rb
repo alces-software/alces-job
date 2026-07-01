@@ -18,12 +18,11 @@ module AlcesJob
         desc 'Get the status of jobs'
 
         def call(job_id:, **options)
-          verbose = options[:verbose]
           pastel = Pastel.new
 
           data = Services::Tracking.load_job_status(job_id)
 
-          table = Services::Tracking.generate_table(data, verbose)
+          table = Services::Tracking.generate_table(data, options[:verbose])
 
           puts table
 
