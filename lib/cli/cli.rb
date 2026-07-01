@@ -46,3 +46,5 @@ require_relative 'commands/job/history'
 
 # Load module commands
 require_relative 'commands/module'
+
+require_relative 'commands/interactive2'
