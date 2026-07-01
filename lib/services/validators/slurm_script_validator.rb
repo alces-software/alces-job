@@ -62,7 +62,7 @@ module AlcesJob
       def validate?
         lines = File.readlines(@file_path, chomp: true)
         validate_shebang(lines)
-        sbatch_lines = lines.select { |line| line.start_with?('#SBATCH') }
+        sbatch_lines = lines.map(&:strip).select { |line| line.start_with?('#SBATCH') }
         validate_sbatch_lines_exist(sbatch_lines)
         validate_duplicate_directives(sbatch_lines)
         SbatchDirectiveValidator.validate_directives(sbatch_lines, errors)
