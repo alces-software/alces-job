@@ -14,18 +14,43 @@ module AlcesJob
         argument :job_id, required: true, desc: 'The ID of the job'
 
         option :verbose, type: :boolean, aliases: ['-v'], default: false, desc: 'Show detailed stage information'
+        option :live, type: :boolean, default: false, desc: 'Show Live info about the status of the job'
 
         desc 'Get the status of jobs'
 
         def call(job_id:, **options)
           verbose = options[:verbose]
+          live = options[:live]
+
           pastel = Pastel.new
 
-          data = Services::Tracking.load_job_status(job_id)
+          unless live
+            data = Services::Tracking.load_job_status(job_id)
 
-          table = Services::Tracking.generate_table(data, verbose)
+            table = Services::Tracking.generate_table(data, verbose)
 
-          puts table
+            puts table
+            exit(0)
+          end
+
+          system('clear')
+
+          while true
+            data = Services::Tracking.load_job_status(job_id, true)
+
+            table = Services::Tracking.generate_table(data, verbose)
+
+            if data['endTime']
+              system('clear')
+              puts table
+              exit(0)
+            end
+
+            print "\e[H"
+            puts table
+            puts 'Press CTRL-C to exit'
+            sleep(0.3)
+          end
 
           # ------------------------------------------------------------
           # Unexpected errors
