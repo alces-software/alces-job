@@ -7,7 +7,7 @@ require_relative '../../../services/sys_info/sys_info'
 module AlcesJob
   module CLI
     module Commands
-      class ModuleList < Dry::CLI::Command
+      class ModuleSearch < Dry::CLI::Command
         AlcesJob::CLI.register 'module search', self
 
         desc "Search through packages that are on you're system"
