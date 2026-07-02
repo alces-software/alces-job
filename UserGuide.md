@@ -232,185 +232,177 @@ If you no longer need it:
 $ alces-job profile delete --profile fast
 ```
 
+### Inspecting a job
+
+Creating a job with the `--track` flag will allow the tool to be able to track the progress of the job script. It will automatically inject the `alces_start_job` helper function that tells the tool when the script has started.
+If your script has multiple distinct sections, they can be wrapped with the `alces_start_stage` and `alces_end_stage` helper functions so this information can also be tracked. Make sure to set the number of stages in the `ALCES_TOTAL_STAGES` environment variable.
+
+To view the status of a tracked script run
+
+```sh
+$ alces-job status <jobId>
+```
+
+This will show information about how far the job has progressed and if it has completed. More information about the stages can be displayed with the `--verbose -v` flag.
+
+`--live` will show a table with information that updates in real time.
+
+#### Manual Sourcing
+If you want to add tracking to a preexisting file, or you just want to manually source the functions yourself, the locations of the function definitions and the directory that the tracking information is stored can be found by running
+
+```sh
+$ alces-job tracking
+```
+
+#### Config Options
+
+The directory that the tracking information is stored in can be specified in either the user or admin config files in `tracking.path`
+
+#### History
+
+The history of tracked jobs can be accessed with
+```sh
+$ alces-job history
+```
+This will show a list of recent jobs. The amount of jobs it shows can be capped with the `--limit` flag, and the results can be filtered with the `--status` flag.
+These can be combined with the `--interactive -i` flag, which will let you select one of the options and view the full details about it.
+
 ## All Commands
 
+- `alces-job completion`
+  - Installs shell tab completion for `alces-job` so commands and flags can be completed interactively.
+
 - `alces-job version` (`-v`, `--version`)
-  - Prints the installed version and ASCII banner.
+  - Prints the installed version and the ASCII banner.
 
 - `alces-job interactive` (`-i`, `--interactive`)
-  - Starts the interactive wizard for generating or editing scripts.
+  - Launches the guided wizard for selecting a job type, resources, modules, and output settings.
+
+- `alces-job generate universal|serial|mpi|gpu|array`
+  - Creates a Slurm job script from a selected template.
+  - Common flags:
+    - `--job_name`, `-J` — sets the Slurm job name.
+    - `--mem` — requests memory such as `4G` or `2000M`.
+    - `--time`, `-t` — sets the walltime limit.
+    - `--partition`, `-p` — chooses the Slurm partition or queue.
+    - `--module`, `-m` — loads one or more environment modules.
+    - `--workdir` — runs the job from the specified working directory.
+    - `--command` — sets the shell command that the script executes.
+    - `--account`, `-A` — charges the job to the specified Slurm account.
+    - `--output_file`, `-o` — writes the generated script to a file.
+    - `--error`, `-e` — sets the standard error output path.
+    - `--mail_user` — sends job notifications to an email address.
+    - `--mail_type` — chooses when mail notifications are sent.
+    - `--submit` — submits the generated job to Slurm immediately.
+    - `--yes` — skips confirmation prompts when submitting.
+    - `--profile` — loads defaults from a saved profile.
+    - `--site_config` — uses site or admin configuration values.
+    - `--dry_run` — previews generation without saving the script.
+    - `--track` — injects tracking helpers into the script.
+    - `--edit` — opens the generated script in your editor before saving.
+    - `--prepare` — creates a dedicated working directory and standard output/error paths.
+    - `--local_scratch` — runs the job from local scratch and copies results back.
+    - `--scratch_path` — overrides the local scratch directory.
+    - `--template` — uses a custom or alternate template.
+  - Template-specific flags:
+    - `universal`: `--nodes`, `--ntasks`, `--cpus_per_task`, `--gres`, `--array`, `--dependency`
+    - `serial`: `--mem`, `--time`, `--partition`, `--module`, `--workdir`, `--command`
+    - `mpi`: `--nodes`, `--ntasks`, `--cpus_per_task`
+    - `gpu`: `--nodes`, `--ntasks`, `--cpus_per_task`, `--gres`
+    - `array`: `--nodes`, `--array`, `--dependency`
 
 - `alces-job modify <script>`
-  - Modifies an existing sbatch/Slurm script using the provided flags.
+  - Updates an existing Slurm script in place using the provided flags.
   - Flags:
-    - `--job_name`, `-j`
-    - `--nodes`, `-N`
-    - `--ntasks`, `-n`
-    - `--cpus_per_task`, `-c`
-    - `--mem`
-    - `--time`, `-t`
-    - `--partition`, `-p`
-    - `--account`, `-A`
-    - `--gres`
-    - `--output`
-    - `--error`, `-e`
-    - `--mail_user`
-    - `--mail_type`
-    - `--array`
-    - `--dependency`
-    - `--module`
-    - `--workdir`
-    - `--command`
-    - `--output_file`, `-o`
-    - `--submit`
+    - `--job_name`, `-J` — changes the job name shown in Slurm.
+    - `--nodes`, `-N` — requests a specific number of compute nodes.
+    - `--ntasks`, `-n` — sets the total number of tasks.
+    - `--cpus_per_task`, `-c` — sets the CPU cores assigned to each task.
+    - `--mem` — updates the memory request.
+    - `--time`, `-t` — changes the walltime limit.
+    - `--partition`, `-p` — selects a new Slurm partition.
+    - `--account`, `-A` — changes the Slurm account to charge.
+    - `--gres` — requests generic resources such as GPUs.
+    - `--output` — writes the script output to a specific file path.
+    - `--error`, `-e` — changes the standard error path.
+    - `--mail_user` — sets the notification email address.
+    - `--mail_type` — chooses when email notifications are sent.
+    - `--array` — sets a Slurm array specification.
+    - `--dependency` — adds a job dependency rule.
+    - `--module`, `-m` — loads additional modules.
+    - `--workdir` — changes the working directory used by the job.
+    - `--command` — replaces the command executed by the script.
+    - `--output_file`, `-o` — writes the modified script to a new file.
+    - `--submit` — submits the modified script to Slurm.
+    - `--yes` — skips confirmation prompts when submitting.
 
 - `alces-job modify remove <script>`
-  - Removes directives from an existing sbatch/Slurm script using the provided flags.
+  - Removes selected Slurm directives from an existing script.
   - Flags:
-    - `--job_name`, `-j`
-    - `--nodes`, `-N`
-    - `--ntasks`, `-n`
-    - `--cpus_per_task`, `-c`
-    - `--mem`
-    - `--time`, `-t`
-    - `--partition`, `-p`
-    - `--account`, `-A`
-    - `--gres`
-    - `--output`
-    - `--error`, `-e`
-    - `--mail_user`
-    - `--mail_type`
-    - `--array`
-    - `--dependency`
-    - `--module`
-    - `--workdir`
-    - `--command`
-    - `--output_file`, `-o`
-    - `--submit`
-- `alces-job generate universal`
-  - Creates a universal sbatch script.
-  - Flags:
-    - `--job_name`, `-J`
-    - `--nodes`, `-N`
-    - `--ntasks`, `-n`
-    - `--cpus_per_task`, `-c`
-    - `--mem`
-    - `--time`, `-t`
-    - `--partition`, `-p`
-    - `--account`, `-A`
-    - `--gres`
-    - `--output`
-    - `--error`, `-e`
-    - `--mail_user`
-    - `--mail_type`
-    - `--module`
-    - `--workdir`
-    - `--command`
-    - `--array`
-    - `--dependency`
-    - `--output_file`, `-o`
-    - `--submit`
-    - `--yes`
-    - `--template`
-    - `--profile`
-    - `--site_config`
-    - `--dry_run`
-
-- `alces-job generate serial`
-  - Creates a serial sbatch script.
-  - Flags:
-    - `--job_name`, `-J`
-    - `--mem`
-    - `--time`, `-t`
-    - `--partition`, `-p`
-    - `--module`
-    - `--workdir`
-    - `--command`
-    - `--output_file`
-    - `--submit`
-    - `--profile`
-    - `--site_config`
-    - `--yes`
-    - `--dry_run`
-
-- `alces-job generate mpi`
-  - Creates an MPI sbatch script.
-  - Flags:
-    - `--job_name`, `-J`
-    - `--nodes`, `-N`
-    - `--ntasks`, `-n`
-    - `--cpus_per_task`, `-c`
-    - `--mem`
-    - `--time`, `-t`
-    - `--partition`, `-p`
-    - `--module`
-    - `--workdir`
-    - `--command`
-    - `--output_file`, `-o`
-    - `--submit`
-    - `--site_config`
-    - `--yes`
-    - `--profile`
-    - `--dry_run`
-
-- `alces-job generate gpu`
-  - Creates a GPU sbatch script.
-  - Flags:
-    - `--job_name`, `-J`
-    - `--nodes`, `-N`
-    - `--ntasks`, `-n`
-    - `--cpus_per_task`, `-c`
-    - `--mem`
-    - `--time`, `-t`
-    - `--partition`, `-p`
-    - `--gres`
-    - `--module`
-    - `--workdir`
-    - `--command`
-    - `--output_file`, `-o`
-    - `--submit`
-    - `--site_config`
-    - `--yes`
-    - `--profile`
-    - `--dry_run`
-
-- `alces-job generate array`
-  - Creates an array sbatch script.
-  - Flags:
-    - `--job_name`, `-J`
-    - `--nodes`, `-N`
-    - `--mem`
-    - `--time`, `-t`
-    - `--partition`, `-p`
-    - `--module`
-    - `--workdir`
-    - `--command`
-    - `--array`
-    - `--dependency`
-    - `--output_file`
-    - `--submit`
-    - `--site_config`
-    - `--yes`
-    - `--profile`
-    - `--dry_run`
+    - `--job_name`, `-J` — removes the job-name directive.
+    - `--nodes`, `-N` — removes the nodes directive.
+    - `--ntasks`, `-n` — removes the ntasks directive.
+    - `--cpus_per_task` — removes the cpus-per-task directive.
+    - `--mem` — removes the memory request.
+    - `--time`, `-t` — removes the time limit.
+    - `--partition`, `-p` — removes the partition directive.
+    - `--account`, `-A` — removes the account directive.
+    - `--gres` — removes the generic resource directive.
+    - `--output` — removes the stdout file directive.
+    - `--error`, `-e` — removes the stderr file directive.
+    - `--mail_user` — removes the mail-user directive.
+    - `--mail_type` — removes the mail-type directive.
+    - `--array` — removes the array directive.
+    - `--dependency` — removes the dependency directive.
+    - `--output_file`, `-o` — writes the result to a new file instead of overwriting the original.
+    - `--submit` — submits the modified script after removal.
 
 - `alces-job config init`
-  - Generates the initial admin config file.
+  - Generates an initial configuration file for user or admin defaults.
   - Flags:
-    - `--partition`
-    - `--account`
+    - `--job_name`, `-J` — stores a default Slurm job name.
+    - `--mem` — stores a default memory requirement.
+    - `--time`, `-t` — stores a default walltime limit.
+    - `--partition`, `-p` — stores a default partition.
+    - `--module`, `-m` — stores default modules.
+    - `--workdir` — stores a default working directory.
+    - `--command` — stores a default command to run.
+    - `--account`, `-A` — stores a default Slurm account.
+    - `--output_file`, `-o` — stores a default output script filename.
+    - `--error`, `-e` — stores a default error file path.
+    - `--mail_user` — stores a default notification email.
+    - `--mail_type` — stores a default mail notification type.
+    - `--submit` — stores the default submit behavior.
+    - `--editor` — stores a default editor for manual script editing.
 
 - `alces-job template list`
-  - Lists available templates from built-in, admin, and user locations.
+  - Lists templates from built-in, admin, and user locations.
 
 - `alces-job template show --name <template>`
-  - Displays the contents of a named template.
+  - Displays the contents of a named template so you can review or reuse it.
 
 - `alces-job validate script <path>`
-  - Validates an existing sbatch script file.
+  - Validates an existing Slurm script file and reports any problems.
 
 - `alces-job validate template <name>`
   - Validates a custom template by name.
+
+- `alces-job module list`
+  - Lists available modules on the system.
+  - Flags:
+    - `--show_description`, `-d` — displays each module description.
+    - `--show_full_name`, `-f` — shows the full module name used for loading.
+    - `--hide_categories`, `-h` — hides category headings in the output.
+
+- `alces-job module search`
+  - Searches available modules by name, version, or category.
+  - Flags:
+    - `--module_name`, `-n` — filters by the module name.
+    - `--version`, `-v` — filters by module version.
+    - `--category`, `-c` — filters by module category.
+    - `--show_description`, `-d` — displays each module description.
+    - `--show_full_name`, `-f` — shows the full module name used for loading.
+    - `--hide_categories`, `-h` — hides category headings in the output.
 
 - `alces-job profile list`
   - Lists saved user profiles.
@@ -419,16 +411,44 @@ $ alces-job profile delete --profile fast
   - Shows the contents of a saved profile.
 
 - `alces-job profile create --profile_name <name> [flags]`
-  - Creates a profile from the provided flags.
-  - Flags mirror script generation flags, including job name, resources, notifications, modules, workdir, command, array, and dependency.
+  - Saves a reusable set of Slurm defaults.
+  - Flags are the same as those used for script generation and include job name, resources, modules, workdir, command, array, and dependency options.
 
 - `alces-job profile delete --profile <name>`
   - Deletes a saved profile.
 
 - `alces-job profile edit change --profile_name <name> [flags]`
-  - Changes or adds flags within an existing profile.
-  - Flags mirror `profile create`.
+  - Changes or adds values inside an existing profile.
+  - Flags mirror `profile create` and update only the options you provide.
 
 - `alces-job profile edit remove --profile_name <name> [flags]`
-  - Removes stored flags from a profile.
-  - Use boolean flags for each field to remove.
+  - Removes stored values from an existing profile.
+  - Use boolean flags for each field to clear that setting from the profile.
+
+- `alces-job sysinfo init`
+  - Creates a local cache of system information used by other commands.
+
+- `alces-job sysinfo update`
+  - Refreshes the stored system information.
+  - Flags:
+    - `--partition`, `-p` — updates partition information.
+    - `--package`, `-k` — updates package information.
+    - `--all`, `-a` — updates all available information.
+
+- `alces-job status <jobId> [flags]`
+  - Gets the status of a tracked job.
+  - Flags:
+    - `--verbose`, `-v` — shows detailed stage information.
+    - `--live` — refreshes the status display in real time.
+
+- `alces-job history [flags]`
+  - Shows a history of tracked jobs.
+  - Flags:
+    - `--status` — filters by job status (`running` or `completed`).
+    - `--limit` — limits how many jobs are shown.
+    - `--interactive`, `-i` — lets you select a job and view its full details.
+
+- `alces-job tracking [flags]`
+  - Prints the paths needed to manually source the tracking helper functions.
+  - Flags:
+    - `--pretty`, `-p` — formats the output in a more readable way.

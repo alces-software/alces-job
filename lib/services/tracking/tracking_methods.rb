@@ -12,7 +12,7 @@ require_relative '../paths/paths'
 module AlcesJob
   module Services
     module Tracking
-      def self.load_job_status(job_id, silent = false)
+      def self.load_job_status(job_id, silent: false)
         path = Services::Paths.new.user_job_dir
         pastel = Pastel.new
 
@@ -33,14 +33,16 @@ module AlcesJob
 
           valid_keys = %w[
             jobId
+            totalSteps
             outputFile
             errorFile
             startTime
+            status
             endTime
-            totalSteps
+            exitCode
           ]
 
-          valid_pattern = /stage(Start|End)[0-9]+/
+          valid_pattern = /stage(Start|End|Status)[0-9]+/
           File.foreach(File.join(path, job_id)) do |line|
             key, value = line.strip.split(':', 2)
 
@@ -64,6 +66,7 @@ module AlcesJob
           errorFile
           startTime
           totalSteps
+          status
         ]
 
         necessary_keys.each do |key|
@@ -86,22 +89,23 @@ module AlcesJob
         output = data['outputFile']
         error = data['errorFile']
         start_time = data['startTime']&.to_i
+        status = data['status']
         end_time = data['endTime'].to_s.empty? ? nil : data['endTime'].to_i
         total_steps = data['totalSteps']&.to_i
 
         completed_steps =
           (1..total_steps).count do |i|
-            !data["stageEnd#{i}"].to_s.empty?
+            data["stageStatus#{i}"] == 'completed'
           end
 
-        completed_steps = total_steps if end_time
+        completed_steps = total_steps if status == 'completed'
 
         rows = [
           [pastel.cyan('Job ID'), file_job_id],
           [pastel.cyan('Output'), output],
           [pastel.cyan('Error'), error],
           [pastel.cyan('Started'), format_time(start_time)],
-          [pastel.cyan('Progress'), "#{completed_steps}/#{total_steps} stages"]
+          [pastel.cyan('Progress'), "#{completed_steps}/#{total_steps} Stages"]
         ]
 
         if verbose && total_steps.positive?
@@ -110,15 +114,21 @@ module AlcesJob
           (1..total_steps).each do |i|
             stage_start_key = "stageStart#{i}"
             stage_end_key = "stageEnd#{i}"
+            stage_status_key = "stageStatus#{i}"
             stage_start_time = data[stage_start_key]
             stage_end_time = data[stage_end_key]
+            stage_status = data[stage_status_key]
 
-            row_str = if stage_start_time
-                        if stage_end_time
+            row_str = if stage_status
+                        if stage_status == 'completed'
                           pastel.green("Completed after #{format_duration(stage_start_time, stage_end_time)}")
+                        elsif status == 'failed'
+                          pastel.red.bold("Failed after #{format_duration(stage_start_time, end_time)}")
                         else
                           pastel.yellow("Running for #{format_duration(stage_start_time, Time.now.to_i)}")
                         end
+                      elsif status == 'failed'
+                        pastel.bright_black('Cancelled')
                       else
                         pastel.yellow('Pending')
                       end
@@ -129,21 +139,23 @@ module AlcesJob
           end
         end
 
-        status =
-          if end_time
-            pastel.green('Completed')
-          else
+        status_text =
+          if status == 'running'
             pastel.yellow.bold('Pending')
+          elsif status == 'completed'
+            pastel.yellow.bold('Completed')
+          else
+            pastel.red.bold('Failed')
           end
 
         elapsed_time = format_duration(start_time, end_time)
 
-        rows << if end_time
+        rows << if %w[running failed].include?(status)
                   [pastel.cyan('Total Time'), elapsed_time]
                 else
                   [pastel.cyan('Time Elapsed'), elapsed_time]
                 end
-        rows << [pastel.cyan('Status'), status]
+        rows << [pastel.cyan('Status'), status_text]
 
         Terminal::Table.new do |t|
           t.title = pastel.bold.white('SLURM Job')
@@ -167,7 +179,7 @@ module AlcesJob
         jobs = jobs.select do |job|
           next true unless status
 
-          current_status = job['endTime'].to_s.empty? ? :running : :completed
+          current_status = job['status'] == 'running' ? :running : :completed
           current_status == status
         end
 
@@ -213,7 +225,7 @@ module AlcesJob
           'Select a Job'
         end
 
-        while true
+        loop do
           system('clear')
 
           puts title
@@ -227,9 +239,25 @@ module AlcesJob
         end
       end
 
+      def self.inject_tracking(options)
+        return unless options[:track]
+
+        pastel = Pastel.new
+
+        spec = Gem.loaded_specs['alces-job']
+        unless spec
+          warn pastel.red("\nCould not locate gem environment. Are you sure you have installed the gem?\n")
+          exit(1)
+        end
+        lib_path = File.join(spec.full_gem_path, 'lib/helper_functions/functions.bash')
+        job_path = Services::Paths.new.user_job_dir
+        options[:tracking_path] = lib_path
+        options[:job_path] = job_path
+      end
+
       def self.job_status(job)
         pastel = Pastel.new
-        job['endTime'].to_s.empty? ? pastel.yellow('RUNNING') : pastel.green('COMPLETED')
+        job['status'] == 'running' ? pastel.yellow('RUNNING') : pastel.green('COMPLETED')
       end
 
       def self.format_time(epoch)
@@ -242,7 +270,7 @@ module AlcesJob
       # @param [Integer] start_epoch
       # @param [Integer | nil] end_epoch
       # @return [String]
-      def format_duration(start_epoch, end_epoch = nil)
+      def self.format_duration(start_epoch, end_epoch = nil)
         return nil unless start_epoch
 
         start_time = Time.at(start_epoch.to_i)
@@ -256,7 +284,7 @@ module AlcesJob
       # Formats the seconds for displaying
       # @param [Integer] total_seconds
       # @return [String]
-      def format_seconds(total_seconds)
+      def self.format_seconds(total_seconds)
         minutes, seconds = total_seconds.divmod(60)
         hours, minutes = minutes.divmod(60)
 

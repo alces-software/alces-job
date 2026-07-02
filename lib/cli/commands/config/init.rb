@@ -28,12 +28,16 @@ module AlcesJob
         option :mail_user, type: :string, desc: 'Email address for job notifications'
         option :mail_type, type: :string, desc: 'Notification type (BEGIN, END, FAIL, etc.)'
         option :submit, type: :boolean, default: false, desc: 'Submit the job immediately after generation'
+        option :editor, type: :string, desc: 'Default editor to use for manual script editing'
+        option :module, type: :array, aliases: ['-m'], default: [], desc: 'Loads environment modules before running the job (e.g. GCC/15.2.0)'
+        option :module_blacklist, type: :array, aliases: ['-b'], default: [], desc: 'Adds modules to the module blacklist (e.g. GCC/15.2.0)'
 
         def call(**options)
           pastel = Pastel.new
 
           options = options.reject { |_, value| value == [] }
           options = options.select { |_, value| value }
+          options[:modules] = AlcesJob::Services.module_extractor(ARGV)
 
           if options.empty?
             warn pastel.red("\nNo configuration options were provided. Use --help to see available flags.\n")
@@ -87,10 +91,10 @@ module AlcesJob
           spinner.update(title: 'writing configuration file')
           spinner.auto_spin
 
-          config = { 'values' => {} }
+          config = { 'flags' => {} }
 
           options.each_key do |key|
-            config['values'][key.to_s] = {
+            config['flags'][key.to_s] = {
               'default' => options[key],
               'warn' => false
             }

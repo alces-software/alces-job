@@ -33,7 +33,6 @@ module AlcesJob
         option :command, type: :string, desc: 'Command to run in the job script'
         option :account, type: :string, aliases: ['-A'], desc: 'Charge the job to the specified Slurm account'
         option :gres, type: :string, desc: 'Specifies generic resources such as GPUs, e.g. gpu:1'
-        option :output, type: :string, aliases: ['-o'], desc: 'Save the generated job script to this file'
         option :error, type: :string, aliases: ['-e'], desc: 'Write standard error to this file'
         option :mail_user, type: :string, desc: 'Email address for job notifications'
         option :mail_type, type: :string, desc: 'When to send email notifications (for example: BEGIN, END, or FAIL)'
@@ -56,7 +55,6 @@ module AlcesJob
             partition: 'partition',
             account: 'account',
             gres: 'gres',
-            output: 'output',
             error: 'error',
             mail_user: 'mail-user',
             mail_type: 'mail-type',
@@ -72,7 +70,6 @@ module AlcesJob
             '-t' => :time,
             '-p' => :partition,
             '-A' => :account,
-            '-o' => :output,
             '-e' => :error
           }.freeze
         end
@@ -245,7 +242,7 @@ module AlcesJob
 
           used_modules = []
 
-          edited_script << 'module purge' if modules_to_write.any
+          edited_script << 'module purge' if modules_to_write.any?
 
           modules_to_write.each do |m|
             m = m.to_s.strip
@@ -255,6 +252,8 @@ module AlcesJob
             edited_script << "module load #{m}"
             used_modules << m
           end
+
+          job_name = job_name.split.first if job_name
 
           edited_script << ''
           edited_script << %(echo "Running job '#{job_name}'") if job_name

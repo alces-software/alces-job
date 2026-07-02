@@ -9,6 +9,7 @@ require 'tempfile'
 require 'fileutils'
 require 'shellwords'
 require 'English'
+require 'diffy'
 
 require_relative 'command_templates/generate_command_template'
 
@@ -19,6 +20,7 @@ require_relative '../../../services/config_manager/config_manager'
 require_relative '../../../services/profile_manager/profile_manager'
 require_relative '../../../services/paths/paths'
 require_relative '../../../services/editor/edit'
+require_relative '../../../services/tracking/tracking_methods'
 
 module AlcesJob
   module CLI
@@ -33,6 +35,7 @@ module AlcesJob
         option :gres, type: :string, desc: 'Generic resources (e.g. GPUs)'
         option :array, type: :string, desc: 'Slurm array specification'
         option :dependency, type: :string, desc: 'Job dependency string'
+        option :template, type: :string, desc: 'The template you want to use'
 
         def call(**options)
           options[:modules] = AlcesJob::Services.module_extractor(ARGV)
@@ -59,6 +62,8 @@ module AlcesJob
               options = config_manager.config
 
               spinner.success(pastel.green('(Loaded)'))
+              # puts
+              # puts options['values']
 
               config_manager.output.each { |line| puts line }
             end
@@ -109,22 +114,60 @@ module AlcesJob
           spinner.update(title: 'generating SBATCH script')
           spinner.auto_spin
 
-          if options[:track]
-            spec = Gem.loaded_specs['alces-job']
-            if spec
-              lib_path = File.join(spec.full_gem_path, 'lib/helper_functions/functions.bash')
-              job_path = Services::Paths.new.user_job_dir
-              options[:tracking_path] = lib_path
-              options[:job_path] = job_path
+          if !options[:modules].nil? && !options[:modules].empty?
+            packages_info = Services::SysInfo.load_info[:packages]
+
+            deprecated_module = false
+            output = []
+            packages_info.to_h.each_value do |package_group|
+              package_group.each do |package|
+                next unless options[:modules].include?(package[:full_name]) && package[:deprecated]
+
+                deprecated_module = true
+                output << pastel.yellow("#{package[:full_name]} is deprecated")
+              end
             end
+
+            if deprecated_module
+              spinner.error('(Deprecated module)')
+
+              puts
+              output.each do |line|
+                puts line
+              end
+
+              return unless prompt.yes?("\none or more of your packages is deprecated do you want to continue?")
+            end
+
+            return if deprecated_module && !spinner.auto_spin
           end
+
+          Services::Tracking.inject_tracking(options)
+
           generator = Services::ScriptGenerator.new(options)
           script = generator.generate
 
           spinner.success(pastel.green('(Generated)'))
 
           if options[:edit]
-            script = AlcesJob::Services::Editor.edit_script_in_editor(script)
+            edited_script = AlcesJob::Services::Editor.edit_script_with_preview(
+              script,
+              prompt: prompt,
+              pastel: pastel,
+              validator_class: Services::SlurmScriptValidator,
+              editor: options[:editor]
+            )
+
+            case edited_script[:status]
+            when :saved
+              script = edited_script[:script]
+            when :cancelled
+              puts pastel.yellow("\nEdited changes discarded.\n")
+              exit(0)
+            when :invalid
+              spinner.error(pastel.red('(Invalid script)'))
+              exit(1)
+            end
 
             if options[:output_file].nil?
               job_name = AlcesJob::Services::Editor.edited_job_name(script)
@@ -149,6 +192,8 @@ module AlcesJob
               border: :thick,
               width: box_width
             )
+
+            exit(0)
           end
 
           # ------------------------------------------------------------

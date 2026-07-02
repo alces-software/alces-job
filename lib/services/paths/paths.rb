@@ -2,6 +2,8 @@
 
 require 'xdg'
 
+require_relative '../config_manager/config_manager'
+
 module AlcesJob
   module Services
     class Paths
@@ -19,7 +21,7 @@ module AlcesJob
       # Gets the path to the users job dir
       # @return [String]
       def user_job_dir
-        @xdg.config_home.join('alces-job', 'tracking').to_s
+        ConfigManager.new({}).config.dig('tracking', 'path') || @xdg.config_home.join('alces-job', 'tracking').to_s
       end
 
       # Profile
