@@ -126,6 +126,51 @@ Update system info later with:
 $ alces-job sysinfo update --all
 ```
 
+## Custom Validators
+
+Admins and users can have their own custom slurm script validator which runs alongside AlcesSlurmScriptValidator.
+The custom validators can be run at a system wide level through the admin config and at a user level through the user config.
+The Custom validators must follow all rules presented below.
+
+Must be in a specific directory with these names. 
+<br>
+<br>
+**UserConfig**
+```sh
+.config/alces-job/plugins/validators
+```
+**AdminConfig**
+```sh
+/etc/alces-job/plugins/validators/
+```
+### Required class setup ###
+The Class name must be in CamelCase and the file name must be snake_case and they both must match.
+Each custom validator must define a top-level class with the following setup near the top of the class:
+```ruby
+attr_reader :errors, :warnings
+
+def initialize(file_path, system_info:)
+  @file_path = file_path
+  @errors = []
+  @warnings = []
+  @system_info = system_info
+end
+```
+### Required `validate?` method
+
+Each custom validator must define a `validate?` method.
+This method should run the validator's checks, add any failed checks to `errors`, add non-blocking messages to `warnings`, and return whether validation passed.
+
+```ruby
+def validate?
+  lines = File.readlines(@file_path, chomp: true)
+  validate_example_rule(lines)
+  errors.empty?
+end
+```
+### Other prerequisites
+**All custom validators must be in ruby**
+
 ## Notes
 
 - Installing as root ensures the CLI and admin templates are available system-wide.
