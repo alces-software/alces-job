@@ -44,7 +44,7 @@ module AlcesJob
         unless options.empty?
           options.each_key do |key|
             key_str = key.to_s
-            @output.push(pastel.yellow("You are overwriting the system admin defined #{key_str}")) if config['flags'].key?(key_str) && config['flags'][key_str]['warn']
+            @output.push(pastel.yellow("You are overwriting the system admin defined #{key_str}")) if config['flags']&.key?(key_str) && config['flags'][key_str]['warn']
           end
         end
 
@@ -57,7 +57,7 @@ module AlcesJob
         if config[:modules] && !config[:modules].empty?
           filtered_modules = []
           config[:modules].each do |package|
-            if module_blacklist.include?(package)
+            if module_blacklist&.include?(package)
               @output.push(pastel.red("#{package} has been removed because it's blocked by the config"))
             else
               filtered_modules << package
