@@ -227,6 +227,20 @@ module AlcesJob
         end
       end
 
+      def self.inject_tracking(options)
+        return unless options[:track]
+
+        spec = Gem.loaded_specs['alces-job']
+        unless spec
+          warn pastel.red("\nCould not locate gem environment. Are you sure you have installed the gem?\n")
+          exit(1)
+        end
+        lib_path = File.join(spec.full_gem_path, 'lib/helper_functions/functions.bash')
+        job_path = Services::Paths.new.user_job_dir
+        options[:tracking_path] = lib_path
+        options[:job_path] = job_path
+      end
+
       def self.job_status(job)
         pastel = Pastel.new
         job['endTime'].to_s.empty? ? pastel.yellow('RUNNING') : pastel.green('COMPLETED')
