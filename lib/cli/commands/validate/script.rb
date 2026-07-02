@@ -12,7 +12,7 @@ module AlcesJob
       class ValidateScript < Dry::CLI::Command
         AlcesJob::CLI.register 'validate script', self
 
-        desc 'Validates an existing sbatch script'
+        desc 'Runs all validators against an existing sbatch script'
 
         argument :file_path, required: true, desc: 'Path to the sbatch/slurm script'
 
@@ -27,64 +27,84 @@ module AlcesJob
             exit(1)
           end
 
-          puts
-
+          # ------------------------------------------------------------
+          # Set up progress spinner
+          # ------------------------------------------------------------
           spinner = TTY::Spinner.new(
-            '[:spinner] validating script ...',
+            '[:spinner] running validators ...',
             success_mark: pastel.green('✓'),
             error_mark: pastel.red('✗')
           )
 
-          # ------------------------------------------------------------
-          # Initialise validator
-          # ------------------------------------------------------------
           spinner.auto_spin
 
+          # ------------------------------------------------------------
+          # Initialise validation runner and run all validators
+          # ------------------------------------------------------------
           begin
-            validator = AlcesJob::Services::ValidationRunner.new(
+            runner = AlcesJob::Services::ValidationRunner.new(
               File.expand_path(file_path, Dir.pwd)
             )
+
+            valid = runner.validate?
           rescue StandardError => e
             spinner.error(pastel.red('(Failed)'))
-            warn pastel.red("\nFailed to initialise validator.")
+            warn pastel.red("\nFailed to run validators.")
             warn pastel.red("#{e.message}\n")
             exit(1)
           end
 
-          spinner.success(pastel.green('(Validated)'))
+          spinner.success(pastel.green('(Complete)'))
 
           # ------------------------------------------------------------
-          # Validation result
+          # Display validation results for each validator
           # ------------------------------------------------------------
-          valid = validator.validate?
+          puts pastel.bold.cyan(
+            "\nValidation Results for #{File.basename(file_path)}\n"
+          )
 
-          if valid
-            puts pastel.green("\nValidation passed.\n")
-          else
-            warn pastel.red("\nValidation failed.")
-            validator.errors.each do |error|
-              warn pastel.red("- #{error}")
+          runner.results.each do |result|
+            puts pastel.bold.cyan("Validator: #{result[:name]}")
+
+            if result[:passed]
+              puts pastel.green('  ✓ Passed')
+            else
+              puts pastel.red('  ✗ Failed')
             end
+
+            # ------------------------------------------------------------
+            # Display errors returned by this validator
+            # ------------------------------------------------------------
+            unless result[:errors].empty?
+              puts pastel.red('  Errors:')
+
+              result[:errors].each do |error|
+                puts pastel.red("    - #{error}")
+              end
+            end
+
+            # ------------------------------------------------------------
+            # Display warnings returned by this validator
+            # ------------------------------------------------------------
+            unless result[:warnings].empty?
+              puts pastel.yellow('  Warnings:')
+
+              result[:warnings].each do |warning|
+                puts pastel.yellow("    - #{warning}")
+              end
+            end
+
             puts
           end
 
           # ------------------------------------------------------------
-          # Warnings
+          # Return a non-zero exit code when any validator failed
           # ------------------------------------------------------------
-          unless validator.warnings.empty?
-            warn pastel.yellow("\nWarnings:")
-            validator.warnings.each do |warning|
-              warn pastel.yellow("- #{warning}")
-            end
-
-            puts
-          end
-
           exit(valid ? 0 : 1)
-        # ------------------------------------------------------------
-        # Unexpected errors
-        # ------------------------------------------------------------
         rescue StandardError => e
+          # ------------------------------------------------------------
+          # Catch unexpected command-level errors
+          # ------------------------------------------------------------
           spinner&.error(pastel.red('(Unexpected error)'))
           warn pastel.red("\nAn unexpected error occurred while running the command.")
           warn pastel.red("#{e.message}\n")
