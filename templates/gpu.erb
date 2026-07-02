@@ -36,41 +36,40 @@
   <%- line = "#SBATCH --partition=#{@context.partition}" -%>
   <%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
+<% if @context.account -%>
+  <%- line = "#SBATCH --account=#{@context.account}" -%>
+  <%= line.ljust(55) %># Account/project to charge the job to
+<% end -%>
 <% if @context.prepare -%>
   <%= @prepare.directives %>
 <% end -%>
-<% unless Array(@context.modules).empty? -%>
-  module purge
-<% end -%>
+<%- line = "module purge" -%>
 <%- line = "module load cuda" -%>
 <%= line.ljust(50) %># Load CUDA for GPU support
 <% Array(@context.modules).each do |mod| -%>
   <%- line = "module load #{mod}" -%>
   <%= line.ljust(50) %># Load extra user-requested module
 <% end -%>
-
 <% if @context.track %>
-# Tracking Functions:
-<%= "source #{@context.tracking_path}" %>
-<%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
-export ALCES_TOTAL_STAGES=0
-
-<%= "alces_start_job" %>
+  # Tracking Functions:
+  <%= "source #{@context.tracking_path}" %>
+  <%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
+  export ALCES_TOTAL_STAGES=0
+  <%= "alces_start_job" %>
 <% end %>
 <% if @context.workdir -%>
   <%- line = "cd #{@context.workdir}" -%>
   <%= line.ljust(50) %># Move to the working directory
 <% end -%>
-
 <% if @context.local_scratch -%>
-<%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
+  <%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
 <% elsif @context.prepare -%>
-<%= @prepare.helper %>
+  <%= @prepare.helper %>
 <% end -%>
 <%- line = "nvidia-smi" -%>
 <%= line.ljust(50) %># Show GPU status and confirm the GPU is available
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(50) %># Run the user's command
 <% if @context.track %>
-<%= "alces_end_job" %>
+  <%= "alces_end_job" %>
 <% end %>

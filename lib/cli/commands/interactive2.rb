@@ -13,6 +13,7 @@ require_relative '../../services/paths/paths'
 require_relative '../../services/converters/time_converter'
 require_relative '../../services/converters/memory_converter'
 require_relative '../../services/profile_manager/profile_manager'
+require_relative '../../services/config_manager/config_manager'
 
 module AlcesJob
   module CLI
@@ -139,7 +140,7 @@ module AlcesJob
           job_specific_questions = QUESTION_BANK[job_type.to_sym]
           system('clear')
 
-          flags = {}
+          flags = Services::ConfigManager.new({}).config
 
           # ------------------------------------------------------------
           # Ask initial questions
