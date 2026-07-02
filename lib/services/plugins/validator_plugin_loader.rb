@@ -5,16 +5,26 @@ require_relative '../paths/paths'
 module AlcesJob
   module Services
     module Plugins
-      class UserValidatorPluginLoader
+      class ValidatorPluginLoader
         def initialize(paths: Paths.new)
           @paths = paths
         end
 
-        def plugin_directory
-          @paths.user_validator_plugin_dir
+        def find_plugins
+          admin_plugins = find_plugins_in(
+            @paths.admin_validator_plugin_dir
+          )
+
+          user_plugins = find_plugins_in(
+            @paths.user_validator_plugin_dir
+          )
+
+          admin_plugins + user_plugins
         end
 
-        def find_plugins
+        private
+
+        def find_plugins_in(plugin_directory)
           return [] unless Dir.exist?(plugin_directory)
 
           external_validators = []

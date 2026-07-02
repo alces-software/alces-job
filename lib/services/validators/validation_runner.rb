@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'slurm_script_validator'
-require_relative '../plugins/user_validator_plugin_loader'
+require_relative '../plugins/validator_plugin_loader'
 
 module AlcesJob
   module Services
@@ -11,7 +11,7 @@ module AlcesJob
       def initialize(
         file_path,
         system_info: SysInfo.load_info,
-        plugin_loader: Plugins::UserValidatorPluginLoader.new
+        plugin_loader: Plugins::ValidatorPluginLoader.new
       )
         @file_path = file_path
         @errors = []
