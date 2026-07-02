@@ -40,10 +40,11 @@ export ALCES_TOTAL_STAGES=0
 <%- line = "cd #{@context.workdir}" -%>
 <%= line.ljust(50) %># Move to the working directory
 <% end -%>
+<% if @context.prepare -%>
+<%= @prepare.helper %>
+<% end -%>
 <% if @context.local_scratch -%>
-  <%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
-<% elsif @context.prepare -%>
-  <%= @prepare.helper %>
+<%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
 <% end -%>
 <%- line = 'echo "Task ID: $SLURM_ARRAY_TASK_ID"' -%>
 <%= line.ljust(50) %># Print this array task's ID

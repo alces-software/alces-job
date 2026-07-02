@@ -74,10 +74,11 @@ export ALCES_TOTAL_STAGES=0
 <%= line.ljust(55) %># Move to the working directory
 <% end -%>
 
+<% if @context.prepare -%>
+<%= @prepare.helper %>
+<% end -%>
 <% if @context.local_scratch -%>
 <%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
-<% elsif @context.prepare -%>
-<%= @prepare.helper %>
 <% end -%>
 <%- line = "echo \"Running job\"" -%>
 <%= line.ljust(70) %># Print which job is running
