@@ -268,6 +268,7 @@ module AlcesJob
                                   flags.keys.filter do |key|
                                     job_specific_questions.key?(key)
                                   end)
+
             system('clear')
 
             case field
