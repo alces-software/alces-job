@@ -13,6 +13,8 @@ module AlcesJob
         desc 'Lists all available modules on the system'
 
         option :show_description, type: :boolean, aliases: ['-d'], default: false, desc: 'Displays the description for the package'
+        option :show_full_name, type: :boolean, aliases: ['-f'], default: false, desc: 'Shows the modules full name which is used to load it'
+        option :hide_categories, type: :boolean, aliases: ['-h'], default: false, desc: 'Hides the category name while displaying modules'
 
         def call(**options)
           pastel = Pastel.new
@@ -31,9 +33,10 @@ module AlcesJob
           # Display packages
           # ------------------------------------------------------------
           package_categories.each do |category_name, packages|
-            puts pastel.green.bold("\n#{category_name}:")
+            puts pastel.green.bold("\n#{category_name}:") unless options[:hide_categories]
             packages.each do |package|
               output = "#{package[:name]} - v#{package[:version]}"
+              output <<= " - #{package[:full_name]}" if options[:show_full_name]
               output <<= " - #{pastel.red('DEPRECATED')}" if package[:deprecated]
               output <<= pastel.yellow("\n#{package[:description]}") if options[:show_description]
               puts output
