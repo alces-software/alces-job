@@ -54,19 +54,26 @@
 # Tracking Functions:
 <%= "source #{@context.tracking_path}" %>
 <%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
-export ALCES_TOTAL_STAGES=0
-<%= "alces_start_job" %>
+export ALCES_TOTAL_STAGES=1
+
+alces_start_job
+
+alces_start_stage
 <% end %>
 <% if @context.workdir -%>
 <%- line = "cd #{@context.workdir}" -%>
 <%= line.ljust(50) %># Move to the working directory
 <% end -%>
 <% if @context.local_scratch -%>
-  <%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
+<%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
 <% elsif @context.prepare -%>
-  <%= @prepare.helper %>
+<%= @prepare.helper %>
 <% end -%>
 <%- line = "nvidia-smi" -%>
 <%= line.ljust(50) %># Show GPU status and confirm the GPU is available
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(50) %># Run the user's command
+<% if @context.track %>
+
+alces_end_stage
+<% end %>
