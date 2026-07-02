@@ -11,6 +11,10 @@
 <%- line = "#SBATCH --partition=#{@context.partition}" -%>
 <%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
+<% if @context.account -%>
+  <%- line = "#SBATCH --account=#{@context.account}" -%>
+  <%= line.ljust(55) %># Account/project to charge the job to
+<% end -%>
 <% if @context.time -%>
 <%- line = "#SBATCH --time=#{@context.time}" -%>
 <%= line.ljust(50) %># Maximum runtime before Slurm stops the job
@@ -22,9 +26,7 @@
 <% if @context.prepare -%>
 <%= @prepare.directives %>
 <% end -%>
-<% unless Array(@context.modules).empty? -%>
-module purge
-<% end -%>
+<%- line = "module purge" -%>
 <%- line = "module load openmpi" -%>
 <%= line.ljust(50) %># Load OpenMPI so MPI programs can run
 <% Array(@context.modules).each do |mod| -%>
