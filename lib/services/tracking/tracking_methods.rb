@@ -122,6 +122,8 @@ module AlcesJob
             row_str = if stage_status
                         if stage_status == 'completed'
                           pastel.green("Completed after #{format_duration(stage_start_time, stage_end_time)}")
+                        elsif status == 'failed'
+                          pastel.red.bold("Failed after #{format_duration(stage_start_time, end_time)}")
                         else
                           pastel.yellow("Running for #{format_duration(stage_start_time, Time.now.to_i)}")
                         end
