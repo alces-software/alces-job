@@ -254,6 +254,10 @@ If you want to add tracking to a preexisting file, or you just want to manually 
 $ alces-job tracking
 ```
 
+#### Config Options
+
+The directory that the tracking information is stored in can be specified in either the user or admin config files in `tracking.path`
+
 #### History
 
 The history of tracked jobs can be accessed with

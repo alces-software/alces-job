@@ -2,6 +2,8 @@
 
 require 'xdg'
 
+require_relative '../deep_merge/deep_merge'
+
 module AlcesJob
   module Services
     class Paths
@@ -19,7 +21,20 @@ module AlcesJob
       # Gets the path to the users job dir
       # @return [String]
       def user_job_dir
-        @xdg.config_home.join('alces-job', 'tracking').to_s
+        config = AlcesJob::Services.deep_merge(
+          begin
+            YAML.load_file(user_config_path) || {}
+          rescue Errno::ENOENT
+            {}
+          end,
+          begin
+            YAML.load_file(admin_config_path) || {}
+          rescue Errno::ENOENT
+            {}
+          end
+        )
+
+        config['tracking']['path'] || @xdg.config_home.join('alces-job', 'tracking').to_s
       end
 
       # Profile
