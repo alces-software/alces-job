@@ -7,6 +7,7 @@ require 'pastel'
 require 'erb'
 require 'tty-box'
 require 'artii'
+require 'io/console'
 
 require_relative '../../services/sys_info/sys_info'
 require_relative '../../services/paths/paths'
@@ -32,7 +33,7 @@ module AlcesJob
             mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
-            prepare: 'Would you like to prepare this job with a dedicated working directory'
+            prepare: 'Would you like to prepare this job with a dedicated working directory?'
           },
 
           mpi: {
@@ -45,7 +46,7 @@ module AlcesJob
             mem: 'How much memory will your job use? (MB)',
             command: 'What MPI command would you like to run?',
             modules: 'What modules would you like to load?',
-            prepare: 'Would you like to prepare this job with a dedicated working directory'
+            prepare: 'Would you like to prepare this job with a dedicated working directory?'
           },
 
           gpu: {
@@ -57,7 +58,7 @@ module AlcesJob
             mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
-            prepare: 'Would you like to prepare this job with a dedicated working directory'
+            prepare: 'Would you like to prepare this job with a dedicated working directory?'
           },
 
           array: {
@@ -69,7 +70,7 @@ module AlcesJob
             mem: 'How much memory would you like per array task? (MB)',
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
-            prepare: 'Would you like to prepare this job with a dedicated working directory'
+            prepare: 'Would you like to prepare this job with a dedicated working directory?'
           }
         }.freeze
 
@@ -124,7 +125,7 @@ module AlcesJob
           puts '  - how much CPU and memory it needs'
           puts '  - what command should be executed'
           puts 'Helpful explanations and examples will be shown as you go.'
-          puts "\nDo not worry if you are unsure - sensible default values will be provided.\n"
+          puts "\nDo not worry if you are unsure - sensible default values will be provided.\n\n"
           puts pastel.yellow('Tip: Enlarge your terminal screen for a better experience.')
           puts "\nAt the end, you will be able to preview the generated script before saving it.\n\n"
           key = prompt.keypress('[Press any key to continue, or q to quit]')
@@ -135,8 +136,12 @@ module AlcesJob
           puts "\n1) #{pastel.cyan('Serial job')}\n\nChoose this if your program runs normally on one machine and does not need GPUs or multiple parallel tasks.\n\n e.g. python script.py or Rscript analysis.R"
           puts "\n2) #{pastel.yellow('MPI (Message Passing Interface)')}\n\nChoose MPI if your program was written to run in parallel using MPI, or if the documentation tells you to run it with mpirun, mpiexec, or srun."
           puts "\n3) #{pastel.green('GPU (Graphics Processing Unit)')}\n\nChoose GPU if your code uses CUDA, PyTorch, TensorFlow, or another library that needs a GPU."
-          puts "\n4) #{pastel.blue('Array')}\n\nChoose array if you need to repeat the same job many times, usually with different files, parameters, or random seeds.\n"
-          job_type = prompt.select(pastel.bold.magenta('What type of job would you like to run?'), types_of_job).split.first
+          puts "\n4) #{pastel.blue('Array')}\n\nChoose array if you need to repeat the same job many times, usually with different files, parameters, or random seeds.\n\n"
+          job_type = prompt.select(
+            pastel.bold.magenta('What type of job would you like to run?'),
+            types_of_job,
+            per_page: 10
+          ).split.first
           job_specific_questions = QUESTION_BANK[job_type.to_sym]
           system('clear')
 
@@ -169,7 +174,7 @@ module AlcesJob
               modules_question(key, question, flags, pastel, prompt, package_info, blacklisted_modules)
             when :nodes
               nodes_question(key, question, flags, pastel, prompt, partition_info)
-            when :ntask
+            when :ntasks
               ntask_question(key, question, flags, pastel, prompt, partition_info)
             when :gres
               gres_question(key, question, flags, pastel, prompt, partition_info)
@@ -206,7 +211,11 @@ module AlcesJob
 
             loop do
               backed_out = false
-              editing_type = prompt.select("\nHow would you like to edit your inputs?", editing_methods)
+              editing_type = prompt.select(
+                "\nHow would you like to edit your inputs?",
+                editing_methods,
+                per_page: 10
+              )
 
               break unless editing_type.start_with?('Manually')
 
@@ -270,7 +279,8 @@ module AlcesJob
             field = prompt.select("Which input would you like to edit? #{pastel.dim('(scrollable)')}",
                                   flags.keys.filter do |key|
                                     job_specific_questions.key?(key)
-                                  end)
+                                  end,
+                                  per_page: 10)
 
             system('clear')
 
@@ -356,7 +366,7 @@ module AlcesJob
                   end
                 end
               end
-            when :ntask
+            when :ntasks
               ntask_question(field, job_specific_questions[field], flags, pastel, prompt, partition_info)
             when :nodes
               nodes_question(field, job_specific_questions[field], flags, pastel, prompt, partition_info)
@@ -463,10 +473,10 @@ module AlcesJob
         def job_name_question(key, question, flags, pastel, prompt)
           puts pastel.bold.blue("\nJob Name\n")
           puts "This is the name that will appear in the #{pastel.bold('SLURM queue')}."
-          puts "Use a short, clear name so you can recognise the job later.\n"
+          puts "Use a short, clear name so you can recognise the job later.\n\n"
           puts pastel.bright_black("Example: my_python_job\n")
 
-          flags[key] = prompt.ask(question, default: flags[key] || DEFAULT_VALUES[key]) do |q|
+          flags[key] = prompt.ask(pastel.bold.blue(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.modify :strip
             q.convert ->(input) { input.gsub(/\s+/, '_') }
             q.validate do |input|
@@ -487,10 +497,9 @@ module AlcesJob
         # @param [Hash] partition_info
         def partition_question(key, question, flags, pastel, prompt, job_type, partition_info)
           puts pastel.bold.cyan("\nPartition\n")
-          puts "A partition is a queue or #{pastel.bold.underline('group of machines')} that your job can run on."
-          puts "\nDifferent partitions may have different time limits, hardware, or waiting times."
-          puts "\nIf you are unsure, choose the default partition.\n"
-          puts "\nFor a #{pastel.bold("#{job_type} job")}, the available partitions are:"
+          puts "A partition is a queue or #{pastel.bold.underline('group of machines')} that your job can run on.\nDifferent partitions may have different time limits, hardware, or waiting times.\n"
+          puts "\nIf you are unsure, choose the default partition.\n\n"
+          puts "For a #{pastel.bold("#{job_type} job")}, the available partitions are:\n\n"
 
           available_partitions =
             if [:gpu, 'gpu'].include?(job_type)
@@ -521,7 +530,7 @@ module AlcesJob
             end
           )}\n"
 
-          flags[key] = prompt.select(pastel.bold.cyan(question), available_partitions.map { |partition| partition[:name] }) do |menu|
+          flags[key] = prompt.select(pastel.bold.cyan(question), available_partitions.map { |partition| partition[:name] }, per_page: 10) do |menu|
             menu.default(partition_info.keys.find_index(flags[:partition].to_sym) + 1) if !flags[:partition].nil? && partition_info.key?(flags[:partition].to_sym)
           end
         end
@@ -537,9 +546,7 @@ module AlcesJob
           selected_partition = get_selected_partition(flags, partition_info, pastel)
 
           puts pastel.bold.magenta("\nTime\n")
-          puts "In Slurm, time specifies the #{pastel.bold.underline('maximum time limit for a job')}.\n"
-          puts "\nChoose enough time for your job to finish, but avoid asking for much more than you need.\n"
-          puts "\nShorter jobs can sometimes start sooner.\n"
+          puts "In Slurm, time specifies the #{pastel.bold.underline('maximum time limit for a job')}. Choose enough time for your job to finish, but avoid asking for much more than you need.\nShorter jobs can sometimes start sooner.\n"
 
           max_run_time = selected_partition[:time_limit]
           human_readable_max_time = Services::TimeConverter.to_human_readable(max_run_time)
@@ -567,11 +574,8 @@ module AlcesJob
           max_cpu_cores = selected_partition[:max_cpu_cores].to_i
 
           puts pastel.bold.green("\nCPU Cores\n")
-          puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer.\n"
-          puts "\nEach CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\n"
-          puts "\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}.\n"
-          puts "\nAsk for more only if your code uses threading, multiprocessing, or software that can run in parallel.\n"
-          puts "\nThe max number of cpu cores per node on partition #{selected_partition[:name]} is #{max_cpu_cores}.\n\n"
+          puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer. Each CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}. Ask for more only if your code uses threading, multiprocessing, or software that can run in parallel.\n\n"
+          puts "The max number of CPU cores per node on partition #{pastel.bold(selected_partition[:name])} is #{max_cpu_cores}.\n\n"
 
           flags[key] = prompt.ask(pastel.bold.green(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.validate(/\A\d+\z/)
@@ -597,11 +601,10 @@ module AlcesJob
           max_memory = selected_partition[:max_memory_mb].to_i
 
           puts pastel.bold.yellow("\nMemory\n")
-          puts "Memory is the amount of #{pastel.yellow('RAM')} (Random Access Memory) your job needs while it is running.\n"
-          puts "\nYour program uses RAM to hold #{pastel.bold('data')}, #{pastel.bold('variables')}, #{pastel.bold('files')} and #{pastel.bold('calculations')}.\n"
-          puts "\nIf your job uses more memory than requested then Slurm may stop it.\n"
-          puts "\nFor small scripts, 1024 - 2048 MB is often enough.\n"
-          puts "\nThe maximum memory per node on partition #{selected_partition[:name]} is #{max_memory} MB.\n\n"
+          puts "Memory is the amount of #{pastel.yellow('RAM')} (Random Access Memory) your job needs while it is running.\nYour program uses RAM to hold #{pastel.bold('data')}, #{pastel.bold('variables')}, #{pastel.bold('files')} and #{pastel.bold('calculations')}.\n\n"
+          puts "If your job uses more memory than requested then Slurm may stop it.\n"
+          puts "For small scripts, 1024 - 2048 MB is often enough.\n\n"
+          puts "The maximum memory per node on partition #{pastel.bold(selected_partition[:name])} is #{max_memory} MB.\n\n"
 
           flags[key] = prompt.ask(pastel.bold.yellow(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.validate do |input|
@@ -625,8 +628,8 @@ module AlcesJob
         # @param [TTY::Prompt] prompt
         def command_question(key, question, flags, pastel, prompt)
           puts pastel.bold.cyan("\nCommand\n")
-          puts "This is the command that Slurm will run inside your batch script.\nUse the same command you would normally type into the terminal.\n"
-          puts "\nExamples:\n\n"
+          puts "This is the command that Slurm will run inside your batch script.\nUse the same command you would normally type into the terminal.\n\n"
+          puts "Examples:\n\n"
           puts "#{pastel.bold.bright_magenta('python')} script.py\n\n"
           puts "#{pastel.bold.bright_magenta('R')} analysis.R\n\n"
           puts "#{pastel.bold.bright_magenta('node')} app.js\n\n"
@@ -642,11 +645,15 @@ module AlcesJob
         # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
         def prepare_question(key, question, flags, pastel, prompt)
-          puts pastel.bold.cyan("\nJob Preparation\n")
-          puts "This creates a dedicated working directory using the slurm job name and job ID.\n"
-          puts "\nIt also adds output and errors to this directory.\n\n"
+          job_name = flags[:job_name] || DEFAULT_VALUES[:job_name]
+          puts pastel.bold.magenta("\nJob Preparation\n")
+          puts "This will create a #{pastel.bold('dedicated working directory')} for this job using the job name and job ID. This step is #{pastel.underline('optional')}."
+          puts "\nThe job output and error files will be saved inside that folder, so everything stays in one place.\n"
+          puts "This keeps your filesystem #{pastel.underline('nice and tidy')} and prevents unintended clutter.\n\n"
+          puts pastel.bold('Example:')
+          puts "\nYour job name of #{pastel.bold(job_name)} will create a directory named #{pastel.bold.cyan("#{job_name}-<JOB_ID>")} that will store all output and error files for your job.\n\n"
 
-          flags[key] = prompt.yes?(pastel.bold.cyan(question), default: flags[key] || false)
+          flags[key] = prompt.yes?(pastel.bold.magenta(question), default: flags[key] || false)
         end
 
         # Prompts the user for which modules they want to load in their script
@@ -660,11 +667,20 @@ module AlcesJob
         def modules_question(key, question, flags, pastel, prompt, packages_info, blacklisted_modules)
           return if packages_info.empty?
 
-          puts pastel.yellow.bold("\nScript Modules\n")
-          puts "These are the modules that will be loaded into your script so they can be used within the script.\n"
-          puts "\nThis is optional - you can either select multiple or none at all.\n"
-          puts "\nTo select a modules, scroll down and press 'space'. If a module is selected, the icon will appear green.\n"
-          puts "\nPress 'enter' with no sections to skip this stage.\n"
+          puts pastel.yellow.bold("\nModules\n")
+
+          puts "Modules are #{pastel.bold('software packages')} that can be loaded before your job runs."
+          puts "For example, a module might make Python, R, CUDA, or another tool available inside your script.\n\n"
+
+          puts "This step is #{pastel.underline('optional')}."
+          puts "You can choose one or more modules, or skip this step if your script does not need any.\n\n"
+
+          puts 'Use the arrow keys to move through the list.'
+          puts "Press 'space' to select or deselect a module."
+          puts 'Selected modules will be highlighted with a green icon.'
+          puts "Press 'enter' when you are finished.\n\n"
+
+          puts "To skip this step, press 'enter' without selecting anything.\n\n"
 
           options = []
           already_selected = []
@@ -685,7 +701,12 @@ module AlcesJob
             end
           end
 
-          flags[key] = prompt.multi_select(pastel.bold.yellow(question), options, filter: true) do |menu|
+          flags[key] = prompt.multi_select(
+            pastel.bold.yellow(question),
+            options,
+            filter: true,
+            per_page: 10
+          ) do |menu|
             menu.default(*already_selected) unless already_selected.empty?
           end
         end
@@ -703,9 +724,8 @@ module AlcesJob
           node_count = selected_partition[:node_count].to_i
 
           puts pastel.bold.blue("\nNodes\n")
-          puts "A node is a #{pastel.bold.underline('single machine/computer')} in the cluster.\n"
-          puts "\nMPI jobs may use multiple nodes to run work in parallel across machines.\n"
-          puts "\nThe total number of nodes for partition #{selected_partition[:name]} is #{node_count}\n\n"
+          puts "A node is a #{pastel.bold.underline('single machine/computer')} in the cluster. MPI jobs may use multiple nodes to run work in parallel across machines.\n\n"
+          puts "The total number of nodes for partition #{pastel.bold(selected_partition[:name])} is #{node_count}\n\n"
 
           flags[key] = prompt.ask(pastel.bold.blue(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.validate(/\A\d+\z/)
@@ -728,20 +748,20 @@ module AlcesJob
           max_array_size = 1001
 
           puts pastel.bold.bright_magenta("\nArray Job\n")
-          puts "A Slurm array job runs the #{pastel.bold.underline('same job many times')} with different task IDs.\n"
-          puts "\nThis is useful when you want to run the same script for many inputs, files, seeds, or parameters.\n"
-          puts "\nEach array task gets its own ID through:\n\n"
+          puts "A Slurm array job runs the #{pastel.bold.underline('same job many times')} with different task IDs.\n\n"
+          puts "This is useful when you want to run the same script for many inputs, files, seeds, or parameters.\n\n"
+          puts "Each array task gets its own ID through:\n\n"
           puts pastel.bold.green("$SLURM_ARRAY_TASK_ID\n")
-          puts "Your script can use this ID to choose which file, row, or parameter to process.\n"
-          puts pastel.bold("\nExamples:\n")
+          puts "Your script can use this ID to choose which file, row, or parameter to process.\n\n"
+          puts pastel.bold("Examples:\n")
           puts "#{pastel.bold.bright_magenta('1-10')}       runs task IDs 1 through 10"
           puts "#{pastel.bold.bright_magenta('0-9')}        runs task IDs 0 through 9"
           puts "#{pastel.bold.bright_magenta('1,5,9')}      runs only task IDs 1, 5, and 9"
           puts "#{pastel.bold.bright_magenta('1-100%10')}   creates 100 tasks, but only runs 10 at the same time"
-          puts "#{pastel.bold.bright_magenta('1-20:2')}     runs every 2nd task, e.g. 1, 3, 5 ... 19\n"
-          puts "\nThe #{pastel.bold('%')} part limits how many array tasks can run at once."
-          puts "For example, #{pastel.bold('1-100%10')} means run at most 10 tasks at the same time.\n"
-          puts "\nIf you are unsure, start small, such as 1-5 or 1-10.\n\n"
+          puts "#{pastel.bold.bright_magenta('1-20:2')}     runs every 2nd task, e.g. 1, 3, 5 ... 19\n\n"
+          puts "The #{pastel.bold('%')} part limits how many array tasks can run at once."
+          puts "For example, #{pastel.bold('1-100%10')} means run at most 10 tasks at the same time.\n\n"
+          puts "If you are unsure, start small, such as 1-5 or 1-10.\n\n"
 
           flags[key] = prompt.ask(pastel.bold.bright_magenta(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.modify :strip
@@ -815,7 +835,7 @@ module AlcesJob
           max_gpus = selected_partition&.dig(:max_gpus).to_i
 
           puts pastel.bold.blue("\nGPUs\n")
-          puts "\nA GPU (Graphics Processing Unit) is special processor used for highly parallel work, such as machine learning, simulations, and some scientific workloads.\n"
+          puts "\nA GPU (Graphics Processing Unit) is a special processor used for highly parallel work, such as machine learning, simulations, and some scientific workloads.\n"
 
           if max_gpus.positive?
             puts "\nThe maximum number of GPUs on partition #{pastel.bold(selected_partition[:name])} is #{pastel.bold(max_gpus)} per node.\n"
@@ -852,9 +872,9 @@ module AlcesJob
 
           puts pastel.bold.yellow("\nMPI Tasks\n")
           puts 'An MPI task is one parallel process in your MPI job.'
-          puts "\nFor most beginner MPI jobs, each task is one copy of your MPI program running in parallel.\n"
-          puts "\nFor partition #{selected_partition[:name]}, the rough maximum number of MPI tasks is #{max_ntasks}.\n"
-          puts "\nThis is based on #{node_count} nodes multiplied by #{max_cpu_cores} CPU cores per node.\n\n"
+          puts "For most beginner MPI jobs, each task is one copy of your MPI program running in parallel.\n\n"
+          puts "For partition #{pastel.bold(selected_partition[:name])}, the rough maximum number of MPI tasks is #{max_ntasks}.\n\n"
+          puts "This is based on #{node_count} nodes multiplied by #{max_cpu_cores} CPU cores per node.\n\n"
 
           flags[key] = prompt.ask(pastel.bold.yellow(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.validate do |input|
@@ -918,21 +938,64 @@ module AlcesJob
               asciify_multiline(
                 current,
                 artii,
-                banner: if show_banner
-                          <<~BANNER
-                            'o`
-                            'ooo`
-                            `oooo`
-                             `oooo`         'o`
-                               `ooooo`  `ooooo
-                                  `oooo:oooo`
-                                     `v
-                          BANNER
-                        end
+                banner: show_banner ? title_banner : nil
               )
             )
 
-            sleep(delay) unless char == "\n"
+            puts "[Press #{pastel.bold('s')} to #{pastel.bold('skip')}]"
+            break if char != "\n" && skip_animation?(delay)
+          end
+          drain_pending_input
+          system('clear')
+          puts pastel.bold.cyan(asciify_multiline(text, artii, banner: title_banner))
+        end
+
+        def title_banner
+          <<~BANNER
+            'o`
+            'ooo`
+            `oooo`
+             `oooo`         'o`
+               `ooooo`  `ooooo
+                  `oooo:oooo`
+                     `v
+          BANNER
+        end
+
+        def skip_animation?(delay)
+          return sleep(delay) && false unless $stdin.tty?
+
+          deadline = Time.now + delay
+
+          $stdin.raw do
+            loop do
+              remaining = deadline - Time.now
+              break if remaining <= 0
+
+              ready = IO.select([$stdin], nil, nil, remaining) # rubocop:disable Lint/IncompatibleIoSelectWithFiberScheduler
+              break unless ready
+
+              input = $stdin.read_nonblock(16, exception: false)
+              next if input.nil? || input == :wait_readable
+
+              raise Interrupt if input.include?("\u0003")
+              return true if input.downcase.include?('s')
+            end
+          end
+
+          false
+        end
+
+        def drain_pending_input
+          return unless $stdin.tty?
+
+          $stdin.raw do
+            while $stdin.wait_readable(0)
+              input = $stdin.read_nonblock(16, exception: false)
+              break if input.nil? || input == :wait_readable
+
+              raise Interrupt if input.include?("\u0003")
+            end
           end
         end
 
