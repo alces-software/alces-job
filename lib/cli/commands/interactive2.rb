@@ -17,8 +17,8 @@ require_relative '../../services/profile_manager/profile_manager'
 module AlcesJob
   module CLI
     module Commands
-      class Wizard < Dry::CLI::Command
-        AlcesJob::CLI.register 'new', self
+      class Interactive < Dry::CLI::Command
+        AlcesJob::CLI.register 'interactive', self, aliases: ['-i', '--interactive']
 
         desc 'This runs the interactive script builder'
 
@@ -649,6 +649,8 @@ module AlcesJob
         # @param [TTY::Prompt] prompt
         # @param [Hash] packages_info
         def modules_question(key, question, flags, pastel, prompt, packages_info)
+          return if packages_info.empty?
+
           puts pastel.yellow.bold("\nScript Modules\n")
           puts "These are the modules that will be loaded into your script so they can be used within the script.\n"
           puts "\nThis is optional - you can either select multiple or none at all.\n"
