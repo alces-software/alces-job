@@ -64,10 +64,16 @@ alces_start_stage
 <%- line = "cd #{@context.workdir}" -%>
 <%= line.ljust(50) %># Move to the working directory
 <% end -%>
+<% if @context.prepare -%>
+<%= @prepare.helper %>
+<% end -%>
 <% if @context.local_scratch -%>
 <%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
+<<<<<<< HEAD
+=======
 <% elsif @context.prepare -%>
 <%= @prepare.helper %>
+>>>>>>> origin/main
 <% end -%>
 <%- line = "nvidia-smi" -%>
 <%= line.ljust(50) %># Show GPU status and confirm the GPU is available
