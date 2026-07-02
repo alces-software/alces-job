@@ -23,7 +23,7 @@ module AlcesJob
         @partition_info = @info[:partitions]
         @package_info = @info[:packages]
 
-        # @info = prompt_for_system_info unless valid_partition_info?(@info)
+        @partition_info = prompt_for_system_info unless valid_partition_info?(@partition_info)
 
         @banner = <<~BANNER
           'o`

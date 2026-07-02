@@ -4,7 +4,7 @@ require 'dry/cli'
 require 'pastel'
 require 'tty-spinner'
 
-require_relative '../../../services/validators/slurm_script_validator'
+require_relative '../../../services/validators/validation_runner'
 
 module AlcesJob
   module CLI
@@ -41,7 +41,9 @@ module AlcesJob
           spinner.auto_spin
 
           begin
-            validator = AlcesJob::Services::SlurmScriptValidator.new(File.expand_path(file_path, Dir.pwd))
+            validator = AlcesJob::Services::ValidationRunner.new(
+              File.expand_path(file_path, Dir.pwd)
+            )
           rescue StandardError => e
             spinner.error(pastel.red('(Failed)'))
             warn pastel.red("\nFailed to initialise validator.")
@@ -54,7 +56,9 @@ module AlcesJob
           # ------------------------------------------------------------
           # Validation result
           # ------------------------------------------------------------
-          if validator.validate?
+          valid = validator.validate?
+
+          if valid
             puts pastel.green("\nValidation passed.\n")
           else
             warn pastel.red("\nValidation failed.")
@@ -76,8 +80,7 @@ module AlcesJob
             puts
           end
 
-          exit(0)
-
+          exit(valid ? 0 : 1)
         # ------------------------------------------------------------
         # Unexpected errors
         # ------------------------------------------------------------
