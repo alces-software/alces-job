@@ -9,7 +9,7 @@ require_relative '../deep_merge/deep_merge'
 module AlcesJob
   module Services
     class ConfigManager
-      attr_reader :config, :output
+      attr_reader :config, :output, :module_blacklist
 
       # Applies the user and admin configs when they are available
       # @param [Hash] options
@@ -35,19 +35,22 @@ module AlcesJob
 
         if config.empty?
           @config = options
+          @module_blacklist = []
           return
         end
 
         unless options.empty?
           options.each_key do |key|
             key_str = key.to_s
-            @output.push(pastel.yellow("You are overwriting the system admin defined #{key_str}")) if config['values'].key?(key_str) && config['values'][key_str]['warn']
+            @output.push(pastel.yellow("You are overwriting the system admin defined #{key_str}")) if config['flags'].key?(key_str) && config['flags'][key_str]['warn']
           end
         end
 
-        config = config['values'].to_h do |key, value|
+        config = config['flags'].to_h do |key, value|
           [key.to_sym, value['default']]
         end
+
+        @module_blacklist = config['module_blacklist']
 
         @config = config.merge(options)
       end
