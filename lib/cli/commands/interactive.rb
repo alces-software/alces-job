@@ -264,7 +264,10 @@ module AlcesJob
               next
             end
 
-            field = prompt.select("Which input would you like to edit? #{pastel.dim('(scrollable)')}", flags.keys)
+            field = prompt.select("Which input would you like to edit? #{pastel.dim('(scrollable)')}",
+                                  flags.keys.filter do |key|
+                                    job_specific_questions.key?(key)
+                                  end)
             system('clear')
 
             case field
@@ -515,7 +518,7 @@ module AlcesJob
           )}\n"
 
           flags[key] = prompt.select(pastel.bold.cyan(question), available_partitions.map { |partition| partition[:name] }) do |menu|
-            menu.default(partition_info.keys.find_index(flags[:partition].to_sym) + 1) unless flags[:partition].nil?
+            menu.default(partition_info.keys.find_index(flags[:partition].to_sym) + 1) if !flags[:partition].nil? && partition_info.key?(flags[:partition].to_sym)
           end
         end
 
