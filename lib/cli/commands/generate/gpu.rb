@@ -15,6 +15,7 @@ require_relative '../../../services/module_extractor/module_extractor'
 require_relative '../../../services/config_manager/config_manager'
 require_relative '../../../services/profile_manager/profile_manager'
 require_relative '../../../services/editor/edit'
+require_relative '../../../services/tracking/tracking_methods'
 
 module AlcesJob
   module CLI
@@ -105,15 +106,8 @@ module AlcesJob
           spinner.auto_spin
 
           options[:template] = 'gpu'
-          if options[:track]
-            spec = Gem.loaded_specs['alces-job']
-            if spec
-              lib_path = File.join(spec.full_gem_path, 'lib/helper_functions/functions.bash')
-              job_path = Services::Paths.new.user_job_dir
-              options[:tracking_path] = lib_path
-              options[:job_path] = job_path
-            end
-          end
+
+          Services::Tracking.inject_tracking(options)
 
           generator = Services::ScriptGenerator.new(options)
           script = generator.generate
