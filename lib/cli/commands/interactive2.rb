@@ -136,6 +136,7 @@ module AlcesJob
           puts "\n3) #{pastel.green('GPU (Graphics Processing Unit)')}\n\nChoose GPU if your code uses CUDA, PyTorch, TensorFlow, or another library that needs a GPU."
           puts "\n4) #{pastel.blue('Array')}\n\nChoose array if you need to repeat the same job many times, usually with different files, parameters, or random seeds.\n"
           job_type = prompt.select(pastel.bold.magenta('What type of job would you like to run?'), types_of_job).split.first
+          job_specific_questions = QUESTION_BANK[job_type.to_sym]
           system('clear')
 
           max_run_time = nil
@@ -145,7 +146,7 @@ module AlcesJob
           # ------------------------------------------------------------
           # Ask initial questions
           # ------------------------------------------------------------
-          QUESTION_BANK[job_type.to_sym].each do |key, question|
+          job_specific_questions.each do |key, question|
             system('clear')
             case key
             when :partition
@@ -175,7 +176,258 @@ module AlcesJob
             end
           end
 
-          puts flags
+          # ------------------------------------------------------------
+          # Edit loop
+          # ------------------------------------------------------------
+          final_script = nil
+          manual_editing = false
+          valid_manual_editing = false
+          editing_methods = ['Interactively', 'Manually (ADVANCED - only select if you have strong experience with text editors like vim, vi or nano.)']
+
+          loop do
+            generator = AlcesJob::Services::ScriptGenerator.new(flags.merge(template: job_type)) unless manual_editing
+            script = final_script || generator.generate
+
+            puts "\n#{TTY::Box.frame(
+              script,
+              title: {
+                top_center: pastel.bold.green(' Script Preview ')
+              },
+              padding: 1,
+              border: :thick,
+              width: (script.lines.map { |line| line.chomp.length }.max || 0) + 4
+            )}\n"
+
+            break unless prompt.yes?('Would you like to edit any of your inputs?')
+
+            editing_type = nil
+
+            loop do
+              backed_out = false
+              editing_type = prompt.select("\nHow would you like to edit your inputs?", editing_methods)
+
+              break unless editing_type.start_with?('Manually')
+
+              backed_out = prompt.no?("\n#{pastel.bold.yellow('WARNING:')} Manual editing disables further interactive edits and profile saving for this session. Continue?") unless valid_manual_editing
+              next if backed_out
+
+              editing_methods.delete('Interactively')
+              break
+            end
+
+            if editing_type.start_with?('Manually')
+              system('clear')
+              manual_editing = true
+              old_script = script
+              script = AlcesJob::Services::Editor.edit_script_in_editor(script, editor: @editor)
+              Tempfile.create(['generated_script', '.slurm']) do |tempfile|
+                tempfile.write(script)
+                tempfile.flush
+                validator = Services::SlurmScriptValidator.new(tempfile.path)
+                if validator.validate?
+                  highlighted_script = AlcesJob::Services::Editor.highlight_added_lines(old_script, script, pastel)
+                  box_width = (script.lines.map { |line| line.chomp.length }.max || 0) + 4
+                  puts "\n#{TTY::Box.frame(
+                    highlighted_script,
+                    title: {
+                      top_center: pastel.bold.green(' Edited Script Preview ')
+                    },
+                    padding: 1,
+                    border: :thick,
+                    width: box_width
+                  )}"
+                  AlcesJob::Services::Editor.show_removed_lines(old_script, script, pastel)
+                  puts
+                  if prompt.yes?('Do you want to save these changes?', default: true)
+                    valid_manual_editing = true
+                    final_script = script
+                  else
+                    script = old_script
+                    final_script = old_script
+                    valid_manual_editing = true
+                  end
+                else
+                  manual_editing = false
+                  editing_methods.unshift('Interactively') unless editing_methods.include?('Interactively') || valid_manual_editing
+                  script = old_script
+                  puts pastel.bold.red("\nINVALID SCRIPT")
+                  warn pastel.red("\nThe generated SBATCH script is not valid and changes were reverted.\n")
+                  validator.errors.each do |error|
+                    warn "#{pastel.bold.red('ERROR')}: #{pastel.red(error)}"
+                  end
+                  validator.warnings.each do |warning|
+                    warn pastel.yellow("Warning: #{warning}")
+                  end
+                  prompt.keypress("\n[Press #{pastel.bold('enter')} to return to editing]")
+                end
+              end
+              system('clear')
+              next
+            end
+
+            field = prompt.select("Which input would you like to edit? #{pastel.dim('(scrollable)')}", flags.keys)
+            system('clear')
+
+            case field
+            when :partition
+              previous_partition = flags[:partition]
+              partition_question(field, job_specific_questions[field], flags, pastel, prompt, job_type, partition_info)
+              if previous_partition != flags[:partition]
+                selected_partition = get_selected_partition(flags, partition_info, pastel)
+
+                max_run_time = selected_partition[:time_limit]
+                human_readable_max_time = Services::TimeConverter.to_human_readable(max_run_time)
+                max_memory = selected_partition[:max_memory_mb].to_i
+                max_cpu_cores = selected_partition[:max_cpu_cores].to_i
+                node_count = selected_partition[:node_count].to_i
+
+                unless Services::TimeConverter.valid_slurm_time?(flags[:time], max_run_time)
+                  puts "\nThe max runtime for the partition #{selected_partition[:name]} is #{max_run_time}, i.e. #{human_readable_max_time}\n"
+                  puts "Your current time value #{flags[:time]} is #{pastel.bold('too high')} for #{selected_partition[:name]}.\n"
+                  flags[:time] = prompt.ask(pastel.bold.magenta(job_specific_questions[:time]), default: DEFAULT_VALUES[:time]) do |q|
+                    q.validate do |input|
+                      Services::TimeConverter.valid_slurm_time?(input, max_run_time)
+                    end
+                    q.messages[:valid?] = "Time must be in format D-HH:MM:SS and not exceed #{human_readable_max_time}"
+                  end
+                end
+
+                if flags[:mem].to_i > max_memory
+                  puts "\nThe max memory for the partition #{selected_partition[:name]} is #{max_memory} MB.\n"
+                  puts "Your current memory value #{flags[:mem]} MB is #{pastel.bold('too high')} for #{selected_partition[:name]}.\n"
+                  flags[:mem] = prompt.ask(pastel.bold.yellow(job_specific_questions[:mem]), default: max_memory.to_s) do |q|
+                    q.validate do |input|
+                      requested_memory_mb = Services::MemoryConverter.to_mb(input)
+                      !requested_memory_mb.nil? &&
+                        requested_memory_mb >= 1 &&
+                        requested_memory_mb <= max_memory
+                    end
+                    q.messages[:valid?] = "Enter memory between 1 MB and #{max_memory} MB, such as 500, 500M, or 2G."
+                    q.convert do |input|
+                      Services::MemoryConverter.to_mb(input)
+                    end
+                  end
+                end
+
+                if flags[:cpus_per_task] && flags[:cpus_per_task].to_i > max_cpu_cores
+                  puts "\nThe max CPU cores for the partition #{selected_partition[:name]} is #{max_cpu_cores}.\n"
+                  puts "Your current CPU value #{flags[:cpus_per_task]} is #{pastel.bold('too high')} for #{selected_partition[:name]}.\n"
+                  flags[:cpus_per_task] = prompt.ask(pastel.bold.green(job_specific_questions[:cpus_per_task]), default: max_cpu_cores.to_s) do |q|
+                    q.validate do |input|
+                      input.match?(/\A\d+\z/) &&
+                        input.to_i.between?(1, max_cpu_cores)
+                    end
+                    q.messages[:valid?] = "Please enter a whole number between 1 and #{max_cpu_cores}"
+                    q.convert :int
+                  end
+                end
+
+                if flags[:nodes] && flags[:nodes] > node_count
+                  puts "\nThe total number of nodes for the partition #{selected_partition[:name]} is #{node_count}.\n"
+                  puts "Your current selection of #{flags[:nodes]} #{pastel.bold('exceeds')} the total node count for #{selected_partition[:name]}.\n"
+                  flags[:nodes] = prompt.ask(pastel.bold.blue(job_specific_questions[:nodes]), default: flags[:nodes]) do |q|
+                    q.validate(/\A\d+\z/)
+                    q.messages[:valid?] = 'Please enter a whole number'
+                    q.validate do |input|
+                      input.to_i.between?(1, node_count)
+                    end
+                    q.messages[:valid?] = "Please enter a whole number between 1 and #{node_count}"
+                    q.convert :int
+                  end
+
+                end
+
+                if flags[:ntasks] && flags[:ntasks].to_i > max_cpu_cores * node_count
+                  max_ntasks = max_cpu_cores * node_count
+                  puts "\nThe rough max MPI task count for partition #{selected_partition[:name]} is #{max_ntasks}.\n"
+                  puts "Your current ntasks value #{flags[:ntasks]} is #{pastel.bold('too high')} for #{selected_partition[:name]}.\n"
+                  flags[:ntasks] = prompt.ask(pastel.bold.blue(job_specific_questions[:ntasks]), default: max_ntasks.to_s) do |q|
+                    q.validate do |input|
+                      input.to_s.match?(/\A\d+\z/) &&
+                        input.to_i.between?(1, max_ntasks)
+                    end
+                    q.messages[:valid?] = "Please enter a whole number between 1 and #{max_ntasks}"
+                    q.convert :int
+                  end
+                end
+              end
+            when :ntask
+              ntask_question(field, job_specific_questions[field], flags, pastel, prompt, partition_info)
+            when :nodes
+              nodes_question(field, job_specific_questions[field], flags, pastel, prompt, partition_info)
+            when :time
+              time_question(field, job_specific_questions[field], flags, pastel, prompt, partition_info)
+            when :mem
+              mem_question(field, job_specific_questions[field], flags, pastel, prompt, partition_info)
+            when :cpus_per_task
+              cpus_per_task_question(field, job_specific_questions[field], flags, pastel, prompt, partition_info)
+            when :array
+              array_question(field, job_specific_questions[field], flags, pastel, prompt)
+            when :prepare
+              prepare_question(field, job_specific_questions[field], flags, pastel, prompt)
+            when :job_name
+              job_name_question(field, job_specific_questions[field], flags, pastel, prompt)
+            when :modules
+              modules_question(field, job_specific_questions[field], flags, pastel, prompt, package_info)
+            when :command
+              command_question(field, job_specific_questions[field], flags, pastel, prompt)
+            end
+
+            next unless valid_manual_editing && final_script
+
+            final_script.lines.each do |line|
+              next unless line.start_with?('#SBATCH')
+
+              directive = line.sub(/\s+#.*\z/, '').strip
+              option, value = directive.sub(/\A#SBATCH\s+/, '').split(/[=\s]+/, 2)
+              value = value&.split&.first
+
+              next unless option
+
+              if ['--job-name', '-J'].include?(option)
+                flags[:job_name] = value
+                break
+              elsif option.start_with?('-J') && option.length > 2
+                flags[:job_name] = option[2..]
+                break
+              end
+            end
+          end
+
+          generator = AlcesJob::Services::ScriptGenerator.new(flags.merge(template: job_type))
+
+          unless valid_manual_editing
+            puts
+            if prompt.yes?('Would you like to save these settings to a reusable profile?', default: false)
+              profile_name = prompt.ask('What would you like to call the profile?') do |q|
+                q.modify :strip
+                q.convert ->(input) { input.gsub(/\s+/, '_') }
+                q.validate do |input|
+                  cleaned = input.strip.gsub(/\s+/, '_')
+                  cleaned.match?(/\A[a-zA-Z0-9_.-]+\z/) && !cleaned.empty?
+                end
+                q.messages[:valid?] =
+                  'Profile name can only contain letters, numbers, underscores, dots, and hyphens.'
+              end
+
+              saved_profile_path = AlcesJob::Services::ProfileManager.save_profile(profile_name, flags)
+              puts pastel.green("Profile saved to #{saved_profile_path}")
+            end
+          end
+
+          exit(0) unless prompt.yes?('Write script to file?')
+          exit(0) if File.exist?(generator.file_path) && !prompt.yes?("\nAn sbatch file with the name #{pastel.cyan(File.basename(generator.file_path))} already exists. Do you want to overwrite it?", default: false)
+          script_to_save = final_script || generator.generate
+          file_path = generator.save(script_to_save)
+          puts "Script has been saved to #{file_path}"
+          exit(0) unless prompt.yes?('Would you like to submit the job to SBATCH?', default: false)
+          stdout, status = generator.submit(file_path)
+          unless status.success?
+            puts pastel.red("\nAn error occurred\n")
+            exit(1)
+          end
+          puts "\n#{stdout}\n"
+          exit(0)
 
         # ------------------------------------------------------------
         # Unexpected errors
