@@ -57,7 +57,7 @@ module AlcesJob
         filtered_modules = []
         config[:modules].each do |package|
           if module_blacklist.include?(package)
-            @output.push(pastel.red("#{package} has been removed because its blocked by the config"))
+            @output.push(pastel.red("#{package} has been removed because it's blocked by the config"))
           else
             filtered_modules << package
           end
