@@ -592,7 +592,7 @@ module AlcesJob
           puts "\nYour program uses RAM to hold #{pastel.bold('data')}, #{pastel.bold('variables')}, #{pastel.bold('files')} and #{pastel.bold('calculations')}.\n"
           puts "\nIf your job uses more memory than requested then Slurm may stop it.\n"
           puts "\nFor small scripts, 1024 - 2048 MB is often enough.\n"
-          puts "\nThe maximum memory per node on partition #{selected_partition} is #{max_memory} MB.\n\n"
+          puts "\nThe maximum memory per node on partition #{selected_partition[:name]} is #{max_memory} MB.\n\n"
 
           flags[key] = prompt.ask(pastel.bold.yellow(question), default: DEFAULT_VALUES[key]) do |q|
             q.validate do |input|
@@ -829,7 +829,7 @@ module AlcesJob
           puts pastel.bold.yellow("\nMPI Tasks\n")
           puts 'An MPI task is one parallel process in your MPI job.'
           puts "\nFor most beginner MPI jobs, each task is one copy of your MPI program running in parallel.\n"
-          puts "\nFor partition #{selected_partition}, the rough maximum number of MPI tasks is #{max_ntasks}.\n"
+          puts "\nFor partition #{selected_partition[:name]}, the rough maximum number of MPI tasks is #{max_ntasks}.\n"
           puts "\nThis is based on #{node_count} nodes multiplied by #{max_cpu_cores} CPU cores per node.\n\n"
 
           flags[key] = prompt.ask(pastel.bold.yellow(question), default: DEFAULT_VALUES[key]) do |q|
@@ -925,7 +925,7 @@ module AlcesJob
           end
 
           unless selected_partition
-            puts pastel.red("\nCould not find partition information for #{selected_partition[:name]}\n")
+            puts pastel.red("\nCould not find partition information for #{flags[:partition]}\n")
             exit(1)
           end
 
