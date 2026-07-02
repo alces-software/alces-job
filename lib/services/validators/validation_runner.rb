@@ -1,19 +1,24 @@
 # frozen_string_literal: true
 
 require_relative 'slurm_script_validator'
-require_relative 'new_dummy_validator'
+require_relative '../plugins/user_validator_plugin_loader'
 
 module AlcesJob
   module Services
     class ValidationRunner
       attr_reader :errors, :warnings, :results
 
-      def initialize(file_path, system_info: SysInfo.load_info)
+      def initialize(
+        file_path,
+        system_info: SysInfo.load_info,
+        plugin_loader: Plugins::UserValidatorPluginLoader.new
+      )
         @file_path = file_path
         @errors = []
         @warnings = []
         @results = []
         @system_info = system_info
+        @plugin_loader = plugin_loader
       end
 
       def validate?
@@ -24,16 +29,25 @@ module AlcesJob
               @file_path,
               system_info: @system_info
             )
-          },
-          {
-            name: 'NewDummyValidator',
-            validator: NewDummyValidator.new(
+          }
+        ]
+
+        # ------------------------------------------------------------
+        # Load validator classes found in the user's plugin directory
+        # ------------------------------------------------------------
+        @plugin_loader.find_plugins.each do |plugin_class|
+          validators << {
+            name: plugin_class.name.split('::').last,
+            validator: plugin_class.new(
               @file_path,
               system_info: @system_info
             )
           }
-        ]
+        end
 
+        # ------------------------------------------------------------
+        # Run every built-in and user plugin validator
+        # ------------------------------------------------------------
         validators.each do |validator_details|
           validator = validator_details[:validator]
           passed = validator.validate?
