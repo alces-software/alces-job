@@ -458,7 +458,7 @@ module AlcesJob
           puts "Use a short, clear name so you can recognise the job later.\n"
           puts pastel.bright_black("Example: my_python_job\n")
 
-          flags[key] = prompt.ask(question, default: DEFAULT_VALUES[key]) do |q|
+          flags[key] = prompt.ask(question, default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.modify :strip
             q.convert ->(input) { input.gsub(/\s+/, '_') }
             q.validate do |input|
@@ -538,7 +538,7 @@ module AlcesJob
 
           puts "\nThe max runtime for the partition #{pastel.bold(selected_partition[:name])} is #{max_run_time}, i.e. #{human_readable_max_time}\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.magenta(question), default: DEFAULT_VALUES[key]) do |q|
+          flags[key] = prompt.ask(pastel.bold.magenta(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.validate do |input|
               Services::TimeConverter.valid_slurm_time?(input, max_run_time)
             end
@@ -565,7 +565,7 @@ module AlcesJob
           puts "\nAsk for more only if your code uses threading, multiprocessing, or software that can run in parallel.\n"
           puts "\nThe max number of cpu cores per node on partition #{selected_partition[:name]} is #{max_cpu_cores}.\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.green(question), default: DEFAULT_VALUES[key]) do |q|
+          flags[key] = prompt.ask(pastel.bold.green(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.validate(/\A\d+\z/)
             q.messages[:valid?] = 'Please enter a whole number'
             q.validate do |input|
@@ -595,7 +595,7 @@ module AlcesJob
           puts "\nFor small scripts, 1024 - 2048 MB is often enough.\n"
           puts "\nThe maximum memory per node on partition #{selected_partition[:name]} is #{max_memory} MB.\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.yellow(question), default: DEFAULT_VALUES[key]) do |q|
+          flags[key] = prompt.ask(pastel.bold.yellow(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.validate do |input|
               requested_memory_mb = Services::MemoryConverter.to_mb(input)
               !requested_memory_mb.nil? &&
@@ -624,7 +624,7 @@ module AlcesJob
           puts "#{pastel.bold.bright_magenta('node')} app.js\n\n"
           puts "#{pastel.bold.bright_magenta('srun')} ./my_mpi_program\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.cyan(question), default: DEFAULT_VALUES[key])
+          flags[key] = prompt.ask(pastel.bold.cyan(question), default: flags[key] || DEFAULT_VALUES[key])
         end
 
         # Prompts the user whether they want prepare enabled
@@ -638,7 +638,7 @@ module AlcesJob
           puts "This creates a dedicated working directory using the slurm job name and job ID.\n"
           puts "\nIt also adds output and errors to this directory.\n\n"
 
-          flags[key] = prompt.yes?(pastel.bold.cyan(question), default: false)
+          flags[key] = prompt.yes?(pastel.bold.cyan(question), default: flags[key] || false)
         end
 
         # Prompts the user for which modules they want to load in their script
@@ -692,7 +692,7 @@ module AlcesJob
           puts "\nMPI jobs may use multiple nodes to run work in parallel across machines.\n"
           puts "\nThe total number of nodes for partition #{selected_partition[:name]} is #{node_count}\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.blue(question), default: DEFAULT_VALUES[key]) do |q|
+          flags[key] = prompt.ask(pastel.bold.blue(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.validate(/\A\d+\z/)
             q.messages[:valid?] = 'Please enter a whole number'
             q.validate do |input|
@@ -728,7 +728,7 @@ module AlcesJob
           puts "For example, #{pastel.bold('1-100%10')} means run at most 10 tasks at the same time.\n"
           puts "\nIf you are unsure, start small, such as 1-5 or 1-10.\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.bright_magenta(question), default: DEFAULT_VALUES[key]) do |q|
+          flags[key] = prompt.ask(pastel.bold.bright_magenta(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.modify :strip
             q.validate do |input|
               array_value = input.strip
@@ -811,7 +811,7 @@ module AlcesJob
 
           puts
 
-          flags[key] = prompt.ask(pastel.bold.blue(question), default: DEFAULT_VALUES[key] || 1) do |q|
+          flags[key] = prompt.ask(pastel.bold.blue(question), default: flags[key] || DEFAULT_VALUES[key] || 1) do |q|
             q.validate do |input|
               input.to_s.match?(/\A\d+\z/) &&
                 input.to_i.between?(1, max_gpus)
@@ -841,7 +841,7 @@ module AlcesJob
           puts "\nFor partition #{selected_partition[:name]}, the rough maximum number of MPI tasks is #{max_ntasks}.\n"
           puts "\nThis is based on #{node_count} nodes multiplied by #{max_cpu_cores} CPU cores per node.\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.yellow(question), default: DEFAULT_VALUES[key]) do |q|
+          flags[key] = prompt.ask(pastel.bold.yellow(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
             q.validate do |input|
               input.to_s.match?(/\A\d+\z/) &&
                 input.to_i.between?(1, max_ntasks)
