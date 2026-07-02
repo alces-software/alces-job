@@ -247,6 +247,13 @@ This will show information about how far the job has progressed and if it has co
 
 `--live` will show a table with information that updates in real time.
 
+#### Manual Sourcing
+If you want to add tracking to a preexisting file, or you just want to manually source the functions yourself, the locations of the function definitions and the directory that the tracking information is stored can be found by running
+
+```sh
+$ alces-job tracking
+```
+
 #### History
 
 The history of tracked jobs can be accessed with
@@ -469,3 +476,8 @@ These can be combined with the `--interactive -i` flag, which will let you selec
     - `--status`
     - `--limit`
     - `--interactive -i`
+
+- `alces-job tracking [flags]`
+  - Gets the location of the tracking functions so they can be manually sourced
+  - Flags:
+    - `--pretty`
