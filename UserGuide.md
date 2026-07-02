@@ -234,7 +234,7 @@ $ alces-job profile delete --profile fast
 
 ### Inspecting a job
 
-Creating a job with the `--track` flag will allow the tool to be able to track the progress of the job script. It will automatically inject `alces_start_job` and `alces_end_job` helper functions that tell the tool when the script has started or finished.
+Creating a job with the `--track` flag will allow the tool to be able to track the progress of the job script. It will automatically inject the `alces_start_job` helper function that tells the tool when the script has started.
 If your script has multiple distinct sections, they can be wrapped with the `alces_start_stage` and `alces_end_stage` helper functions so this information can also be tracked. Make sure to set the number of stages in the `ALCES_TOTAL_STAGES` environment variable.
 
 To view the status of a tracked script run

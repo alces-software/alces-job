@@ -34,7 +34,7 @@ module AlcesJob
           end
         )
 
-        config['tracking']['path'] || @xdg.config_home.join('alces-job', 'tracking').to_s
+        config.dig('tracking', 'path') || @xdg.config_home.join('alces-job', 'tracking').to_s
       end
 
       # Profile

@@ -53,7 +53,3 @@ export ALCES_TOTAL_STAGES=0
 <%= line.ljust(80) %># Print MPI resource information
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(50) %># Launch the MPI program using Slurm's task launcher
-<% if @context.track %>
-
-<%= "alces_end_job" %>
-<% end %>

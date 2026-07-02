@@ -71,6 +71,3 @@ export ALCES_TOTAL_STAGES=0
 <%= line.ljust(50) %># Show GPU status and confirm the GPU is available
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(50) %># Run the user's command
-<% if @context.track %>
-<%= "alces_end_job" %>
-<% end %>
