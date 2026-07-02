@@ -54,15 +54,17 @@ module AlcesJob
 
         config = config.merge(options)
 
-        filtered_modules = []
-        config[:modules].each do |package|
-          if module_blacklist.include?(package)
-            @output.push(pastel.red("#{package} has been removed because it's blocked by the config"))
-          else
-            filtered_modules << package
+        if config[:modules] && !config[:modules].empty?
+          filtered_modules = []
+          config[:modules].each do |package|
+            if module_blacklist.include?(package)
+              @output.push(pastel.red("#{package} has been removed because it's blocked by the config"))
+            else
+              filtered_modules << package
+            end
           end
+          config['modules'] = filtered_modules
         end
-        config['modules'] = filtered_modules
 
         @config = config
       end
