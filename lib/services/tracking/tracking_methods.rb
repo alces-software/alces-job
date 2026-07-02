@@ -105,7 +105,7 @@ module AlcesJob
           [pastel.cyan('Output'), output],
           [pastel.cyan('Error'), error],
           [pastel.cyan('Started'), format_time(start_time)],
-          [pastel.cyan('Progress'), "#{completed_steps}/#{total_steps} stages"]
+          [pastel.cyan('Progress'), "#{completed_steps}/#{total_steps} Stages"]
         ]
 
         if verbose && total_steps.positive?
