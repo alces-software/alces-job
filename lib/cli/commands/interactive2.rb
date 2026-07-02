@@ -491,7 +491,7 @@ module AlcesJob
               partition_info.values
             end
 
-          puts Terminal::Table.new(
+          puts "#{Terminal::Table.new(
             title: 'Available Partitions',
             headings: [
               'Partition',
@@ -511,10 +511,11 @@ module AlcesJob
                 partition[:max_gpus]
               ]
             end
-          )
-          puts
+          )}\n"
 
-          flags[key] = prompt.select(pastel.bold.cyan(question), available_partitions.map { |partition| partition[:name] })
+          flags[key] = prompt.select(pastel.bold.cyan(question), available_partitions.map { |partition| partition[:name] }) do |menu|
+            menu.default(partition_info.keys.find_index(flags[:partition].to_sym) + 1) unless flags[:partition].nil?
+          end
         end
 
         # Prompts the user for the max time of the script
@@ -657,13 +658,21 @@ module AlcesJob
           puts "\nPress 'enter' with no sections to skip this stage.\n"
 
           options = {}
+          already_selected = []
+          count = 0
+
           packages_info.to_h.each_value do |package_group|
             package_group.each do |package|
-              options["#{package[:name]} - v#{package[:version]}"] = package[:full_name] || "#{package[:name]}/#{package[:version]}"
+              count += 1
+              already_selected << count if flags[:modules]&.include?("#{package[:name]}/#{package[:version]}")
+              options["#{package[:name]} - v#{package[:version]}"] =
+                package[:full_name] || "#{package[:name]}/#{package[:version]}"
             end
           end
 
-          flags[key] = prompt.multi_select(pastel.bold.yellow(question), options, filter: true)
+          flags[key] = prompt.multi_select(pastel.bold.yellow(question), options, filter: true) do |menu|
+            menu.default(*already_selected) unless already_selected.empty?
+          end
         end
 
         # Prompts the user for how many nodes they want to use for the script
