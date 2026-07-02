@@ -230,6 +230,8 @@ module AlcesJob
       def self.inject_tracking(options)
         return unless options[:track]
 
+        pastel = Pastel.new
+
         spec = Gem.loaded_specs['alces-job']
         unless spec
           warn pastel.red("\nCould not locate gem environment. Are you sure you have installed the gem?\n")
