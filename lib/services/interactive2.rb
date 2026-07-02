@@ -6,6 +6,7 @@ require 'pastel'
 require 'erb'
 require 'tty-box'
 require 'artii'
+require 'io/console'
 
 require_relative 'sys_info/sys_info'
 require_relative 'paths/paths'
@@ -913,21 +914,64 @@ module AlcesJob
             asciify_multiline(
               current,
               artii,
-              banner: if show_banner
-                        <<~BANNER
-                          'o`
-                          'ooo`
-                          `oooo`
-                           `oooo`         'o`
-                             `ooooo`  `ooooo
-                                `oooo:oooo`
-                                   `v
-                        BANNER
-                      end
+              banner: show_banner ? title_banner : nil
             )
           )
 
-          sleep(delay) unless char == "\n"
+          puts "[Press #{pastel.bold('s')} to #{pastel.bold('skip')}]"
+          break if char != "\n" && skip_animation?(delay)
+        end
+        drain_pending_input
+        system('clear')
+        puts pastel.bold.cyan(asciify_multiline(text, artii, banner: title_banner))
+      end
+
+      def title_banner
+        <<~BANNER
+          'o`
+          'ooo`
+          `oooo`
+           `oooo`         'o`
+             `ooooo`  `ooooo
+                `oooo:oooo`
+                   `v
+        BANNER
+      end
+
+      def skip_animation?(delay)
+        return sleep(delay) && false unless $stdin.tty?
+
+        deadline = Time.now + delay
+
+        $stdin.raw do
+          loop do
+            remaining = deadline - Time.now
+            break if remaining <= 0
+
+            ready = IO.select([$stdin], nil, nil, remaining) # rubocop:disable Lint/IncompatibleIoSelectWithFiberScheduler
+            break unless ready
+
+            input = $stdin.read_nonblock(16, exception: false)
+            next if input.nil? || input == :wait_readable
+
+            raise Interrupt if input.include?("\u0003")
+            return true if input.downcase.include?('s')
+          end
+        end
+
+        false
+      end
+
+      def drain_pending_input
+        return unless $stdin.tty?
+
+        $stdin.raw do
+          while $stdin.wait_readable(0)
+            input = $stdin.read_nonblock(16, exception: false)
+            break if input.nil? || input == :wait_readable
+
+            raise Interrupt if input.include?("\u0003")
+          end
         end
       end
 
