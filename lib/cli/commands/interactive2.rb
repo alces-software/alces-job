@@ -272,7 +272,6 @@ module AlcesJob
               partition_question(field, job_specific_questions[field], flags, pastel, prompt, job_type, partition_info)
               if previous_partition != flags[:partition]
                 selected_partition = get_selected_partition(flags, partition_info, pastel)
-
                 max_run_time = selected_partition[:time_limit]
                 human_readable_max_time = Services::TimeConverter.to_human_readable(max_run_time)
                 max_memory = selected_partition[:max_memory_mb].to_i
