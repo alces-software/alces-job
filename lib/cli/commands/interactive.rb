@@ -140,7 +140,10 @@ module AlcesJob
           job_specific_questions = QUESTION_BANK[job_type.to_sym]
           system('clear')
 
-          flags = Services::ConfigManager.new({}).config
+          config_manager = Services::ConfigManager.new({})
+
+          flags = config_manager.config
+          blacklisted_modules = config_manager.module_blacklist
 
           # ------------------------------------------------------------
           # Ask initial questions
@@ -163,7 +166,7 @@ module AlcesJob
             when :prepare
               prepare_question(key, question, flags, pastel, prompt)
             when :modules
-              modules_question(key, question, flags, pastel, prompt, package_info)
+              modules_question(key, question, flags, pastel, prompt, package_info, blacklisted_modules)
             when :nodes
               nodes_question(key, question, flags, pastel, prompt, partition_info)
             when :ntask
@@ -370,7 +373,7 @@ module AlcesJob
             when :job_name
               job_name_question(field, job_specific_questions[field], flags, pastel, prompt)
             when :modules
-              modules_question(field, job_specific_questions[field], flags, pastel, prompt, package_info)
+              modules_question(field, job_specific_questions[field], flags, pastel, prompt, package_info, blacklisted_modules)
             when :command
               command_question(field, job_specific_questions[field], flags, pastel, prompt)
             end
@@ -653,7 +656,8 @@ module AlcesJob
         # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
         # @param [Hash] packages_info
-        def modules_question(key, question, flags, pastel, prompt, packages_info)
+        # @param [Array] blacklisted_modules
+        def modules_question(key, question, flags, pastel, prompt, packages_info, blacklisted_modules)
           return if packages_info.empty?
 
           puts pastel.yellow.bold("\nScript Modules\n")
@@ -662,16 +666,22 @@ module AlcesJob
           puts "\nTo select a modules, scroll down and press 'space'. If a module is selected, the icon will appear green.\n"
           puts "\nPress 'enter' with no sections to skip this stage.\n"
 
-          options = {}
+          options = []
           already_selected = []
           count = 0
 
           packages_info.to_h.each_value do |package_group|
             package_group.each do |package|
               count += 1
-              already_selected << count if flags[:modules]&.include?("#{package[:name]}/#{package[:version]}")
-              options["#{package[:name]} - v#{package[:version]}"] =
-                package[:full_name] || "#{package[:name]}/#{package[:version]}"
+              already_selected << count if flags[:modules]&.include?(package[:full_name])
+              options << if blacklisted_modules&.include?(package[:full_name])
+                           {
+                             name: package[:full_name],
+                             disabled: ' - Blocked by config'
+                           }
+                         else
+                           package[:full_name]
+                         end
             end
           end
 
