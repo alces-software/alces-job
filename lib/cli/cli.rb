@@ -46,6 +46,3 @@ require_relative 'commands/job/history'
 
 # Load module commands
 require_relative 'commands/module'
-
-# Load new interactive builder command
-require_relative 'commands/new'

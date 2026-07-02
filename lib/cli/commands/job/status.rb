@@ -35,7 +35,7 @@ module AlcesJob
 
           system('clear')
 
-          while true
+          loop do
             data = Services::Tracking.load_job_status(job_id, true)
 
             table = Services::Tracking.generate_table(data, verbose)

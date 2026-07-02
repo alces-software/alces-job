@@ -12,7 +12,7 @@ require_relative '../paths/paths'
 module AlcesJob
   module Services
     module Tracking
-      def self.load_job_status(job_id, silent = false)
+      def self.load_job_status(job_id, silent: false)
         path = Services::Paths.new.user_job_dir
         pastel = Pastel.new
 
@@ -213,7 +213,7 @@ module AlcesJob
           'Select a Job'
         end
 
-        while true
+        loop do
           system('clear')
 
           puts title

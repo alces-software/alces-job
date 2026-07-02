@@ -74,6 +74,9 @@ Lint/MissingSuper:
 
 Metrics/BlockLength:
   Enabled: false
+  
+Metrics/ParameterLists:
+  Enabled: false
 
 # -------------------------
 # Linting
