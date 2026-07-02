@@ -12,8 +12,8 @@
 <%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
 <% if @context.account -%>
-  <%- line = "#SBATCH --account=#{@context.account}" -%>
-  <%= line.ljust(55) %># Account/project to charge the job to
+<%- line = "#SBATCH --account=#{@context.account}" -%>
+<%= line.ljust(55) %># Account/project to charge the job to
 <% end -%>
 <% if @context.time -%>
 <%- line = "#SBATCH --time=#{@context.time}" -%>
