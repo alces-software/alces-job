@@ -139,9 +139,7 @@ module AlcesJob
           job_specific_questions = QUESTION_BANK[job_type.to_sym]
           system('clear')
 
-          max_run_time = nil
           flags = {}
-          puts max_run_time
 
           # ------------------------------------------------------------
           # Ask initial questions
@@ -396,6 +394,9 @@ module AlcesJob
 
           generator = AlcesJob::Services::ScriptGenerator.new(flags.merge(template: job_type))
 
+          # ------------------------------------------------------------
+          # Save profile
+          # ------------------------------------------------------------
           unless valid_manual_editing
             puts
             if prompt.yes?('Would you like to save these settings to a reusable profile?', default: false)
@@ -415,6 +416,9 @@ module AlcesJob
             end
           end
 
+          # ------------------------------------------------------------
+          # Final questions and save script
+          # ------------------------------------------------------------
           exit(0) unless prompt.yes?('Write script to file?')
           exit(0) if File.exist?(generator.file_path) && !prompt.yes?("\nAn sbatch file with the name #{pastel.cyan(File.basename(generator.file_path))} already exists. Do you want to overwrite it?", default: false)
           script_to_save = final_script || generator.generate
