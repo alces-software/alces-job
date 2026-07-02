@@ -59,7 +59,7 @@ module AlcesJob
           # ------------------------------------------------------------
           # Display validation results for each validator
           # ------------------------------------------------------------
-          puts pastel.bold.cyan(
+          puts pastel.bold.magenta(
             "\nValidation Results for #{File.basename(file_path)}\n"
           )
 

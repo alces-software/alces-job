@@ -18,14 +18,28 @@ module AlcesJob
 
       def validate?
         validators = [
-          SlurmScriptValidator.new(@file_path, system_info: @system_info),
-          NewDummyValidator.new(@file_path, system_info: @system_info)
+          {
+            name: 'AlcesSlurmScriptValidator',
+            validator: SlurmScriptValidator.new(
+              @file_path,
+              system_info: @system_info
+            )
+          },
+          {
+            name: 'NewDummyValidator',
+            validator: NewDummyValidator.new(
+              @file_path,
+              system_info: @system_info
+            )
+          }
         ]
-        validators.each do |validator|
+
+        validators.each do |validator_details|
+          validator = validator_details[:validator]
           passed = validator.validate?
 
           result = {
-            name: validator.class.name.split('::').last,
+            name: validator_details[:name],
             passed: passed,
             errors: validator.errors,
             warnings: validator.warnings
@@ -35,6 +49,7 @@ module AlcesJob
           @errors.concat(validator.errors)
           @warnings.concat(validator.warnings)
         end
+
         @errors.empty?
       end
     end
