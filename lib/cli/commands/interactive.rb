@@ -731,6 +731,27 @@ module AlcesJob
           ) do |menu|
             menu.default(*already_selected) unless already_selected.empty?
           end
+
+          return if flags[key].empty?
+
+          deprecated_module = false
+
+          puts
+          packages_info.to_h.each_value do |package_group|
+            package_group.each do |package|
+              if flags[key].include?(package[:full_name]) && package[:deprecated]
+                deprecated_module = true
+                puts pastel.yellow("#{package[:full_name]} is deprecated")
+              end
+            end
+          end
+
+          return unless deprecated_module
+
+          return unless prompt.yes?("\nOne or more of your selected modules are deprecated, would you like to change your selection?", default: false)
+
+          system('clear')
+          modules_question(key, question, flags, pastel, prompt, packages_info, blacklisted_modules)
         end
 
         # Prompts the user for how many nodes they want to use for the script
