@@ -4,30 +4,30 @@
 <%- line = "#SBATCH --array=#{@context.array}" -%>
 <%= line.ljust(50) %># Run as an array job; each task gets its own SLURM_ARRAY_TASK_ID
 <% if @context.partition -%>
-  <%- line = "#SBATCH --partition=#{@context.partition}" -%>
-  <%= line.ljust(50) %># Partition/queue where the job should run
+<%- line = "#SBATCH --partition=#{@context.partition}" -%>
+<%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
 <% if @context.account -%>
   <%- line = "#SBATCH --account=#{@context.account}" -%>
   <%= line.ljust(55) %># Account/project to charge the job to
 <% end -%>
 <% if @context.time -%>
-  <%- line = "#SBATCH --time=#{@context.time}" -%>
-  <%= line.ljust(50) %># Maximum runtime before Slurm stops the job
+<%- line = "#SBATCH --time=#{@context.time}" -%>
+<%= line.ljust(50) %># Maximum runtime before Slurm stops the job
 <% end -%>
 <% if @context.mem -%>
-  <%- line = "#SBATCH --mem=#{@context.mem}" -%>
-  <%= line.ljust(50) %># Amount of memory requested for the job
+<%- line = "#SBATCH --mem=#{@context.mem}" -%>
+<%= line.ljust(50) %># Amount of memory requested for the job
 <% end -%>
 <% if @context.prepare -%>
-  <%= @prepare.directives %>
+<%= @prepare.directives %>
 <% end -%>
 <% unless Array(@context.modules).empty? -%>
-  module purge
+module purge
 <% end -%>
 <% Array(@context.modules).each do |mod| -%>
-  <%- line = "module load #{mod}" -%>
-  <%= line.ljust(50) %># Load required software/module before running
+<%- line = "module load #{mod}" -%>
+<%= line.ljust(50) %># Load required software/module before running
 <% end -%>
 <% if @context.track %>
   # Tracking Functions:
@@ -37,8 +37,8 @@
   <%= "alces_start_job" %>
 <% end %>
 <% if @context.workdir -%>
-  <%- line = "cd #{@context.workdir}" -%>
-  <%= line.ljust(50) %># Move to the working directory
+<%- line = "cd #{@context.workdir}" -%>
+<%= line.ljust(50) %># Move to the working directory
 <% end -%>
 <% if @context.local_scratch -%>
   <%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
