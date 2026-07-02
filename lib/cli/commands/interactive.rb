@@ -33,6 +33,7 @@ module AlcesJob
             mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
+            track: 'Would you like tracking methods to be injected into the script?',
             prepare: 'Would you like to prepare this job with a dedicated working directory?'
           },
 
@@ -46,6 +47,7 @@ module AlcesJob
             mem: 'How much memory will your job use? (MB)',
             command: 'What MPI command would you like to run?',
             modules: 'What modules would you like to load?',
+            track: 'Would you like tracking methods to be injected into the script?',
             prepare: 'Would you like to prepare this job with a dedicated working directory?'
           },
 
@@ -58,6 +60,7 @@ module AlcesJob
             mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
+            track: 'Would you like tracking methods to be injected into the script?',
             prepare: 'Would you like to prepare this job with a dedicated working directory?'
           },
 
@@ -70,6 +73,7 @@ module AlcesJob
             mem: 'How much memory would you like per array task? (MB)',
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
+            track: 'Would you like tracking methods to be injected into the script?',
             prepare: 'Would you like to prepare this job with a dedicated working directory?'
           }
         }.freeze
@@ -180,6 +184,8 @@ module AlcesJob
               gres_question(key, question, flags, pastel, prompt, partition_info)
             when :array
               array_question(key, question, flags, pastel, prompt)
+            when :track
+              track_question(key, question, flags, pastel, prompt)
             end
           end
 
@@ -386,6 +392,8 @@ module AlcesJob
               modules_question(field, job_specific_questions[field], flags, pastel, prompt, package_info, blacklisted_modules)
             when :command
               command_question(field, job_specific_questions[field], flags, pastel, prompt)
+            when :track
+              track_question(field, job_specific_questions[field], flags, pastel, prompt)
             end
 
             next unless valid_manual_editing && final_script
@@ -654,6 +662,20 @@ module AlcesJob
           puts "\nYour job name of #{pastel.bold(job_name)} will create a directory named #{pastel.bold.cyan("#{job_name}-<JOB_ID>")} that will store all output and error files for your job.\n\n"
 
           flags[key] = prompt.yes?(pastel.bold.magenta(question), default: flags[key] || false)
+        end
+
+        # Prompts the user for the job name
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [TTY::Prompt] prompt
+        # @param [Pastel::Delegator] pastel
+        def track_question(key, question, flags, pastel, prompt)
+          puts pastel.bold.blue("\Job Tracking\n")
+          puts "This will source and inject tracking functions into your script. \nThis step is #{pastel.underline('optional')}."
+          puts "\nWhen you run a job script with the tracking functions inside it, \nyou can see the progress of your script using #{pastel.cyan('alces-job status <JOB_ID>')}"
+          puts "If you have multiple sections in your script, you can wrap them \nwith #{pastel.cyan('alces_start_stage')} and #{pastel.cyan('alces_end_stage')} so that they can be tracked\n\n"
+          flags[key] = prompt.yes?(pastel.bold.blue(question), default: flags[key] || false)
         end
 
         # Prompts the user for which modules they want to load in their script
