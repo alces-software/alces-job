@@ -227,6 +227,8 @@ module AlcesJob
 
         system('clear')
 
+        job_name = nil
+
         result = prompt.collect do
           questions.each do |item, question|
             case item
@@ -512,9 +514,13 @@ module AlcesJob
                 q.convert :int
               end
             when :prepare
+              job_name ||= defaults[:job_name]
               puts pastel.bold.cyan("\nJob Preparation\n")
-              puts 'This creates a dedicated working directory using the slurm job name and job ID.'
-              puts "\nIt also adds output and errors to this directory.\n\n"
+              puts 'This will create a dedicated working directory for this job using the job name and job ID.'
+              puts "\nThe job output and error files will be saved inside that folder, so everything stays in one place.\n"
+              puts "This keeps your filesystem nice and tidy and prevents unintended clutter.\n\n"
+              puts pastel.bold('Example:')
+              puts "\n#{job_name} !!"
 
               key(item).yes?(pastel.bold.cyan(question), default: false)
             when :command
@@ -533,7 +539,7 @@ module AlcesJob
               puts "Use a short, clear name so you can recognise the job later.\n\n"
               puts pastel.bright_black("Example: my_python_job\n")
 
-              key(item).ask(pastel.bold.blue(question), default: defaults[item]) do |q|
+              job_name = key(item).ask(pastel.bold.blue(question), default: defaults[item]) do |q|
                 q.modify :strip
                 q.convert ->(input) { input.gsub(/\s+/, '_') }
                 q.validate do |input|
@@ -542,13 +548,24 @@ module AlcesJob
                 end
                 q.messages[:valid?] = 'Job name can only contain letters, numbers, underscores, dots, and hyphens.'
               end
+
             when :modules
               next if packages.nil? || packages.empty?
 
-              puts pastel.yellow.bold("\nScript Modules\n")
-              puts "These are the modules that will be loaded into your script so they can be used within the script.\n"
-              puts "This is optional - you can either select multiple or none at all.\n\n"
-              puts "To select a modules, scroll down and press 'space'. If a module is selected, the icon will appear green.\nPress 'enter' with no slections to skip this stage.\n\n"
+              puts pastel.yellow.bold("\nModules\n")
+
+              puts "Modules are #{pastel.bold('software packages')} that can be loaded before your job runs."
+              puts "For example, a module might make Python, R, CUDA, or another tool available inside your script.\n\n"
+
+              puts "This step is #{pastel.underline('optional')}."
+              puts "You can choose one or more modules, or skip this step if your script does not need any.\n\n"
+
+              puts 'Use the arrow keys to move through the list.'
+              puts "Press 'space' to select or deselect a module."
+              puts 'Selected modules will be highlighted with a green icon.'
+              puts "Press 'enter' when you are finished.\n\n"
+
+              puts "To skip this step, press 'enter' without selecting anything.\n\n"
               choices = {}
 
               packages.to_h.each_value do |package_group|
@@ -1116,10 +1133,20 @@ module AlcesJob
           when :modules
             next if packages.nil? || packages.empty?
 
-            puts pastel.yellow.bold("\nScript Modules\n")
-            puts "These are the modules that will be loaded into your script so they can be used within the script.\n"
-            puts "This is optional - you can either select multiple or none at all.\n\n"
-            puts "To select a modules, scroll down and press 'space'. If a module is selected, the icon will appear green.\nPress 'enter' with no slections to skip this stage.\n\n"
+            puts pastel.yellow.bold("\nModules\n")
+
+            puts "Modules are #{pastel.bold('software packages')} that can be loaded before your job runs."
+            puts "For example, a module might make Python, R, CUDA, or another tool available inside your script.\n\n"
+
+            puts "This step is #{pastel.underline('optional')}."
+            puts "You can choose one or more modules, or skip this step if your script does not need any.\n\n"
+
+            puts 'Use the arrow keys to move through the list.'
+            puts "Press 'space' to select or deselect a module."
+            puts 'Selected modules will be highlighted with a green icon.'
+            puts "Press 'enter' when you are finished.\n\n"
+
+            puts "To skip this step, press 'enter' without selecting anything.\n\n"
             choices = {}
 
             packages.to_h.each_value do |package_group|
