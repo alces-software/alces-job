@@ -91,7 +91,7 @@ module AlcesJob
         {}
       end
 
-      # Gets a list of the names
+      # Gets a list of the packages
       # @return [Hash]
       def self.package_info
         stdout, _, status = Open3.capture3("module -t spider  2>&1 | grep -E '^[^/]+/.+$'")
