@@ -35,6 +35,7 @@ module AlcesJob
         option :gres, type: :string, desc: 'Generic resources (e.g. GPUs)'
         option :array, type: :string, desc: 'Slurm array specification'
         option :dependency, type: :string, desc: 'Job dependency string'
+        option :template, type: :string, desc: 'The template you want to use'
 
         def call(**options)
           options[:modules] = AlcesJob::Services.module_extractor(ARGV)
