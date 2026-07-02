@@ -49,6 +49,3 @@ module purge
 <%= line.ljust(50) %># Print this array task's ID
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(70) %># Run the user's command
-<% if @context.track %>
-  <%= "alces_end_job" %>
-<% end %>
