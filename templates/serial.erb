@@ -49,10 +49,11 @@ alces_start_stage
 <%= line.ljust(50) %># Move to the working directory
 <% end -%>
 
+<% if @context.prepare -%>
+<%= @prepare.helper %>
+<% end -%>
 <% if @context.local_scratch -%>
 <%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
-<% elsif @context.prepare -%>
-<%= @prepare.helper %>
 <% end -%>
 <%- line = "echo \"Running serial job: #{@context.job_name}\"" -%>
 <%= line.ljust(50) %># Print which job is running

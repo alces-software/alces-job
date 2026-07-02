@@ -48,10 +48,11 @@ alces_start_stage
 <%= line.ljust(50) %># Move to the working directory
 <% end -%>
 
+<% if @context.prepare -%>
+<%= @prepare.helper %>
+<% end -%>
 <% if @context.local_scratch -%>
 <%= @local_scratch.helper(scratch_path: @context.scratch_path) %>
-<% elsif @context.prepare -%>
-<%= @prepare.helper %>
 <% end -%>
 <%- line = 'echo "Running MPI job on $SLURM_NTASKS tasks across $SLURM_NNODES nodes"' -%>
 <%= line.ljust(80) %># Print MPI resource information
