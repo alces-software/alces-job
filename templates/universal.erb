@@ -65,9 +65,11 @@ module purge
 # Tracking Functions:
 <%= "source #{@context.tracking_path}" %>
 <%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
-export ALCES_TOTAL_STAGES=0
+export ALCES_TOTAL_STAGES=1
 
-<%= "alces_start_job" %>
+alces_start_job
+
+alces_start_stage
 <% end %>
 <% if @context.workdir -%>
 <%- line = "cd #{@context.workdir}" -%>
@@ -83,3 +85,7 @@ export ALCES_TOTAL_STAGES=0
 <%= line.ljust(70) %># Print which job is running
 <%- line = @context.command || "echo 'No command provided'" -%>
 <%= line.ljust(70) %># Run the user's command
+<% if @context.track %>
+
+alces_end_stage
+<% end %>
