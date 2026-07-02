@@ -33,6 +33,7 @@ module AlcesJob
             mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
+            track: 'Would you like tracking methods to be injected into the script?',
             prepare: 'Would you like to prepare this job with a dedicated working directory?'
           },
 
@@ -46,6 +47,7 @@ module AlcesJob
             mem: 'How much memory will your job use? (MB)',
             command: 'What MPI command would you like to run?',
             modules: 'What modules would you like to load?',
+            track: 'Would you like tracking methods to be injected into the script?',
             prepare: 'Would you like to prepare this job with a dedicated working directory?'
           },
 
@@ -58,6 +60,7 @@ module AlcesJob
             mem: 'How much memory will your job use? (MB)',
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
+            track: 'Would you like tracking methods to be injected into the script?',
             prepare: 'Would you like to prepare this job with a dedicated working directory?'
           },
 
@@ -70,6 +73,7 @@ module AlcesJob
             mem: 'How much memory would you like per array task? (MB)',
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
+            track: 'Would you like tracking methods to be injected into the script?',
             prepare: 'Would you like to prepare this job with a dedicated working directory?'
           }
         }.freeze
@@ -180,6 +184,8 @@ module AlcesJob
               gres_question(key, question, flags, pastel, prompt, partition_info)
             when :array
               array_question(key, question, flags, pastel, prompt)
+            when :track
+              track_question(key, question, flags, pastel, prompt)
             end
           end
 
@@ -386,6 +392,8 @@ module AlcesJob
               modules_question(field, job_specific_questions[field], flags, pastel, prompt, package_info, blacklisted_modules)
             when :command
               command_question(field, job_specific_questions[field], flags, pastel, prompt)
+            when :track
+              track_question(field, job_specific_questions[field], flags, pastel, prompt)
             end
 
             next unless valid_manual_editing && final_script
@@ -656,6 +664,33 @@ module AlcesJob
           flags[key] = prompt.yes?(pastel.bold.magenta(question), default: flags[key] || false)
         end
 
+        # Prompts the user for the job name
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [TTY::Prompt] prompt
+        # @param [Pastel::Delegator] pastel
+        def track_question(key, question, flags, pastel, prompt)
+          puts pastel.bold.blue("\Job Tracking\n")
+          puts "This will source and inject tracking functions into your script. \nThis step is #{pastel.underline('optional')}."
+          puts "\nWhen you run a job script with the tracking functions inside it, \nyou can see the progress of your script using #{pastel.cyan('alces-job status <JOB_ID>')}"
+          puts "If you have multiple sections in your script, you can wrap them \nwith #{pastel.cyan('alces_start_stage')} and #{pastel.cyan('alces_end_stage')} so that they can be tracked\n\n"
+          return unless prompt.yes?(pastel.bold.blue(question), default: flags[key] || false)
+
+          spec = Gem.loaded_specs['alces-job']
+          unless spec
+            pastel.red("\nCould not locate gem environment. Are you sure you have installed the gem?\n")
+            prompt.keypress('[Press any key to continue, or q to quit]')
+            return
+          end
+
+          lib_path = File.join(spec.full_gem_path, 'lib/helper_functions/functions.bash')
+          job_path = Services::Paths.new.user_job_dir
+          flags[:tracking_path] = lib_path
+          flags[:job_path] = job_path
+          flags[key] = true
+        end
+
         # Prompts the user for which modules they want to load in their script
         # @param [Symbol] key
         # @param [String] question
@@ -709,6 +744,27 @@ module AlcesJob
           ) do |menu|
             menu.default(*already_selected) unless already_selected.empty?
           end
+
+          return if flags[key].empty?
+
+          deprecated_module = false
+
+          puts
+          packages_info.to_h.each_value do |package_group|
+            package_group.each do |package|
+              if flags[key].include?(package[:full_name]) && package[:deprecated]
+                deprecated_module = true
+                puts pastel.yellow("#{package[:full_name]} is deprecated")
+              end
+            end
+          end
+
+          return unless deprecated_module
+
+          return unless prompt.yes?("\nOne or more of your selected modules are deprecated, would you like to change your selection?", default: false)
+
+          system('clear')
+          modules_question(key, question, flags, pastel, prompt, packages_info, blacklisted_modules)
         end
 
         # Prompts the user for how many nodes they want to use for the script
@@ -929,25 +985,32 @@ module AlcesJob
         # @param [Pastel::Delegator] pastel
         # @param [Float] delay
         def animated_artii_title(text, artii, pastel, delay: 0.12)
+          print "\e[?25l"
           current = ''
           text.each_char do |char|
             current += char
-            system('clear')
+
             show_banner = current == text
-            puts pastel.bold.cyan(
+            frame = []
+            frame << pastel.bold.cyan(
               asciify_multiline(
                 current,
                 artii,
                 banner: show_banner ? title_banner : nil
               )
             )
+            frame << "[Press #{pastel.bold('s')} to #{pastel.bold('skip')}]"
 
-            puts "[Press #{pastel.bold('s')} to #{pastel.bold('skip')}]"
+            print "\e[H\e[2J"
+            print frame.join("\n")
+
             break if char != "\n" && skip_animation?(delay)
           end
           drain_pending_input
           system('clear')
           puts pastel.bold.cyan(asciify_multiline(text, artii, banner: title_banner))
+        ensure
+          print "\e[?25h"
         end
 
         def title_banner
