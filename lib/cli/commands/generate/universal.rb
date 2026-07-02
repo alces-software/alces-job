@@ -114,6 +114,34 @@ module AlcesJob
           spinner.update(title: 'generating SBATCH script')
           spinner.auto_spin
 
+          if !options[:modules].nil? && !options[:modules].empty?
+            packages_info = Services::SysInfo.load_info[:packages]
+
+            deprecated_module = false
+            output = []
+            packages_info.to_h.each_value do |package_group|
+              package_group.each do |package|
+                next unless options[:modules].include?(package[:full_name]) && package[:deprecated]
+
+                deprecated_module = true
+                output << pastel.yellow("#{package[:full_name]} is deprecated")
+              end
+            end
+
+            if deprecated_module
+              spinner.error('(Deprecated module)')
+
+              puts
+              output.each do |line|
+                puts line
+              end
+
+              return unless prompt.yes?("\none or more of your packages is deprecated do you want to continue?")
+            end
+
+            return if deprecated_module && !spinner.auto_spin
+          end
+
           Services::Tracking.inject_tracking(options)
 
           generator = Services::ScriptGenerator.new(options)
