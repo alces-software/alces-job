@@ -98,14 +98,14 @@ module AlcesJob
             data["stageStatus#{i}"] == 'completed'
           end
 
-        completed_steps = total_steps if end_time
+        completed_steps = total_steps if status == 'completed'
 
         rows = [
           [pastel.cyan('Job ID'), file_job_id],
           [pastel.cyan('Output'), output],
           [pastel.cyan('Error'), error],
           [pastel.cyan('Started'), format_time(start_time)],
-          [pastel.cyan('Progress'), "#{completed_steps}/#{total_steps} stages"]
+          [pastel.cyan('Progress'), "#{completed_steps}/#{total_steps} Stages"]
         ]
 
         if verbose && total_steps.positive?
@@ -122,9 +122,13 @@ module AlcesJob
             row_str = if stage_status
                         if stage_status == 'completed'
                           pastel.green("Completed after #{format_duration(stage_start_time, stage_end_time)}")
+                        elsif status == 'failed'
+                          pastel.red.bold("Failed after #{format_duration(stage_start_time, end_time)}")
                         else
                           pastel.yellow("Running for #{format_duration(stage_start_time, Time.now.to_i)}")
                         end
+                      elsif status == 'failed'
+                        pastel.bright_black('Cancelled')
                       else
                         pastel.yellow('Pending')
                       end
