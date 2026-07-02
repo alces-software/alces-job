@@ -985,25 +985,32 @@ module AlcesJob
         # @param [Pastel::Delegator] pastel
         # @param [Float] delay
         def animated_artii_title(text, artii, pastel, delay: 0.12)
+          print "\e[?25l"
           current = ''
           text.each_char do |char|
             current += char
-            system('clear')
+
             show_banner = current == text
-            puts pastel.bold.cyan(
+            frame = []
+            frame << pastel.bold.cyan(
               asciify_multiline(
                 current,
                 artii,
                 banner: show_banner ? title_banner : nil
               )
             )
+            frame << "[Press #{pastel.bold('s')} to #{pastel.bold('skip')}]"
 
-            puts "[Press #{pastel.bold('s')} to #{pastel.bold('skip')}]"
+            print "\e[H\e[2J"
+            print frame.join("\n")
+
             break if char != "\n" && skip_animation?(delay)
           end
           drain_pending_input
           system('clear')
           puts pastel.bold.cyan(asciify_multiline(text, artii, banner: title_banner))
+        ensure
+          print "\e[?25h"
         end
 
         def title_banner
