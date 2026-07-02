@@ -21,9 +21,7 @@ module AlcesJob
       # Gets the path to the users job dir
       # @return [String]
       def user_job_dir
-        config = ConfigManager.load_config
-
-        config.dig('tracking', 'path') || @xdg.config_home.join('alces-job', 'tracking').to_s
+        ConfigManager.new({}).config.dig('tracking', 'path') || @xdg.config_home.join('alces-job', 'tracking').to_s
       end
 
       # Profile

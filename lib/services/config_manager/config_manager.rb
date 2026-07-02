@@ -16,8 +16,20 @@ module AlcesJob
       # @return [Hash]
       def initialize(options)
         pastel = Pastel.new
+        paths = Services::Paths.new
 
-        config = load_config
+        config = AlcesJob::Services.deep_merge(
+          begin
+            YAML.load_file(paths.user_config_path) || {}
+          rescue Errno::ENOENT
+            {}
+          end,
+          begin
+            YAML.load_file(paths.admin_config_path) || {}
+          rescue Errno::ENOENT
+            {}
+          end
+        )
 
         @output = []
 
@@ -55,23 +67,6 @@ module AlcesJob
         end
 
         @config = config
-      end
-
-      def self.load_config
-        paths = Services::Paths.new
-
-        AlcesJob::Services.deep_merge(
-          begin
-            YAML.load_file(paths.user_config_path) || {}
-          rescue Errno::ENOENT
-            {}
-          end,
-          begin
-            YAML.load_file(paths.admin_config_path) || {}
-          rescue Errno::ENOENT
-            {}
-          end
-        )
       end
     end
   end
