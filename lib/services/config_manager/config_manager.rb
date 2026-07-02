@@ -27,6 +27,8 @@ module AlcesJob
           return
         end
 
+        @module_blacklist = config['module_blacklist']
+
         unless options.empty?
           options.each_key do |key|
             key_str = key.to_s
@@ -38,9 +40,21 @@ module AlcesJob
           [key.to_sym, value['default']]
         end
 
-        @module_blacklist = config['module_blacklist']
+        config = config.merge(options)
 
-        @config = config.merge(options)
+        if config[:modules] && !config[:modules].empty?
+          filtered_modules = []
+          config[:modules].each do |package|
+            if module_blacklist.include?(package)
+              @output.push(pastel.red("#{package} has been removed because it's blocked by the config"))
+            else
+              filtered_modules << package
+            end
+          end
+          config['modules'] = filtered_modules
+        end
+
+        @config = config
       end
 
       def self.load_config
