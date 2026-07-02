@@ -8,8 +8,8 @@
 <%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
 <% if @context.account -%>
-  <%- line = "#SBATCH --account=#{@context.account}" -%>
-  <%= line.ljust(55) %># Account/project to charge the job to
+<%- line = "#SBATCH --account=#{@context.account}" -%>
+<%= line.ljust(55) %># Account/project to charge the job to
 <% end -%>
 <% if @context.time -%>
 <%- line = "#SBATCH --time=#{@context.time}" -%>
@@ -30,11 +30,11 @@ module purge
 <%= line.ljust(50) %># Load required software/module before running
 <% end -%>
 <% if @context.track %>
-  # Tracking Functions:
-  <%= "source #{@context.tracking_path}" %>
-  <%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
-  export ALCES_TOTAL_STAGES=0
-  <%= "alces_start_job" %>
+# Tracking Functions:
+<%= "source #{@context.tracking_path}" %>
+<%= "export ALCES_HOMEPATH=#{@context.job_path}" %>
+export ALCES_TOTAL_STAGES=0
+<%= "alces_start_job" %>
 <% end %>
 <% if @context.workdir -%>
 <%- line = "cd #{@context.workdir}" -%>
