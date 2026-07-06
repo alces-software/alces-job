@@ -671,11 +671,11 @@ module AlcesJob
         # @param [TTY::Prompt] prompt
         # @param [Pastel::Delegator] pastel
         def track_question(key, question, flags, pastel, prompt)
-          puts pastel.bold.blue("\Job Tracking\n")
+          puts pastel.bold.green("\Job Tracking\n")
           puts "This will source and inject tracking functions into your script. \nThis step is #{pastel.underline('optional')}."
-          puts "\nWhen you run a job script with the tracking functions inside it, \nyou can see the progress of your script using #{pastel.cyan('alces-job status <JOB_ID>')}"
-          puts "If you have multiple sections in your script, you can wrap them \nwith #{pastel.cyan('alces_start_stage')} and #{pastel.cyan('alces_end_stage')} so that they can be tracked\n\n"
-          return unless prompt.yes?(pastel.bold.blue(question), default: flags[key] || false)
+          puts "\nWhen you run a job script with the tracking functions inside it, \nyou can see the progress of your script using #{pastel.bold.cyan('alces-job status <JOB_ID>')}"
+          puts "\nIf you have multiple sections in your script, you can wrap them \nwith #{pastel.cyan('alces_start_stage')} and #{pastel.cyan('alces_end_stage')} so that they can be tracked.\n\n"
+          return unless prompt.yes?(pastel.bold.green(question), default: flags[key] || false)
 
           spec = Gem.loaded_specs['alces-job']
           unless spec
