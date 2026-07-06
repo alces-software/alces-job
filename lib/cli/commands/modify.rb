@@ -10,6 +10,9 @@ require 'diffy'
 
 require_relative '../../services/validators/slurm_script_validator'
 require_relative '../../services/module_extractor/module_extractor'
+require_relative '../../services/prepare/prepare'
+require_relative '../../services/local_scratch/local_scratch'
+require_relative '../../services/editor/edit'
 
 # Load subcommand
 require_relative 'modify/remove'
@@ -33,6 +36,7 @@ module AlcesJob
         option :command, type: :string, desc: 'Command to run in the job script'
         option :account, type: :string, aliases: ['-A'], desc: 'Charge the job to the specified Slurm account'
         option :gres, type: :string, desc: 'Specifies generic resources such as GPUs, e.g. gpu:1'
+        option :output, type: :string, desc: 'Write standard output to this file'
         option :error, type: :string, aliases: ['-e'], desc: 'Write standard error to this file'
         option :mail_user, type: :string, desc: 'Email address for job notifications'
         option :mail_type, type: :string, desc: 'When to send email notifications (for example: BEGIN, END, or FAIL)'
@@ -42,6 +46,11 @@ module AlcesJob
         option :workdir, type: :string, desc: 'Run the job from the specified working directory'
         option :output_file, aliases: ['-o'], type: :string, desc: 'Writes the modified script to this output filename'
         option :submit, type: :boolean, default: false, desc: 'Submit the generated job script to Slurm automatically'
+        option :prepare, type: :boolean, default: false, desc: 'Prepare - CHANGE THIS'
+        option :prepare_disable, type: :boolean, default: false, desc: 'Unprepare - CHANGEE THIS'
+        option :local_scratch, type: :boolean, default: false, desc: 'Enable local scratch setup'
+        option :local_scratch_disable, type: :boolean, default: false, desc: 'Disable local scratch setup'
+        option :scratch_path, type: :string, desc: 'Set the local scratch base path'
         option :yes, type: :boolean, default: false, desc: 'Skip the confirmation prompt when submitting'
 
         def initialize
@@ -55,6 +64,7 @@ module AlcesJob
             partition: 'partition',
             account: 'account',
             gres: 'gres',
+            output: 'output',
             error: 'error',
             mail_user: 'mail-user',
             mail_type: 'mail-type',
@@ -141,21 +151,25 @@ module AlcesJob
           edited_script = []
           found_options = []
 
+          edited_sbatch = []
+
           lines.each do |line|
             if line.start_with?('#!')
-              edited_script << line
-              edited_script << ''
+              edited_sbatch << line
+              edited_sbatch << ''
             elsif line.start_with?('#SBATCH')
               match = line.match(/\A#SBATCH\s+(?<option>\S+)(?:\s+(?<spaced_value>.*))?\z/)
 
               unless match
-                edited_script << line
+                edited_sbatch << line
                 next
               end
 
               option = match[:option]
               spaced_value = match[:spaced_value]
               inline_comment = line[/\s+(#.*)\z/, 1]
+
+              next if options[:prepare] && line.match?(/\A#SBATCH\s+--(?:output|error)(?:=|\s+)/)
 
               option_key = nil
 
@@ -186,8 +200,10 @@ module AlcesJob
                 (compact_value || spaced_value).to_s.sub(/\s+#.*\z/, '').strip
               end
 
+              next if options[:prepare] && %i[output error].include?(option_key)
+
               unless option_key
-                edited_script << line
+                edited_sbatch << line
                 next
               end
 
@@ -202,11 +218,11 @@ module AlcesJob
                 directive = "#SBATCH --#{@sbatch_options.fetch(option_key)}=#{new_value}"
 
               else
-                edited_script << line
+                edited_sbatch << line
                 next
 
               end
-              edited_script << format_directive(directive, inline_comment)
+              edited_sbatch << format_directive(directive, inline_comment)
 
             end
           end
@@ -218,13 +234,52 @@ module AlcesJob
             next if value.respond_to?(:empty?) && value.empty?
 
             sbatch_name = @sbatch_options[key]
-            edited_script << "#SBATCH --#{sbatch_name}=#{value}"
+            edited_sbatch << "#SBATCH --#{sbatch_name}=#{value}"
           end
 
           job_name = options[:job_name] || find_existing_job_name(lines) || 'slurm_job'
           edited_script << ''
 
-          existing_cd_line = lines.find { |line| line.strip.start_with?('cd ') }
+          # Find exisitng prepare lines
+          prepare_lines = []
+          inside_prepare = false
+
+          lines.each do |line|
+            stripped = line.strip
+
+            inside_prepare = true if stripped == 'alces_prepare_job() {'
+
+            prepare_lines << line if inside_prepare
+
+            if inside_prepare && stripped == 'alces_prepare_job'
+              inside_prepare = false
+              break
+            end
+          end
+
+          existing_prepare = prepare_lines.any?
+
+          # Find existing local scratch lines
+          local_scratch_lines = []
+          inside_local_scratch = false
+
+          lines.each do |line|
+            stripped = line.strip
+
+            inside_local_scratch = true if stripped == 'alces_setup_local_scratch() {'
+
+            local_scratch_lines << line if inside_local_scratch
+
+            if inside_local_scratch && stripped == 'trap alces_copy_results_back EXIT'
+              inside_local_scratch = false
+              break
+            end
+          end
+
+          existing_local_scratch = local_scratch_lines.any?
+          managed_setup_lines = prepare_lines + local_scratch_lines
+
+          existing_cd_line = lines.find { |line| line.strip.start_with?('cd ') && !managed_setup_lines.include?(line) }
           existing_modules = lines.select { |line| line.strip.start_with?('module load ') }.map { |line| line.strip.sub(/^module load\s+/, '') }
 
           if options[:workdir] && !options[:workdir].to_s.empty?
@@ -253,6 +308,38 @@ module AlcesJob
             used_modules << m
           end
 
+          if options[:prepare]
+            edited_script << ''
+            Services::Prepare.directives.lines(chomp: true).reject do |line|
+              (options[:output] && line.start_with?('#SBATCH --output')) ||
+                (options[:error] && line.start_with?('#SBATCH --error'))
+            end.each do |line|
+              edited_sbatch << line
+            end
+            edited_script << Services::Prepare.helper
+          elsif options[:prepare_disable] && existing_prepare
+            edited_script << ''
+          elsif existing_prepare
+            edited_script << ''
+            prepare_lines.each do |line|
+              edited_script << line
+            end
+          end
+
+          if options[:local_scratch]
+            edited_script << ''
+            Services::LocalScratch.helper(scratch_path: options[:scratch_path]).lines(chomp: true).each do |line|
+              edited_script << line
+            end
+          elsif options[:local_scratch_disable] && existing_local_scratch
+            edited_script << ''
+          elsif existing_local_scratch
+            edited_script << ''
+            local_scratch_lines.each do |line|
+              edited_script << line
+            end
+          end
+
           job_name = job_name.split.first if job_name
 
           edited_script << ''
@@ -263,6 +350,7 @@ module AlcesJob
             lines.each do |line|
               next unless line.strip.start_with?('#')
               next if line.start_with?('#!', '#SBATCH')
+              next if managed_setup_lines.include?(line)
 
               edited_script << line
             end
@@ -271,6 +359,8 @@ module AlcesJob
             lines.each do |line|
               next if line.start_with?('#!')
               next if line.start_with?('#SBATCH')
+              next if managed_setup_lines.include?(line)
+              next if line.strip == 'module purge'
               next if line.strip.start_with?('module load ')
               next if line.strip.start_with?('cd ')
               next if line.strip.match?(/\Aecho\s+["']Running job\b/)
@@ -282,6 +372,8 @@ module AlcesJob
 
           spinner.success(pastel.green('(Successful)'))
 
+          edited_script = edited_sbatch + edited_script
+
           # ------------------------------------------------------------
           # Display changes
           # ------------------------------------------------------------
@@ -289,44 +381,7 @@ module AlcesJob
 
           modified_content = "#{edited_script.join("\n")}\n"
 
-          diff = Diffy::Diff.new(
-            remove_empty_lines(old_content),
-            remove_empty_lines(modified_content),
-            context: 0
-          ).to_s(:color)
-
-          box_width = old_content.lines.map { |line| line.chomp.length }.max + 4
-
-          highlighted_old_content, highlighted_modified_content =
-            highlighted_scripts(old_content, modified_content, pastel)
-
-          puts TTY::Box.frame(
-            highlighted_old_content,
-            title: {
-              top_center: pastel.bold.red(' ORIGINAL SCRIPT ')
-            },
-            padding: 1,
-            border: :thick,
-            width: box_width
-          )
-          puts
-          puts TTY::Box.frame(
-            highlighted_modified_content,
-            title: {
-              top_center: pastel.bold.green(' MODIFIED SCRIPT ')
-            },
-            padding: 1,
-            border: :thick,
-            width: box_width
-          )
-
-          puts pastel.bold("\nChanges made:")
-          puts "#{pastel.red('-')} original line"
-          puts "#{pastel.green('+')} modified/new line"
-          puts
-
-          puts diff
-          puts
+          AlcesJob::Services::Editor.show_edited_script_preview(old_content, modified_content, pastel)
 
           unless TTY::Prompt.new.yes?("\nWould you like to save this script?", default: false)
             puts 'Aborting...'
