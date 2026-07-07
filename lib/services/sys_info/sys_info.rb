@@ -212,11 +212,9 @@ module AlcesJob
         {}
       end
 
-      private
-
       # Detects what's being used to manager modules
       # @return [Symbol]
-      def detect_module_manager
+      def self.detect_module_manager
         return :lmod if ENV['LMOD_VERSION']
 
         version = `bash -lc 'module --version 2>&1'`
