@@ -81,7 +81,6 @@ module AlcesJob
         @xdg.config_home.join('alces-job', 'plugins', 'validators').to_s
       end
 
-
       # Gets the path to the admin validators plugin directory
       # @return [String]
       def admin_validator_plugin_dir

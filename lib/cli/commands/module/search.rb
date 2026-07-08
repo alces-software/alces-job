@@ -18,6 +18,7 @@ module AlcesJob
         option :show_description, type: :boolean, aliases: ['-d'], default: false, desc: 'Displays the description for the package'
         option :show_full_name, type: :boolean, aliases: ['-f'], default: false, desc: 'Shows the modules full name which is used to load it'
         option :hide_categories, type: :boolean, aliases: ['-h'], default: false, desc: 'Hides the category name while displaying modules'
+        option :show_config_blocked, type: :boolean, aliases: ['-b'], default: false, desc: 'Shows the packages that are blocked by the config file'
 
         def call(**options)
           pastel = Pastel.new
@@ -33,7 +34,8 @@ module AlcesJob
           # ------------------------------------------------------------
           # Get packages
           # ------------------------------------------------------------
-          packages = AlcesJob::Services::SysInfo.package_info
+          packages = AlcesJob::Services::SysInfo.load_info[:packages]
+          package_blacklist = Services::ConfigManager.new({}).module_blacklist
 
           if packages.empty?
             puts pastel.red.bold("\nNo packages available to search through\n")
@@ -76,7 +78,10 @@ module AlcesJob
           packages.each do |category_name, packages|
             puts pastel.green.bold("\n#{category_name}:") unless options[:hide_categories]
             packages.each do |package|
+              next if !options[:show_config_blocked] && package_blacklist.include?(package[:full_name])
+
               output = "#{package[:name]} - v#{package[:version]}"
+              output <<= " - #{pastel.red('Blocked by config')}" if package_blacklist.include?(package[:full_name])
               output <<= " - #{package[:full_name]}" if options[:show_full_name]
               output <<= " - #{pastel.red('DEPRECATED')}" if package[:deprecated]
               output <<= pastel.yellow("\n#{package[:description]}") if options[:show_description]

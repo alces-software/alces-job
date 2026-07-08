@@ -92,7 +92,6 @@ module AlcesJob
 
         def call(*)
           pastel = Pastel.new
-          artii = Artii::Base.new(font: 'standard')
           prompt = TTY::Prompt.new
 
           # ------------------------------------------------------------
@@ -110,8 +109,8 @@ module AlcesJob
           # ------------------------------------------------------------
           # Welcome message
           # ------------------------------------------------------------
-          puts('clear')
-          animated_artii_title("ALCES\nJOB\nINTERACTIVE", artii, pastel)
+          system('clear')
+          animation(pastel)
           puts pastel.bold.cyan("Welcome to the interactive wizard!\n")
           prompt.keypress("[Press #{pastel.bold('enter')} to continue] ")
           system('clear')
@@ -945,121 +944,100 @@ module AlcesJob
         # ------------------------------------------------------------
         # Ascii art functions
         # ------------------------------------------------------------
-        # Handles side by side for the ascii art
-        # @param [Hash] left
-        # @param [Hash] right
-        # @param [Integer] gap
-        def side_by_side(left, right, gap: 4)
-          left_lines = left.lines.map(&:chomp)
-          right_lines = right.lines.map(&:chomp)
-          height = [left_lines.length, right_lines.length].max
-          left_width = left_lines.map(&:length).max || 0
-          (0...height).map do |i|
-            left_part = left_lines[i] || ''
-            right_part = right_lines[i] || ''
-            left_part.ljust(left_width + gap) + right_part
-          end.join("\n")
-        end
-
-        # Handles multi line ascii art
-        # @param [String] text
-        # @param [Artii::Base] artii
-        # @param [String] banner
-        def asciify_multiline(text, artii, banner: nil)
-          lines = text.split("\n", -1)
-          art_lines = lines.map.with_index do |line, index|
-            art = line.empty? ? '' : artii.asciify(line)
-            if banner && index == lines.length - 1
-              side_by_side(art, banner, gap: 4)
-            else
-              art
-            end
-          end
-
-          art_lines.join("\n")
-        end
-
-        # Calls the artii animated title
-        # @param [String] text
-        # @param [Artii::Base] artii
+        # Does the welcome logo animation
         # @param [Pastel::Delegator] pastel
-        # @param [Float] delay
-        def animated_artii_title(text, artii, pastel, delay: 0.12)
-          print "\e[?25l"
-          current = ''
-          text.each_char do |char|
-            current += char
+        def animation(pastel)
+          skipped = false
 
-            show_banner = current == text
-            frame = []
-            frame << pastel.bold.cyan(
-              asciify_multiline(
-                current,
-                artii,
-                banner: show_banner ? title_banner : nil
-              )
-            )
-            frame << "[Press #{pastel.bold('s')} to #{pastel.bold('skip')}]"
+          logo = <<~LOGO
+                  -=++++#{'                                                         '}
+               :+++++++.#{'                                                         '}
+             :++++++++:#{'                                                          '}
+            :++++++++=#{'                                                           '}
+            +++++++++:#{'                                                           '}
+            +++++++++   .+++=#{'                                                    '}
+            +++++++++- -++++:#{'                                                    '}
+            -+++++++++++++++#{'                                                     '}
+            -+++++++++++++++     -#{'                                               '}
+             =++++++++++++++:  =++-#{'                                              '}
+              :++++++++++++++-++++:#{'                                              '}
+                =++++++++++++++++=#{'                                               '}
+                 :++++++++++++++++=                                      -+#{'      '}
+                   -=++++++++++++++-                              .     -+++#{'     '}
+                     :++++++++++++++=                     --     =+-    +++++#{'    '}
+                        -+++++++++++++-                  +++.   ++++   ++++++:#{'   '}
+                           =++++++++++++-             --++++.-=+++++ -+++++++:#{'   '}
+                              -++++++++++++-+++==++++++++++++++++++++++++++++#{'    '}
+                                 =++++++++++++++++++++++++++++++++++++++++++:#{'    '}
+                                   -++++++++++++++++++++++++++++++++++++++-#{'      '}
+                                     +++++++++++++=-+++++++++++++++++++=:#{'        '}
+                                        --+++++++++=        +----:=#{'              '}
+                                             .=+++++#{'                             '}
+                                                 -+-#{'                             '}
+          LOGO
 
-            print "\e[H\e[2J"
-            print frame.join("\n")
+          puts
+          logo.each_line do |line|
+            if interrupted?
+              $stdin.getch
+              skipped = true
+              system('clear')
+              break
+            end
 
-            break if char != "\n" && skip_animation?(delay)
+            sleep(0.08)
+            puts pastel.bold.cyan(line.rstrip)
           end
-          drain_pending_input
+
+          return if skipped
+
+          sleep(1)
           system('clear')
-          puts pastel.bold.cyan(asciify_multiline(text, artii, banner: title_banner))
-        ensure
-          print "\e[?25h"
-        end
 
-        def title_banner
-          <<~BANNER
-            'o`
-            'ooo`
-            `oooo`
-             `oooo`         'o`
-               `ooooo`  `ooooo
-                  `oooo:oooo`
-                     `v
+          banner = <<~BANNER
+             █████╗ ██╗      ██████╗███████╗███████╗
+            ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝
+            ███████║██║     ██║     █████╗  ███████╗
+            ██╔══██║██║     ██║     ██╔══╝  ╚════██║
+            ██║  ██║███████╗╚██████╗███████╗███████║
+            ╚═╝  ╚═╝╚══════╝ ╚═════╝╚══════╝╚══════╝
+
+                 ██╗ ██████╗ ██████╗
+                 ██║██╔═══██╗██╔══██╗
+                 ██║██║   ██║██████╔╝
+            ██   ██║██║   ██║██╔══██╗
+            ╚█████╔╝╚██████╔╝██████╔╝
+             ╚════╝  ╚═════╝ ╚═════╝
+
+            ██╗███╗   ██╗████████╗███████╗██████╗  █████╗  ██████╗████████╗██╗██╗   ██╗███████╗
+            ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝██║██║   ██║██╔════╝
+            ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝███████║██║        ██║   ██║██║   ██║█████╗
+            ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗██╔══██║██║        ██║   ██║╚██╗ ██╔╝██╔══╝
+            ██║██║ ╚████║   ██║   ███████╗██║  ██║██║  ██║╚██████╗   ██║   ██║ ╚████╔╝ ███████╗
+            ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝   ╚═╝   ╚═╝  ╚═══╝  ╚══════╝
           BANNER
-        end
 
-        def skip_animation?(delay)
-          return sleep(delay) && false unless $stdin.tty?
-
-          deadline = Time.now + delay
-
-          $stdin.raw do
-            loop do
-              remaining = deadline - Time.now
-              break if remaining <= 0
-
-              ready = IO.select([$stdin], nil, nil, remaining) # rubocop:disable Lint/IncompatibleIoSelectWithFiberScheduler
-              break unless ready
-
-              input = $stdin.read_nonblock(16, exception: false)
-              next if input.nil? || input == :wait_readable
-
-              raise Interrupt if input.include?("\u0003")
-              return true if input.downcase.include?('s')
+          puts
+          banner.each_line do |line|
+            if interrupted?
+              $stdin.getch
+              skipped = true
+              system('clear')
+              break
             end
+
+            sleep(0.08)
+            puts pastel.bold.cyan(line.rstrip)
           end
 
-          false
+          return if skipped
+
+          sleep(0.2)
+          puts
         end
 
-        def drain_pending_input
-          return unless $stdin.tty?
-
-          $stdin.raw do
-            while $stdin.wait_readable(0)
-              input = $stdin.read_nonblock(16, exception: false)
-              break if input.nil? || input == :wait_readable
-
-              raise Interrupt if input.include?("\u0003")
-            end
-          end
+        def interrupted?
+          $stdin.wait_readable(0)
         end
 
         # ------------------------------------------------------------

@@ -94,60 +94,137 @@ module AlcesJob
       # Gets a list of the packages
       # @return [Hash]
       def self.package_info
-        stdout, _, status = Open3.capture3("module -t spider  2>&1 | grep -E '^[^/]+/.+$'")
-
-        return {} unless status.success?
-
         parsed = {}
 
-        stdout.lines.map(&:strip).reject(&:empty?).each do |line|
-          next if line.end_with?('/')
-          next if line.downcase == 'null'
+        case detect_module_manager
+        when :lmod
+          # Is recursive and will handle modules within modules
+          stdout, _, status = Open3.capture3("module -t spider  2>&1 | grep -E '^[^/]+/.+$'")
 
-          parts = line.split('/')
-          name = parts.first
-          version = if parts[2].to_s.downcase == 'none-none'
-                      parts[1]
-                    else
-                      parts[1, 2].join('/')
-                    end
+          return parsed unless status.success?
 
-          deprecated =
-            line.downcase.include?('deprecated') ||
-            line.downcase.include?('legacy') ||
-            line.downcase.include?('old')
+          stdout.lines.map(&:strip).reject(&:empty?).each do |line|
+            next if line.end_with?('/')
+            next if line.downcase == 'null'
 
-          mod_out, _, status = Open3.capture3("bash -lc \"module show #{line} 2>&1\"")
+            parts = line.split('/')
+            name = parts.first
+            version = if parts[2].to_s.downcase == 'none-none'
+                        parts[1]
+                      else
+                        parts[1, 2].join('/')
+                      end
 
-          description = nil
-          category = nil
+            deprecated =
+              line.downcase.include?('deprecated') ||
+              line.downcase.include?('legacy') ||
+              line.downcase.include?('old')
 
-          if status.success?
-            description = mod_out[/whatis\("description:\s*(.*?)"\)/i, 1] ||
-                          mod_out[/description:\s*(.*)/i, 1]
-            description = description.strip
+            mod_out, _, status = Open3.capture3("bash -lc \"module show #{line} 2>&1\"")
 
-            category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
-            category = category.strip
+            description = nil
+            category = nil
+
+            if status.success?
+              description = mod_out[/whatis\("description:\s*(.*?)"\)/i, 1] ||
+                            mod_out[/description:\s*(.*)/i, 1]
+              description = description&.strip
+
+              category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
+              category = category&.strip
+            end
+
+            description ||= 'No description available'
+            category ||= line.split('/').first
+
+            parsed[category] ||= []
+
+            next unless exists.empty?
+
+            parsed[category] << {
+              full_name: line,
+              name: name,
+              version: version,
+              description: description,
+              deprecated: deprecated
+            }
           end
+        when :environment_modules
+          # Isn't recursive at the moment and cant get modules within modules
+          stdout, _, status = Open3.capture3("module -t avail  2>&1 | grep -E '^[^/]+/.+$'")
 
-          description ||= 'No description available'
-          category ||= line.split('/').first
+          return parsed unless status.success?
 
-          parsed[category] ||= []
+          stdout.lines.map(&:strip).reject(&:empty?).each do |line|
+            next if line.end_with?('/')
+            next if line.downcase == 'null'
 
-          parsed[category] << {
-            full_name: line,
-            name: name,
-            version: version,
-            description: description,
-            deprecated: deprecated
-          }
+            parts = line.split('/')
+            name = parts.first
+            version = if parts[2].to_s.downcase == 'none-none'
+                        parts[1]
+                      else
+                        parts[1, 2].join('/')
+                      end
+
+            deprecated =
+              line.downcase.include?('deprecated') ||
+              line.downcase.include?('legacy') ||
+              line.downcase.include?('old')
+
+            mod_out, _, status = Open3.capture3("bash -lc \"module show #{line} 2>&1\"")
+
+            description = nil
+            category = nil
+
+            if status.success?
+              description = mod_out[/whatis\("description:\s*(.*?)"\)/i, 1] ||
+                            mod_out[/description:\s*(.*)/i, 1]
+              description = description&.strip
+
+              category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
+              category = category&.strip
+            end
+
+            description ||= 'No description available'
+            category ||= line.split('/').first
+
+            parsed[category] ||= []
+
+            exists = parsed[category].filter do |filter|
+              filter['full_name'] == line
+            end
+
+            next unless exists.empty?
+
+            parsed[category] << {
+              full_name: line,
+              name: name,
+              version: version,
+              description: description,
+              deprecated: deprecated
+            }
+          end
+        else
+          puts 'neither'
         end
 
         parsed
       rescue Errno::ENOENT
         {}
+      end
+
+      # Detects what's being used to manager modules
+      # @return [Symbol]
+      def self.detect_module_manager
+        return :lmod if ENV['LMOD_VERSION']
+
+        version = `bash -lc 'module --version 2>&1'`
+
+        return :lmod if version.match?(/Lmod/i)
+        return :environment_modules if version.match?(/Modules/i)
+
+        :none
       end
     end
   end
