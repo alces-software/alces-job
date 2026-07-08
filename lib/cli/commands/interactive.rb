@@ -1037,7 +1037,7 @@ module AlcesJob
         end
 
         def interrupted?
-          IO.select([$stdin], nil, nil, 0)
+          $stdin.wait_readable(0)
         end
 
         # ------------------------------------------------------------
