@@ -114,7 +114,7 @@ $ alces-job generate universal \
 ```
 
 ### Interactive Wizard
-The cli tool comes with an interactive wizard that will take you through the steps of creating an sbatch job script. This is reccommended for new users or anyone not experienced with SLURM.
+The cli tool comes with an interactive wizard that will take you through the steps of creating an sbatch job script. This is recommended for new users or anyone not experienced with SLURM.
 
 ```sh
 $ alces-job -i
@@ -248,7 +248,7 @@ This will show information about how far the job has progressed and if it has co
 `--live` will show a table with information that updates in real time.
 
 #### Manual Sourcing
-If you want to add tracking to a preexisting file, or you just want to manually source the functions yourself, the locations of the function definitions and the directory that the tracking information is stored can be found by running
+If you want to add tracking to a pre-existing file, or you just want to manually source the functions yourself, the locations of the function definitions and the directory that the tracking information is stored can be found by running
 
 ```sh
 $ alces-job tracking
@@ -372,7 +372,7 @@ These can be combined with the `--interactive -i` flag, which will let you selec
     - `--error`, `-e` — stores a default error file path.
     - `--mail_user` — stores a default notification email.
     - `--mail_type` — stores a default mail notification type.
-    - `--submit` — stores the default submit behavior.
+    - `--submit` — stores the default submit behaviors.
     - `--editor` — stores a default editor for manual script editing.
 
 - `alces-job template list`

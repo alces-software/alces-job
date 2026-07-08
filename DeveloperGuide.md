@@ -26,7 +26,7 @@ cd alces-job
   - `cli/commands/` — command definitions for generate, interactive, profile, config, sysinfo, template, validate, modify, version.
   - `services/` — business logic for script generation, interactive wizard, config conversion, validation, and system info.
   - `version.rb` — gem version constant.
-- `spec/` — RSpec tests covering CLI behavior, generators, validators, and helpers.
+- `spec/` — RSpec tests covering CLI behaviors, generators, validators, and helpers.
 - `templates/` — built-in ERB templates for supported Slurm job types.
 - `.github/workflows/` — GitHub Actions workflows for CI and release automation.
 - `alces-job.gemspec` — gem metadata and dependencies.

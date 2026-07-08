@@ -30,7 +30,7 @@ This will create a config file at `.config/alces-job/config.yaml` if run as a us
 
 The admin config file is a plain YAML map of default CLI options.
 
-It is loaded by generate commands when `--site_config` is enabled (default behavior).
+It is loaded by generate commands when `--site_config` is enabled (default behaviors).
 
 
 Typical admin defaults include:
@@ -54,17 +54,22 @@ Typical admin defaults include:
 - mail_user
 - mail_type
 - submit
+- modules
 
 Example admin config file:
 
 ```yaml
-values:
-   partition:
-      default: gpu1
-      warn: false
-   mem:
-      default: 4G
-      warn: true
+flags:
+  partition:
+    default: gpu1
+    warn: false
+  mem:
+    default: 4G
+    warn: true
+module_blacklist:
+  - Bison/3.8.2-GCCcore-15.2.0
+  - GCC/15.2.0
+  - GCCcore/15.2.0
 ```
 
 ### How admin defaults are applied
@@ -175,4 +180,4 @@ end
 
 - Installing as root ensures the CLI and admin templates are available system-wide.
 - Regular users should not need elevated privileges to generate scripts or use their own templates.
-- Keep admin templates and config under `/etc/alces-job/` for consistent site behavior.
+- Keep admin templates and config under `/etc/alces-job/` for consistent site behaviors.
