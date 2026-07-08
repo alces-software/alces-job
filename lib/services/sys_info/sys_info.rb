@@ -98,6 +98,7 @@ module AlcesJob
 
         case detect_module_manager
         when :lmod
+          # Is recursive and will handle modules within modules
           stdout, _, status = Open3.capture3("module -t spider  2>&1 | grep -E '^[^/]+/.+$'")
 
           return parsed unless status.success?
@@ -149,6 +150,7 @@ module AlcesJob
             }
           end
         when :environment_modules
+          # Isn't recursive at the moment and cant get modules within modules
           stdout, _, status = Open3.capture3("module -t avail  2>&1 | grep -E '^[^/]+/.+$'")
 
           return parsed unless status.success?
