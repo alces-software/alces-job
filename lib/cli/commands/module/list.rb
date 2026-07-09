@@ -15,7 +15,7 @@ module AlcesJob
 
         option :show_description, type: :boolean, aliases: ['-d'], default: false, desc: 'Displays the description for the package'
         option :show_full_name, type: :boolean, aliases: ['-f'], default: false, desc: 'Shows the modules full name which is used to load it'
-        option :hide_categories, type: :boolean, aliases: ['-h'], default: false, desc: 'Hides the category name while displaying modules'
+        option :hide_categories, type: :boolean, aliases: ['-k'], default: false, desc: 'Hides the category name while displaying modules'
         option :show_config_blocked, type: :boolean, aliases: ['-b'], default: false, desc: 'Shows the packages that are blocked by the config file'
 
         def call(**options)
