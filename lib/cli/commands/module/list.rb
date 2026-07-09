@@ -41,7 +41,7 @@ module AlcesJob
               next if !options[:show_config_blocked] && package_blacklist.include?(package[:full_name])
 
               output = package[:name]
-              output <<= " - v#{package[:version]}" unless package[:version].empty?
+              output <<= " - v#{package[:version]}" if package[:version] && !package[:version]&.empty?
               output <<= " - #{pastel.red('Blocked by config')}" if package_blacklist.include?(package[:full_name])
               output <<= " - #{package[:full_name]}" if options[:show_full_name]
               output <<= " - #{pastel.red('DEPRECATED')}" if package[:deprecated]
