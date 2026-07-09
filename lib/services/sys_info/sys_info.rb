@@ -95,8 +95,34 @@ module AlcesJob
       # @return [Hash]
       def self.package_info
         parsed = {}
+        processed = Set.new
+        queue = []
 
         get_modules(parsed)
+
+        parsed.each_value do |packages|
+          queue.concat(packages)
+        end
+
+        until queue.empty?
+          package = queue.shift
+
+          next if processed.include?(package[:full_name])
+
+          processed << package[:full_name]
+
+          before = parsed.values.flatten.map { |p| p[:full_name] }.to_set
+
+          get_modules(parsed, package[:full_name])
+
+          parsed.values.flatten.each do |new_package|
+            next if before.include?(new_package[:full_name])
+
+            queue << new_package
+          end
+        end
+
+        parsed
       rescue Errno::ENOENT
         {}
       end
@@ -118,13 +144,13 @@ module AlcesJob
       # @param [Hash] parsed
       # @param [String] to_load
       # @return [Hash]
-      def self.get_modules(parsed, module_to_load)
-        command = ''
-        command <<= "module load #{module_to_load} && " unless module_to_load.empty?
-        command <<= "module -t avail 2>&1 | grep -vE '^/|^$'"
-        command <<= ' && module purge' unless module_to_load.empty?
+      def self.get_modules(parsed, module_to_load = '')
+        avail_command = +''
+        avail_command <<= "module load #{module_to_load} && " unless module_to_load.empty?
+        avail_command <<= "module -t avail 2>&1 | grep -vE '^/|^$'"
+        avail_command <<= ' && module purge' unless module_to_load.empty?
 
-        stdout, _, status = Open3.capture3(command)
+        stdout, _, status = Open3.capture3(avail_command)
 
         return parsed unless status.success?
 
@@ -145,7 +171,12 @@ module AlcesJob
             line.downcase.include?('legacy') ||
             line.downcase.include?('old')
 
-          mod_out, _, status = Open3.capture3("bash -lc \"module show #{line} 2>&1\"")
+          show_command = +''
+          show_command <<= "module load #{module_to_load} && " unless module_to_load.empty?
+          show_command <<= "bash -lc \"module show #{line} 2>&1\""
+          show_command <<= ' && module purge' unless module_to_load.empty?
+
+          mod_out, _, status = Open3.capture3(show_command)
 
           description = nil
           category = nil
@@ -154,8 +185,7 @@ module AlcesJob
             case detect_module_manager
             when :lmod
               description = mod_out[/whatis\s*\(\s*["'](.*?)["']\s*\)/m, 1] ||
-                            mod_out[/whatis\s+\{(.*?)\}/m, 1] ||
-                            mod_out[/whatis\s+(.*)/, 1]
+                            mod_out[/^Description:\s*\n(.*?)(?=^\w[\w ]*:\s*|\z)/m, 1]
               description = description&.strip
 
               category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
@@ -190,11 +220,7 @@ module AlcesJob
 
           parsed[category] ||= []
 
-          exists = parsed[category].filter do |filter|
-            filter['full_name'] == line
-          end
-
-          next unless exists.empty?
+          next if parsed[category].any? { |filter| filter[:full_name] == line }
 
           parsed[category] << {
             full_name: line,
