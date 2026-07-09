@@ -132,6 +132,12 @@ module AlcesJob
 
               category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
               category = category&.strip
+
+              if version.empty?
+                version = mod_out[/whatis\("version:\s*(.*?)"\)/i, 1] ||
+                          mod_out[/version:\s*(.*)/i, 1]
+                version = version&.strip
+              end
             end
 
             description ||= 'No description available'
