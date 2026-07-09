@@ -10,6 +10,7 @@ module AlcesJob
           @paths = paths
         end
 
+        # Get's all the plugins in a directory
         def find_plugins
           admin_plugins = find_plugins_in(
             @paths.admin_validator_plugin_dir
@@ -24,6 +25,9 @@ module AlcesJob
 
         private
 
+        # Get all the plugins from a directory
+        # @params [String] plugin directory
+        # @return [Array]
         def find_plugins_in(plugin_directory)
           return [] unless Dir.exist?(plugin_directory)
 
