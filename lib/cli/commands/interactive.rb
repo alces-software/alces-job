@@ -210,7 +210,7 @@ module AlcesJob
               width: (script.lines.map { |line| line.chomp.length }.max || 0) + 4
             )}\n"
 
-            break unless prompt.yes?('Would you like to edit any of your inputs?')
+            break unless prompt.yes?('Would you like to edit any of your inputs?', default: false)
 
             editing_type = nil
 
