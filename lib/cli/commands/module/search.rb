@@ -19,6 +19,7 @@ module AlcesJob
         option :show_full_name, type: :boolean, aliases: ['-f'], default: false, desc: 'Shows the modules full name which is used to load it'
         option :hide_categories, type: :boolean, aliases: ['-k'], default: false, desc: 'Hides the category name while displaying modules'
         option :show_config_blocked, type: :boolean, aliases: ['-b'], default: false, desc: 'Shows the packages that are blocked by the config file'
+        option :strict_search, type: :boolean, aliases: ['-s'], default: false, desc: 'Makes it so the searches are stricter and only show what you search'
 
         def call(**options)
           pastel = Pastel.new
@@ -112,7 +113,12 @@ module AlcesJob
           filtered_packages = {}
           packages.each do |category_name, packages|
             packages.each do |package|
-              if package[:version].to_s.downcase.include?(options[:version].to_s.downcase)
+              if options[:strict_search]
+                if package[:version].to_s.downcase == options[:version].to_s.downcase
+                  filtered_packages[category_name] ||= []
+                  filtered_packages[category_name] << package
+                end
+              elsif package[:version].to_s.downcase.include?(options[:version].to_s.downcase)
                 filtered_packages[category_name] ||= []
                 filtered_packages[category_name] << package
               end
@@ -129,7 +135,12 @@ module AlcesJob
           filtered_packages = {}
           packages.each do |category_name, packages|
             packages.each do |package|
-              if package[:version].to_s.downcase.include?(options[:version].to_s.downcase)
+              if options[:strict_search]
+                if package[:version].to_s.downcase == options[:version].to_s.downcase
+                  filtered_packages[category_name] ||= []
+                  filtered_packages[category_name] << package
+                end
+              elsif package[:version].to_s.downcase.include?(options[:version].to_s.downcase)
                 filtered_packages[category_name] ||= []
                 filtered_packages[category_name] << package
               end
@@ -145,7 +156,11 @@ module AlcesJob
         def filter_category(options, packages)
           filtered_packages = {}
           packages.each do |category_name, packages|
-            next unless category_name.to_s.downcase.include?(options[:category].to_s.downcase)
+            if options[:strict_search]
+              next unless category_name.to_s.downcase == options[:category].to_s.downcase
+            else
+              next unless category_name.to_s.downcase.include?(options[:category].to_s.downcase)
+            end
 
             packages.each do |package|
               filtered_packages[category_name] ||= []
