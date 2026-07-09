@@ -49,6 +49,10 @@ module AlcesJob
           puts
 
           exit(0)
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
           warn pastel.red("\nAn unexpected error occurred while running the command.")
           warn pastel.red("#{e.message}\n")
@@ -58,6 +62,10 @@ module AlcesJob
         private
 
         # Searches directories for templates and collects results
+        # @param [String] folder
+        # @param [String] source
+        # @param [Hash] templates
+        # @return [Array]
         def scan_templates(folder, source, templates)
           return templates unless File.directory?(folder)
 
