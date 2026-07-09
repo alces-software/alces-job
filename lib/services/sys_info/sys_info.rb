@@ -126,15 +126,17 @@ module AlcesJob
             category = nil
 
             if status.success?
-              description = mod_out[/whatis\("description:\s*(.*?)"\)/i, 1] ||
-                            mod_out[/description:\s*(.*)/i, 1]
+              description = mod_out[/module-whatis\s+\{(.*?)\}/m, 1] ||
+                            mod_out[/module-whatis\s+(.*)/, 1]
               description = description&.strip
 
-              category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
+              category = mod_out[/module-whatis\s+\{[Cc]ategory:\s*(.*?)\}/, 1] ||
+                         mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
               category = category&.strip
 
               if version.empty?
-                version = mod_out[/whatis\("version:\s*(.*?)"\)/i, 1] ||
+                version = mod_out[/:(\d+\.\d+(?:\.\d+)?)\s*$/m, 1] ||
+                          mod_out[/module-whatis\s+[{"]?.*?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1] ||
                           mod_out[/version:\s*(.*)/i, 1]
                 version = version&.strip
               end
