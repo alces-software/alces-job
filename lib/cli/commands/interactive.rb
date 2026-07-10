@@ -748,22 +748,31 @@ module AlcesJob
 
           return if flags[key].empty?
 
-          deprecated_module = false
-
+          has_dependency = false
           puts
           packages_info.to_h.each_value do |package_group|
             package_group.each do |package|
               next unless flags[key].include?(package[:full_name])
 
+              package[:dependency].each do |dep|
+                has_dependency = true
+                puts pastel.yellow("Requirement #{dep} will be loaded")
+              end
+            end
+          end
+
+          if has_dependency
+            puts
+            prompt.keypress("[Press #{pastel.bold('any key')} to continue]")
+          end
+
+          deprecated_module = false
+          puts if has_dependency
+          packages_info.to_h.each_value do |package_group|
+            package_group.each do |package|
               if package[:deprecated]
                 deprecated_module = true
                 puts pastel.yellow("#{package[:full_name]} is deprecated")
-              end
-
-              next unless !package[:dependency]&.nil? && !package[:dependency]&.empty?
-
-              package[:dependency].each do |dep|
-                flags[key].push(dep) unless flags[key].include?(dep)
               end
             end
           end
