@@ -1,4 +1,5 @@
 #!/bin/bash
+
 <% if @context.job_name -%>
 <%- line = "#SBATCH --job-name=#{@context.job_name}" -%>
 <%= line.ljust(55) %># Name shown for this job in the Slurm queue

@@ -56,20 +56,35 @@ module AlcesJob
       end
 
       def show_edited_script_preview(old_content, new_content, pastel)
-        highlighted_script = highlight_added_lines(old_content, new_content, pastel)
-        box_width = new_content.lines.map { |line| line.chomp.length }.max + 4
+        box_width = (new_content.lines.map { |line| line.chomp.length }.max || 0) + 4
 
-        puts TTY::Box.frame(
-          highlighted_script,
-          title: {
-            top_center: pastel.bold.green(' Edited Script Preview ')
-          },
-          padding: 1,
-          border: :thick,
-          width: box_width
-        )
+        begin
+          highlighted_script = highlight_added_lines(old_content, new_content, pastel)
 
-        show_removed_lines(old_content, new_content, pastel)
+          puts TTY::Box.frame(
+            highlighted_script,
+            title: {
+              top_center: pastel.bold.green(' Edited Script Preview ')
+            },
+            padding: 1,
+            border: :thick,
+            width: box_width
+          )
+
+          show_removed_lines(old_content, new_content, pastel)
+        rescue StandardError
+          puts pastel.bold.yellow("WARNING: No diff executable found - can't show difference in script. Proceed with caution.")
+
+          puts TTY::Box.frame(
+            new_content,
+            title: {
+              top_center: pastel.bold.green(' Edited Script Preview ')
+            },
+            padding: 1,
+            border: :thick,
+            width: box_width
+          )
+        end
       end
 
       def edit_script_with_preview(content, prompt:, pastel:, validator_class:, editor: nil)
