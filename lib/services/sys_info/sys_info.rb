@@ -302,7 +302,7 @@ module AlcesJob
 
           mod_out, _, status = Open3.capture3(show_command)
 
-          mod_out = mod_out.lines.reject { |line| line.match?(/Loading/) || line.match?(/Loading requirement:/) }.join
+          mod_out = mod_out.lines.reject { |line| line.include?('Loading') || line.include?('Loading requirement:') }.join
 
           description = nil
           category = nil
