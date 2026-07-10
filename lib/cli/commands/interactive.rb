@@ -243,10 +243,15 @@ module AlcesJob
                 tempfile.flush
                 validator = Services::SlurmScriptValidator.new(tempfile.path)
                 if validator.validate?
-                  highlighted_script = AlcesJob::Services::Editor.highlight_added_lines(old_script, script, pastel)
+                  begin
+                    edited_script = AlcesJob::Services::Editor.highlight_added_lines(old_script, script, pastel)
+                  rescue StandardError
+                    edited_script = script
+                  end
+
                   box_width = (script.lines.map { |line| line.chomp.length }.max || 0) + 4
                   puts "\n#{TTY::Box.frame(
-                    highlighted_script,
+                    edited_script,
                     title: {
                       top_center: pastel.bold.green(' Edited Script Preview ')
                     },
@@ -254,7 +259,12 @@ module AlcesJob
                     border: :thick,
                     width: box_width
                   )}"
-                  AlcesJob::Services::Editor.show_removed_lines(old_script, script, pastel)
+
+                  begin
+                    AlcesJob::Services::Editor.show_removed_lines(old_script, script, pastel)
+                  rescue StandardError
+                    puts pastel.bold.yellow("WARNING: No diff executable found - can't show difference in script. Proceed with caution.")
+                  end
                   puts
                   if prompt.yes?('Do you want to save these changes?', default: true)
                     valid_manual_editing = true
