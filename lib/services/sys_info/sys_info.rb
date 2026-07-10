@@ -264,7 +264,7 @@ module AlcesJob
           .grep_v(/check-out last/)
           .grep_v(/get-modules/)
           .grep_v(/Loading/)
-          .grep_v(/Loading requirements:/).each do |line|
+          .each do |line|
           next if line.end_with?('/')
           next if line.downcase == 'null'
           next if line.strip.empty?
@@ -292,7 +292,7 @@ module AlcesJob
 
           mod_out, _, status = Open3.capture3(show_command)
 
-          mod_out = mod_out.lines.reject { |line| line.match?(/Loading/) || line.match?(/Loading requirements:/) }.join
+          mod_out = mod_out.lines.reject { |line| line.match?(/Loading/) || line.match?(/Loading requirement:/) }.join
 
           description = nil
           category = nil
@@ -310,7 +310,6 @@ module AlcesJob
                 mod_out[%r{^.*/([^/:\s]+)/(\d+\.\d+(?:\.\d+)*):\s*$}m, 2] ||
                 mod_out[/module-whatis\s+\{.*?([0-9]+\.[0-9]+(?:\.[0-9]+)*)/, 1] ||
                 mod_out[/version:\s*(.*)/i, 1]
-
               version = version&.strip
             end
           end
@@ -318,9 +317,20 @@ module AlcesJob
           description ||= 'No description available'
           category ||= line.split('/').first
 
+          dependency = []
+          dep_out, _, status = Open3.capture3("module load #{line} && module purge")
+
+          dep_out = dep_out.lines.grep(/Loading requirement:/).join.strip
+
+          unless dep_out.empty?
+            dep_out.split(':').last.split.each do |dep|
+              dependency << dep
+            end
+          end
+
           parsed[category] ||= []
 
-          next if parsed[category].any? { |filter| filter[:full_name] == line }
+          next if parsed[category].any? { |package| package[:full_name] == line }
 
           parsed[category] << {
             full_name: line,
@@ -328,7 +338,7 @@ module AlcesJob
             version: version,
             description: description,
             deprecated: deprecated,
-            dependency: []
+            dependency: dependency
           }
         end
 
