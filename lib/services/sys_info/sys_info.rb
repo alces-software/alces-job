@@ -117,13 +117,13 @@ module AlcesJob
 
           processed << package[:full_name]
 
-          before = parsed.values.flatten.map { |p| p[:full_name] }.to_set
+          before = parsed.values.flatten.to_set { |p| p[:full_name] }
 
           case module_manager
           when :lmod
             get_lmod_modules(parsed, package[:full_name])
           when :environment_modules
-            puts 'Not implemented'
+            get_environment_modules_modules(parsed, package[:full_name])
           end
 
           parsed.values.flatten.each do |new_package|
@@ -151,7 +151,7 @@ module AlcesJob
         :none
       end
 
-      # Get's all modules on lmod and if a module to load is provided it finds all of its children
+      # Get's all lmod modules  and if a module to load is provided it finds all of its children
       # @param [Hash] parsed
       # @param [String] to_load
       # @return [Hash]
@@ -165,7 +165,7 @@ module AlcesJob
 
         return parsed unless status.success?
 
-        stdout.lines.map(&:strip).reject(&:empty?).each do |line|
+        stdout.lines.map(&:strip).grep_v('').each do |line|
           next if line.end_with?('/')
           next if line.downcase == 'null'
 
@@ -193,36 +193,106 @@ module AlcesJob
           category = nil
 
           if status.success?
-            case detect_module_manager
-            when :lmod
-              description = mod_out[/whatis\s*\(\s*["'](.*?)["']\s*\)/m, 1] ||
-                            mod_out[/^Description:\s*\n(.*?)(?=^\w[\w ]*:\s*|\z)/m, 1]
-              description = description&.sub(/description:/i, '')&.strip
+            description = mod_out[/whatis\s*\(\s*["'](.*?)["']\s*\)/m, 1] ||
+                          mod_out[/^Description:\s*\n(.*?)(?=^\w[\w ]*:\s*|\z)/m, 1]
+            description = description&.sub(/description:/i, '')&.strip
 
-              category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
-              category = category&.strip
+            category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
+            category = category&.strip
 
-              if version.empty?
-                version = mod_out[/setenv\s*\{\s*["'](?:GCC_)?VERSION["']\s*,\s*["'](.*?)["']\s*\}/i, 1] ||
-                          mod_out[/whatis\s*\(\s*["'].*?([0-9]+\.[0-9]+(?:\.[0-9]+)?).*?["']\s*\)/m, 1] ||
-                          mod_out[/:(\d+\.\d+(?:\.\d+)?)\s*$/m, 1] ||
-                          mod_out[/version:\s*(.*)/i, 1]
-                version = version&.strip
-              end
-            when :environment_modules
-              description = mod_out[/module-whatis\s+\{(.*?)\}/m, 1] ||
-                            mod_out[/module-whatis\s+(.*)/, 1]
-              description = description&.strip
+            if version.empty?
+              version = mod_out[/setenv\s*\{\s*["'](?:GCC_)?VERSION["']\s*,\s*["'](.*?)["']\s*\}/i, 1] ||
+                        mod_out[/whatis\s*\(\s*["'].*?([0-9]+\.[0-9]+(?:\.[0-9]+)?).*?["']\s*\)/m, 1] ||
+                        mod_out[/:(\d+\.\d+(?:\.\d+)?)\s*$/m, 1] ||
+                        mod_out[/version:\s*(.*)/i, 1]
+              version = version&.strip
+            end
+          end
 
-              category = mod_out[/module-whatis\s+\{[Cc]ategory:\s*(.*?)\}/, 1]
-              category = category&.strip
+          description ||= 'No description available'
+          category ||= line.split('/').first
+          version ||= 'Unknown'
 
-              if version.empty?
-                version = mod_out[/:(\d+\.\d+(?:\.\d+)?)\s*$/m, 1] ||
-                          mod_out[/module-whatis\s+[{"]?.*?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1] ||
-                          mod_out[/version:\s*(.*)/i, 1]
-                version = version&.strip
-              end
+          parsed[category] ||= []
+
+          next if parsed[category].any? { |filter| filter[:full_name] == line }
+
+          parsed[category] << {
+            full_name: line,
+            name: name,
+            version: version,
+            description: description,
+            deprecated: deprecated,
+            dependency: module_to_load
+          }
+        end
+
+        parsed
+      end
+
+      # Get's all environment modules modules and if a module to load is provided it finds all of its children
+      # @param [Hash] parsed
+      # @param [String] to_load
+      # @return [Hash]
+      def self.get_environment_modules_modules(parsed, module_to_load = '')
+        avail_command = +''
+        avail_command <<= "module load #{module_to_load} && " unless module_to_load.empty?
+        avail_command <<= "module -t avail 2>/dev/null | grep -vE '^/|^$'"
+        avail_command <<= ' && module purge' unless module_to_load.empty?
+
+        stdout, _, status = Open3.capture3(avail_command)
+
+        return parsed unless status.success?
+
+        stdout.lines.map(&:strip).grep_v('')
+          .grep_v(->(l) { l.start_with?('+') })
+          .grep_v(/^\s*[\w ]+\s*=/)
+          .grep_v(/This module will/)
+          .grep_v(/check-out last/)
+          .grep_v(/get-modules/).each do |line|
+          next if line.end_with?('/')
+          next if line.downcase == 'null'
+          next if line.strip.empty?
+
+          line = line.sub(/\s*<[^>]*L>\z/i, '')
+
+          parts = line.split('/')
+          name = parts.first
+
+          version = if parts[2].to_s.downcase == 'none-none'
+                      parts[1]
+                    else
+                      parts[1, 2].join('/')
+                    end
+
+          deprecated =
+            line.downcase.include?('deprecated') ||
+            line.downcase.include?('legacy') ||
+            line.downcase.include?('old')
+
+          show_command = +''
+          show_command <<= "module load #{module_to_load} && " unless module_to_load.empty?
+          show_command <<= "bash -lc \"module show #{line} 2>/dev/null\""
+          show_command <<= ' && module purge' unless module_to_load.empty?
+
+          mod_out, _, status = Open3.capture3(show_command)
+
+          description = nil
+          category = nil
+
+          if status.success?
+            description = mod_out[/module-whatis\s+\{(.*?)\}/m, 1] ||
+                          mod_out[/module-whatis\s+(.*)/, 1]
+            description = description&.strip
+
+            category = mod_out[/module-whatis\s+\{[Cc]ategory:\s*(.*?)\}/, 1]
+            category = category&.strip
+
+            if version.empty?
+              version = mod_out[/:(\d+\.\d+(?:\.\d+)?)\s*$/m, 1] ||
+                        mod_out[/module-whatis\s+[{"]?.*?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1] ||
+                        mod_out[/version:\s*(.*)/i, 1]
+              version = version&.strip
             end
           end
 
