@@ -272,10 +272,13 @@ module AlcesJob
           next if line.strip.empty?
 
           if line.downcase.include?('loading requirements')
-            line.split(':').last.split.each do |dep|
-              puts(dep)
+            requirements = line.split(':', 2).last
+
+            requirements.split.each do |dep|
+              puts dep
               dependencies.push(dep)
             end
+
             next
           end
 
