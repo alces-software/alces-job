@@ -51,9 +51,9 @@ module AlcesJob
             sleep(0.3)
           end
 
-          # ------------------------------------------------------------
-          # Unexpected errors
-          # ------------------------------------------------------------
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
           warn pastel.red("\nAn unexpected error occurred while running the command.")
           warn pastel.red("#{e.message}\n")

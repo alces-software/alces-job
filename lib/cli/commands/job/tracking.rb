@@ -44,6 +44,14 @@ module AlcesJob
           puts "#{source_text} #{lib_path}"
           puts "#{export_text} #{path_var}=#{job_path}"
           puts "#{export_text} #{stage_var}=0"
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
+        rescue StandardError => e
+          warn pastel.red("\nAn unexpected error occurred while running the command.")
+          warn pastel.red("#{e.message}\n")
+          exit(1)
         end
       end
     end
