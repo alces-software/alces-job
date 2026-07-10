@@ -36,7 +36,7 @@ module AlcesJob
         stdout, _, status =
           Open3.capture3('scontrol show config | grep MaxArraySize')
 
-        return nil unless status.success?
+        return 1001 unless status.success?
 
         stdout.split('=').last.strip.to_i
       end
