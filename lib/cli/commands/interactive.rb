@@ -243,7 +243,12 @@ module AlcesJob
                 tempfile.flush
                 validator = Services::SlurmScriptValidator.new(tempfile.path)
                 if validator.validate?
-                  highlighted_script = AlcesJob::Services::Editor.highlight_added_lines(old_script, script, pastel)
+                  begin
+                    highlighted_script = AlcesJob::Services::Editor.highlight_added_lines(old_script, script, pastel)
+                  rescue StandardError
+                    puts 'Error at highlighted script stage.'
+                  end
+
                   box_width = (script.lines.map { |line| line.chomp.length }.max || 0) + 4
                   puts "\n#{TTY::Box.frame(
                     highlighted_script,
@@ -254,7 +259,12 @@ module AlcesJob
                     border: :thick,
                     width: box_width
                   )}"
-                  AlcesJob::Services::Editor.show_removed_lines(old_script, script, pastel)
+
+                  begin
+                    AlcesJob::Services::Editor.show_removed_lines(old_script, script, pastel)
+                  rescue StandardError
+                    puts 'Error at showing removed lines stage..'
+                  end
                   puts
                   if prompt.yes?('Do you want to save these changes?', default: true)
                     valid_manual_editing = true
