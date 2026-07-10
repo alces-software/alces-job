@@ -253,8 +253,6 @@ module AlcesJob
         avail_command <<= "module -t avail 2>/dev/null | grep -vE '^/|^$'"
         avail_command <<= ' && module purge' unless module_to_load.empty?
 
-        puts avail_command
-
         stdout, _, status = Open3.capture3(avail_command)
 
         return parsed unless status.success?
