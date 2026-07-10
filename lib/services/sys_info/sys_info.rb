@@ -197,7 +197,7 @@ module AlcesJob
             when :lmod
               description = mod_out[/whatis\s*\(\s*["'](.*?)["']\s*\)/m, 1] ||
                             mod_out[/^Description:\s*\n(.*?)(?=^\w[\w ]*:\s*|\z)/m, 1]
-              description = description&.strip&.sub(/description:/i, '')
+              description = description&.strip&.sub(/description:/i)
 
               category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
               category = category&.strip
