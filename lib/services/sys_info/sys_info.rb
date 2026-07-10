@@ -211,7 +211,7 @@ module AlcesJob
 
           description ||= 'No description available'
           category ||= line.split('/').first
-          version ||= 'Unknown'
+          version ||= nil
 
           parsed[category] ||= []
 
