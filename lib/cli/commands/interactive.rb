@@ -758,7 +758,11 @@ module AlcesJob
                 puts pastel.yellow("#{package[:full_name]} is deprecated")
               end
 
-              flags[key].push(package[:dependency]) if !package[:dependency]&.nil? && !flags[key].include?(package[:dependency])
+              next unless !package[:dependency]&.nil? && !package[:dependency]&.empty?
+
+              package[:dependency].each do |dep|
+                flags[key].push(dep) unless flags[key].include?(dep)
+              end
             end
           end
 

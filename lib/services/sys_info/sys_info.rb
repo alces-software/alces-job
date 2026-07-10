@@ -95,17 +95,16 @@ module AlcesJob
       # @return [Hash]
       def self.package_info
         parsed = {}
-        processed = Set.new
-        queue = []
         module_manager = detect_module_manager
 
         case module_manager
         when :lmod
-          get_lmod_modules(parsed)
+          get_lmod_modules(parsed, {})
         when :environment_modules
-          puts 'Not implemented'
+          get_environment_modules_modules(parsed, {})
         end
-
+        queue = []
+        processed = Set.new
         parsed.each_value do |packages|
           queue.concat(packages)
         end
@@ -121,9 +120,9 @@ module AlcesJob
 
           case module_manager
           when :lmod
-            get_lmod_modules(parsed, package[:full_name])
+            get_lmod_modules(parsed, package)
           when :environment_modules
-            get_environment_modules_modules(parsed, package[:full_name])
+            get_environment_modules_modules(parsed, package)
           end
 
           parsed.values.flatten.each do |new_package|
@@ -155,11 +154,14 @@ module AlcesJob
       # @param [Hash] parsed
       # @param [String] to_load
       # @return [Hash]
-      def self.get_lmod_modules(parsed, module_to_load = '')
+      def self.get_lmod_modules(parsed, module_to_load)
         avail_command = +''
-        avail_command <<= "module load #{module_to_load} && " unless module_to_load.empty?
+        module_to_load[:dependency]&.each do |dep|
+          avail_command <<= "module load #{dep} && "
+        end
+        avail_command <<= "module load #{module_to_load[:full_name]} && " unless module_to_load.nil?
         avail_command <<= "module -t avail 2>&1 | grep -vE '^/|^$'"
-        avail_command <<= ' && module purge' unless module_to_load.empty?
+        avail_command <<= ' && module purge' unless module_to_load.nil?
 
         stdout, _, status = Open3.capture3(avail_command)
 
@@ -183,9 +185,12 @@ module AlcesJob
             line.downcase.include?('old')
 
           show_command = +''
-          show_command <<= "module load #{module_to_load} && " unless module_to_load.empty?
+          module_to_load[:dependency]&.each do |dep|
+            show_command <<= "module load #{dep} && "
+          end
+          show_command <<= "module load #{module_to_load[:full_name]} && " unless module_to_load.nil?
           show_command <<= "bash -lc \"module show #{line} 2>&1\""
-          show_command <<= ' && module purge' unless module_to_load.empty?
+          show_command <<= ' && module purge' unless module_to_load.nil?
 
           mod_out, _, status = Open3.capture3(show_command)
 
@@ -217,13 +222,21 @@ module AlcesJob
 
           next if parsed[category].any? { |filter| filter[:full_name] == line }
 
+          dependency = []
+          unless module_to_load.empty?
+            dependency << module_to_load[:full_name]
+            module_to_load[:dependency]&.each do |dep|
+              dependency << dep
+            end
+          end
+
           parsed[category] << {
             full_name: line,
             name: name,
             version: version,
             description: description,
             deprecated: deprecated,
-            dependency: module_to_load
+            dependency: dependency
           }
         end
 
@@ -234,9 +247,9 @@ module AlcesJob
       # @param [Hash] parsed
       # @param [String] to_load
       # @return [Hash]
-      def self.get_environment_modules_modules(parsed, module_to_load = '')
+      def self.get_environment_modules_modules(parsed, module_to_load)
         avail_command = +''
-        avail_command <<= "module load #{module_to_load} && " unless module_to_load.empty?
+        avail_command <<= "module load #{module_to_load[:full_name]} && " unless module_to_load.empty?
         avail_command <<= "module -t avail 2>/dev/null | grep -vE '^/|^$'"
         avail_command <<= ' && module purge' unless module_to_load.empty?
 
@@ -271,7 +284,7 @@ module AlcesJob
             line.downcase.include?('old')
 
           show_command = +''
-          show_command <<= "module load #{module_to_load} && " unless module_to_load.empty?
+          show_command <<= "module load #{module_to_load[:full_name]} && " unless module_to_load.empty?
           show_command <<= "bash -lc \"module show #{line} 2>/dev/null\""
           show_command <<= ' && module purge' unless module_to_load.empty?
 
@@ -309,7 +322,7 @@ module AlcesJob
             version: version,
             description: description,
             deprecated: deprecated,
-            dependency: module_to_load
+            dependency: module_to_load[:full_name]
           }
         end
 
