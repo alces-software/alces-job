@@ -292,12 +292,9 @@ module AlcesJob
           show_command <<= "bash -lc \"module show #{line} 2>&1\""
           show_command <<= ' && module purge' unless module_to_load.empty?
 
-          puts show_command
           mod_out, _, status = Open3.capture3(show_command)
 
           mod_out = mod_out.lines.reject { |line| line.match?(/Loading/) || line.match?(/Loading requirements:/) }.join
-
-          puts mod_out
 
           description = nil
           category = nil
@@ -312,13 +309,8 @@ module AlcesJob
 
             if version.empty?
               version =
-                # Match version at the end of module path:
                 mod_out[%r{^.*/([^/:\s]+)/(\d+\.\d+(?:\.\d+)*):\s*$}m, 2] ||
-
-                # Match version embedded in module-whatis:
                 mod_out[/module-whatis\s+\{.*?([0-9]+\.[0-9]+(?:\.[0-9]+)*)/, 1] ||
-
-                # Match explicit version fields:
                 mod_out[/version:\s*(.*)/i, 1]
 
               version = version&.strip
