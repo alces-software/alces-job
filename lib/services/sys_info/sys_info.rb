@@ -259,30 +259,17 @@ module AlcesJob
 
         return parsed unless status.success?
 
-        dependencies = []
-
         stdout.lines.map(&:strip).grep_v('')
           .grep_v(->(l) { l.start_with?('+') })
           .grep_v(/^\s*[\w ]+\s*=/)
           .grep_v(/This module will/)
           .grep_v(/check-out last/)
-          .grep_v(/get-modules/).each do |line|
+          .grep_v(/get-modules/)
+          .grep_v(/Loading/)
+          .grep_v(/Loading requirements:/).each do |line|
           next if line.end_with?('/')
           next if line.downcase == 'null'
           next if line.strip.empty?
-
-          if line.downcase.include?('loading requirements')
-            requirements = line.split(':', 2).last
-
-            requirements.split.each do |dep|
-              puts dep
-              dependencies.push(dep)
-            end
-
-            next
-          end
-
-          next if line.downcase.include?('loading')
 
           line = line.sub(/\s*<[^>]*L>\z/i, '')
 
@@ -302,10 +289,15 @@ module AlcesJob
 
           show_command = +''
           show_command <<= "module load #{module_to_load[:full_name]} && " unless module_to_load.empty?
-          show_command <<= "bash -lc \"module show #{line} 2>/dev/null\""
+          show_command <<= "bash -lc \"module show #{line} 2>&1\""
           show_command <<= ' && module purge' unless module_to_load.empty?
 
+          puts show_command
           mod_out, _, status = Open3.capture3(show_command)
+
+          mod_out = mod_out.lines.reject { |line| line.match?(/Loading/) || line.match?(/Loading requirements:/) }.join
+
+          puts mod_out
 
           description = nil
           category = nil
@@ -319,9 +311,16 @@ module AlcesJob
             category = category&.strip
 
             if version.empty?
-              version = mod_out[/:(\d+\.\d+(?:\.\d+)?)\s*$/m, 1] ||
-                        mod_out[/module-whatis\s+[{"]?.*?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1] ||
-                        mod_out[/version:\s*(.*)/i, 1]
+              version =
+                # Match version at the end of module path:
+                mod_out[%r{^.*/([^/:\s]+)/(\d+\.\d+(?:\.\d+)*):\s*$}m, 2] ||
+
+                # Match version embedded in module-whatis:
+                mod_out[/module-whatis\s+\{.*?([0-9]+\.[0-9]+(?:\.[0-9]+)*)/, 1] ||
+
+                # Match explicit version fields:
+                mod_out[/version:\s*(.*)/i, 1]
+
               version = version&.strip
             end
           end
@@ -339,7 +338,7 @@ module AlcesJob
             version: version,
             description: description,
             deprecated: deprecated,
-            dependency: dependencies
+            dependency: []
           }
         end
 
