@@ -253,6 +253,8 @@ module AlcesJob
         avail_command <<= "module -t avail 2>/dev/null | grep -vE '^/|^$'"
         avail_command <<= ' && module purge' unless module_to_load.empty?
 
+        puts avail_command
+
         stdout, _, status = Open3.capture3(avail_command)
 
         return parsed unless status.success?
@@ -262,7 +264,8 @@ module AlcesJob
           .grep_v(/^\s*[\w ]+\s*=/)
           .grep_v(/This module will/)
           .grep_v(/check-out last/)
-          .grep_v(/get-modules/).each do |line|
+          .grep_v(/get-modules/)
+          .grep_v(/Loading/).each do |line|
           next if line.end_with?('/')
           next if line.downcase == 'null'
           next if line.strip.empty?
