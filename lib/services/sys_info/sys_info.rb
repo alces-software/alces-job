@@ -30,6 +30,8 @@ module AlcesJob
         }
       end
 
+      # Gets the max array size for the system
+      # @return [Integer]
       def self.max_array_size
         stdout, _, status =
           Open3.capture3('scontrol show config | grep MaxArraySize')
