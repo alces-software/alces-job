@@ -1,208 +1,47 @@
 ---
-:partitions: 
-  :gpu:
-    :name: gpu
-    :default: false
-    :max_memory_mb: 514048
-    :max_cpu_cores: 64
-    :max_gpus: 2
-    :node_count: 22
-    :time_limit: 7-00:00:00
-  :gpu_pri:
-    :name: gpu_pri
-    :default: false
-    :max_memory_mb: 514048
-    :max_cpu_cores: 64
-    :max_gpus: 2
-    :node_count: 22
-    :time_limit: 7-00:00:00
-  :nodes:
-    :name: nodes
+:partitions:
+  debug:
+    :name: debug
     :default: true
-    :max_memory_mb: 1030144
-    :max_cpu_cores: 128
+    :max_memory_mb: 1024
+    :max_cpu_cores: 4
     :max_gpus: 0
-    :node_count: 21
-    :time_limit: 7-00:00:00
-  :pri:
-    :name: pri
-    :default: false
-    :max_memory_mb: 1030144
-    :max_cpu_cores: 128
-    :max_gpus: 0
-    :node_count: 21
-    :time_limit: 7-00:00:00
+    :node_count: 1
+    :time_limit: 0-00:00:00
 :packages:
-  Bison:
-  - :full_name: Bison/3.8.2-GCCcore-15.2.0
-    :name: Bison
-    :version: 3.8.2-GCCcore-15.2.0
-    :description: No description available
-    :deprecated: false
-  - :full_name: Bison/3.8.2
-    :name: Bison
-    :version: 3.8.2
-    :description: No description available
-    :deprecated: false
-  EasyBuild:
-  - :full_name: EasyBuild/5.1.2
-    :name: EasyBuild
-    :version: 5.1.2
-    :description: No description available
-    :deprecated: false
-  GCC:
-  - :full_name: GCC/15.2.0
-    :name: GCC
-    :version: 15.2.0
-    :description: No description available
-    :deprecated: false
-  GCCcore:
-  - :full_name: GCCcore/15.2.0
-    :name: GCCcore
-    :version: 15.2.0
-    :description: No description available
-    :deprecated: false
-  M4:
-  - :full_name: M4/1.4.19
-    :name: M4
-    :version: 1.4.19
-    :description: No description available
-    :deprecated: false
-  - :full_name: M4/1.4.20-GCCcore-15.2.0
-    :name: M4
-    :version: 1.4.20-GCCcore-15.2.0
-    :description: No description available
-    :deprecated: false
-  - :full_name: M4/1.4.20
-    :name: M4
-    :version: 1.4.20
-    :description: No description available
-    :deprecated: false
-  abaqus:
-  - :full_name: abaqus/2024
-    :name: abaqus
-    :version: '2024'
-    :description: No description available
-    :deprecated: false
-  ansys:
-  - :full_name: ansys/2025.2
-    :name: ansys
-    :version: '2025.2'
-    :description: No description available
-    :deprecated: false
-  apptainer:
-  - :full_name: apptainer/1.4.4/gcc-15.2.0/a-a2wyui6
-    :name: apptainer
-    :version: 1.4.4/gcc-15.2.0
-    :description: No description available
-    :deprecated: false
-  binutils:
-  - :full_name: binutils/2.45-GCCcore-15.2.0
-    :name: binutils
-    :version: 2.45-GCCcore-15.2.0
-    :description: No description available
-    :deprecated: false
-  - :full_name: binutils/2.45
-    :name: binutils
-    :version: '2.45'
-    :description: No description available
-    :deprecated: false
-  cmake:
-  - :full_name: cmake/3.31.9/gcc-11.5.0/a-xc6da5e
-    :name: cmake
-    :version: 3.31.9/gcc-11.5.0
-    :description: No description available
-    :deprecated: false
-  comsol:
-  - :full_name: comsol/6.3
-    :name: comsol
-    :version: '6.3'
-    :description: No description available
-    :deprecated: false
-  cuda:
-  - :full_name: cuda/12.9.1/none-none/a-j4amwzt
-    :name: cuda
-    :version: 12.9.1
-    :description: No description available
-    :deprecated: false
-  - :full_name: cuda/13.0.2/none-none/a-eai3dlo
-    :name: cuda
-    :version: 13.0.2
-    :description: No description available
-    :deprecated: false
-  easybuild:
-  - :full_name: easybuild/4.7.0/none-none/a-j3rz2ko
-    :name: easybuild
-    :version: 4.7.0
-    :description: No description available
-    :deprecated: false
-  flex:
-  - :full_name: flex/2.6.4-GCCcore-15.2.0
-    :name: flex
-    :version: 2.6.4-GCCcore-15.2.0
-    :description: No description available
-    :deprecated: false
-  - :full_name: flex/2.6.4
-    :name: flex
-    :version: 2.6.4
-    :description: No description available
-    :deprecated: false
   gcc:
-  - :full_name: gcc/15.2.0/gcc-11.5.0/a-mffqiek
+  - :full_name: gcc/12.2.0
     :name: gcc
-    :version: 15.2.0/gcc-11.5.0
-    :description: No description available
+    :version: 12.2.0
+    :description: GCC 12.2.0 â\x80\x94 GNU Compiler Collection (Core)
     :deprecated: false
-  help2man:
-  - :full_name: help2man/1.49.3-GCCcore-15.2.0
-    :name: help2man
-    :version: 1.49.3-GCCcore-15.2.0
-    :description: No description available
-    :deprecated: false
-  intel-oneapi-compilers:
-  - :full_name: intel-oneapi-compilers/2024.2.1/none-none/a-a423oq6
-    :name: intel-oneapi-compilers
-    :version: 2024.2.1
-    :description: No description available
-    :deprecated: false
+    :dependency: []
+  python:
+  - :full_name: python/3.11.4
+    :name: python
+    :version: 3.11.4
+    :description: Python 3.11.4 â\x80\x94 interpreter and pip (Core)
+    :deprecated: true
+    :dependency: []
   lmod:
-  - :full_name: lmod/8.7.55/gcc-11.5.0/a-sntlpdr
+  - :full_name: lmod
     :name: lmod
-    :version: 8.7.55/gcc-11.5.0
-    :description: No description available
+    :version:
+    :description: Description: Lmod: An Environment Module System
     :deprecated: false
-  matlab:
-  - :full_name: matlab/r2025a
-    :name: matlab
-    :version: r2025a
-    :description: No description available
+    :dependency: []
+  settarg:
+  - :full_name: settarg
+    :name: settarg
+    :version:
+    :description: The settarg module provides a way to connect the loaded modules with your build system by setting environment variables.
     :deprecated: false
-  miniforge3:
-  - :full_name: miniforge3/25.3.0-3/none-none/a-4lhn6xy
-    :name: miniforge3
-    :version: 25.3.0-3
-    :description: No description available
+    :dependency: []
+  openmpi:
+  - :full_name: openmpi/4.1.5
+    :name: openmpi
+    :version: 4.1.5
+    :description: OpenMPI 4.1.5 â\x80\x94 MPI runtime (built with gcc/12.2.0)
     :deprecated: false
-  openfoam:
-  - :full_name: openfoam/2412/gcc-15.2.0/openmpi-5.0.8/a-xb2i6l4
-    :name: openfoam
-    :version: 2412/gcc-15.2.0
-    :description: No description available
-    :deprecated: false
-  r:
-  - :full_name: r/4.5.2/gcc-15.2.0/a-lxuwftt
-    :name: r
-    :version: 4.5.2/gcc-15.2.0
-    :description: No description available
-    :deprecated: false
-  zlib:
-  - :full_name: zlib/1.3.1-GCCcore-15.2.0
-    :name: zlib
-    :version: 1.3.1-GCCcore-15.2.0
-    :description: No description available
-    :deprecated: false
-  - :full_name: zlib/1.3.1
-    :name: zlib
-    :version: 1.3.1
-    :description: No description available
-    :deprecated: false
+    :dependency: 
+    - gcc/12.2.0
