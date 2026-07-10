@@ -151,8 +151,6 @@ module AlcesJob
         :none
       end
 
-      private_class_method :get_lmod_modules
-
       # Get's all modules on lmod and if a module to load is provided it finds all of its children
       # @param [Hash] parsed
       # @param [String] to_load
