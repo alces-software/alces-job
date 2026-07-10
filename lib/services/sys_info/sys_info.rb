@@ -259,16 +259,26 @@ module AlcesJob
 
         return parsed unless status.success?
 
+        dependencies = []
+
         stdout.lines.map(&:strip).grep_v('')
           .grep_v(->(l) { l.start_with?('+') })
           .grep_v(/^\s*[\w ]+\s*=/)
           .grep_v(/This module will/)
           .grep_v(/check-out last/)
-          .grep_v(/get-modules/)
-          .grep_v(/Loading/).each do |line|
+          .grep_v(/get-modules/).each do |line|
           next if line.end_with?('/')
           next if line.downcase == 'null'
           next if line.strip.empty?
+
+          if line.downcase.include?('loading requirements')
+            line.split(':').last.split.each do |dep|
+              dependencies.push(dep)
+            end
+            next
+          end
+
+          next if line.downcase.include?('loading')
 
           line = line.sub(/\s*<[^>]*L>\z/i, '')
 
@@ -325,7 +335,7 @@ module AlcesJob
             version: version,
             description: description,
             deprecated: deprecated,
-            dependency: module_to_load[:full_name]
+            dependency: dependencies
           }
         end
 
