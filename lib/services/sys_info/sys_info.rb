@@ -97,8 +97,14 @@ module AlcesJob
         parsed = {}
         processed = Set.new
         queue = []
+        module_manager = detect_module_manager
 
-        get_modules(parsed)
+        case module_manager
+        when :lmod
+          get_lmod_modules(parsed)
+        when :environment_modules
+          puts 'Not implemented'
+        end
 
         parsed.each_value do |packages|
           queue.concat(packages)
@@ -113,7 +119,12 @@ module AlcesJob
 
           before = parsed.values.flatten.map { |p| p[:full_name] }.to_set
 
-          get_modules(parsed, package[:full_name])
+          case module_manager
+          when :lmod
+            get_lmod_modules(parsed, package[:full_name])
+          when :environment_modules
+            puts 'Not implemented'
+          end
 
           parsed.values.flatten.each do |new_package|
             next if before.include?(new_package[:full_name])
@@ -140,11 +151,13 @@ module AlcesJob
         :none
       end
 
-      # Get's all modules and if a module to load is provided it finds all of its
+      private_class_method :get_lmod_modules
+
+      # Get's all modules on lmod and if a module to load is provided it finds all of its children
       # @param [Hash] parsed
       # @param [String] to_load
       # @return [Hash]
-      def self.get_modules(parsed, module_to_load = '')
+      def self.get_lmod_modules(parsed, module_to_load = '')
         avail_command = +''
         avail_command <<= "module load #{module_to_load} && " unless module_to_load.empty?
         avail_command <<= "module -t avail 2>&1 | grep -vE '^/|^$'"
@@ -186,7 +199,7 @@ module AlcesJob
             when :lmod
               description = mod_out[/whatis\s*\(\s*["'](.*?)["']\s*\)/m, 1] ||
                             mod_out[/^Description:\s*\n(.*?)(?=^\w[\w ]*:\s*|\z)/m, 1]
-              description = description&.strip
+              description = description&.strip&.sub(/description:/i, '')
 
               category = mod_out[/whatis\("category:\s*(.*?)"\)/i, 1]
               category = category&.strip
