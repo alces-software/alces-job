@@ -8,8 +8,8 @@ require_relative '../../../services/tracking/tracking_methods'
 module AlcesJob
   module CLI
     module Commands
-      class History < Dry::CLI::Command
-        AlcesJob::CLI.register 'history', self
+      class JobHistory < Dry::CLI::Command
+        AlcesJob::CLI.register 'job history', self
 
         desc 'Get a history of the jobs'
 

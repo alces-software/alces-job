@@ -6,8 +6,8 @@ require 'pastel'
 module AlcesJob
   module CLI
     module Commands
-      class GetTracking < Dry::CLI::Command
-        AlcesJob::CLI.register 'tracking', self
+      class JobTracking < Dry::CLI::Command
+        AlcesJob::CLI.register 'job tracking', self
 
         desc 'Get the location of the tracking functions so they can be manually sourced'
 

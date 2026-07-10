@@ -8,8 +8,8 @@ require_relative '../../../services/tracking/tracking_methods'
 module AlcesJob
   module CLI
     module Commands
-      class Status < Dry::CLI::Command
-        AlcesJob::CLI.register 'status', self
+      class JobStatus < Dry::CLI::Command
+        AlcesJob::CLI.register 'job status', self
         desc 'Get the status of jobs'
 
         argument :job_id, required: true, desc: 'The ID of the job'
