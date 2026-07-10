@@ -10,13 +10,12 @@ module AlcesJob
     module Commands
       class Status < Dry::CLI::Command
         AlcesJob::CLI.register 'status', self
+        desc 'Get the status of jobs'
 
         argument :job_id, required: true, desc: 'The ID of the job'
 
         option :verbose, type: :boolean, aliases: ['-v'], default: false, desc: 'Show detailed stage information'
         option :live, type: :boolean, default: false, desc: 'Show Live info about the status of the job'
-
-        desc 'Get the status of jobs'
 
         def call(job_id:, **options)
           verbose = options[:verbose]

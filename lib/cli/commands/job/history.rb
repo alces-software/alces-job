@@ -11,22 +11,11 @@ module AlcesJob
       class History < Dry::CLI::Command
         AlcesJob::CLI.register 'history', self
 
-        option :status,
-               type: :string,
-               values: %w[running completed],
-               desc: 'Filter by job status'
-
-        option :limit,
-               type: :integer,
-               desc: 'Maximum number of jobs to display'
-
-        option :interactive,
-               type: :boolean,
-               aliases: ['-i'],
-               default: false,
-               desc: 'Lets you select a job for more info'
-
         desc 'Get a history of the jobs'
+
+        option :status, type: :string, values: %w[running completed], desc: 'Filter by job status'
+        option :limit, type: :integer, desc: 'Maximum number of jobs to display'
+        option :interactive, type: :boolean, aliases: ['-i'], default: false, desc: 'Lets you select a job for more info'
 
         def call(status: nil, limit: nil, **options)
           pastel = Pastel.new

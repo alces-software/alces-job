@@ -9,9 +9,9 @@ module AlcesJob
       class GetTracking < Dry::CLI::Command
         AlcesJob::CLI.register 'tracking', self
 
-        option :pretty, type: :boolean, aliases: ['-p'], default: false, desc: 'Output data in a nicer format'
-
         desc 'Get the location of the tracking functions so they can be manually sourced'
+
+        option :pretty, type: :boolean, aliases: ['-p'], default: false, desc: 'Output data in a nicer format'
 
         def call(**options)
           pastel = Pastel.new
