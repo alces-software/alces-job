@@ -25,8 +25,18 @@ module AlcesJob
       def self.all_info
         {
           partitions: partition_info,
-          packages: package_info
+          packages: package_info,
+          max_array_size: max_array_size
         }
+      end
+
+      def self.max_array_size
+        stdout, _, status =
+          Open3.capture3('scontrol show config | grep MaxArraySize')
+
+        return nil unless status.success?
+
+        stdout.split('=').last.strip.to_i
       end
 
       # Returns a summary of available Slurm partitions.

@@ -100,6 +100,7 @@ module AlcesJob
           all_info = Services::SysInfo.load_info
           partition_info = all_info[:partitions]
           package_info = all_info[:packages]
+          @max_array_size = all_info[:max_array_size]
 
           unless valid_partition_info?(partition_info)
             partition_info = prompt_for_partition_info(prompt)
@@ -111,7 +112,7 @@ module AlcesJob
           # ------------------------------------------------------------
           system('clear')
           animation(pastel)
-          puts pastel.bold.cyan("Welcome to the interactive wizard!\n")
+          puts pastel.bold.cyan("\nWelcome to Interactive Mode!\n")
           prompt.keypress("[Press #{pastel.bold('enter')} to continue] ")
           system('clear')
 
@@ -131,7 +132,7 @@ module AlcesJob
           puts "\nDo not worry if you are unsure - sensible default values will be provided.\n\n"
           puts pastel.yellow('Tip: Enlarge your terminal screen for a better experience.')
           puts "\nAt the end, you will be able to preview the generated script before saving it.\n\n"
-          key = prompt.keypress('[Press any key to continue, or q to quit]')
+          key = prompt.keypress("[Press #{pastel.bold('any key')} to continue, or q to quit]")
           system('clear')
           exit(0) if key == 'q'
           puts pastel.underline.magenta.bold("\nJob Types")
@@ -199,6 +200,7 @@ module AlcesJob
           loop do
             generator = AlcesJob::Services::ScriptGenerator.new(flags.merge(template: job_type)) unless manual_editing
             script = final_script || generator.generate
+            system('clear')
 
             puts "\n#{TTY::Box.frame(
               script,
@@ -535,7 +537,7 @@ module AlcesJob
                 partition[:max_gpus]
               ]
             end
-          )}\n"
+          )}\n\n"
 
           flags[key] = prompt.select(pastel.bold.cyan(question), available_partitions.map { |partition| partition[:name] }, per_page: 10) do |menu|
             menu.default(partition_info.keys.find_index(flags[:partition].to_sym) + 1) if !flags[:partition].nil? && partition_info.key?(flags[:partition].to_sym)
@@ -581,7 +583,7 @@ module AlcesJob
           max_cpu_cores = selected_partition[:max_cpu_cores].to_i
 
           puts pastel.bold.green("\nCPU Cores\n")
-          puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer. Each CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}. Ask for more only if your code uses threading, multiprocessing, or software that can run in parallel.\n\n"
+          puts "The #{pastel.bold('CPU')} (Central Processing Unit) is the brain of the computer. Each CPU contains a number of #{pastel.bold('cores')} that help your job do its work.\n\nMost normal Python, R, or shell scripts only use #{pastel.underline('1 core')}. Ask for more only if your code uses threading, multiprocessing, or software that can run in parallel.\n\n"
           puts "The max number of CPU cores per node on partition #{pastel.bold(selected_partition[:name])} is #{max_cpu_cores}.\n\n"
 
           flags[key] = prompt.ask(pastel.bold.green(question), default: flags[key] || DEFAULT_VALUES[key]) do |q|
@@ -670,7 +672,7 @@ module AlcesJob
         # @param [TTY::Prompt] prompt
         # @param [Pastel::Delegator] pastel
         def track_question(key, question, flags, pastel, prompt)
-          puts pastel.bold.green("\Job Tracking\n")
+          puts pastel.bold.green("\nJob Tracking\n")
           puts "This will source and inject tracking functions into your script. \nThis step is #{pastel.underline('optional')}."
           puts "\nWhen you run a job script with the tracking functions inside it, \nyou can see the progress of your script using #{pastel.bold.cyan('alces-job status <JOB_ID>')}"
           puts "\nIf you have multiple sections in your script, you can wrap them \nwith #{pastel.cyan('alces_start_stage')} and #{pastel.cyan('alces_end_stage')} so that they can be tracked.\n\n"
@@ -808,8 +810,7 @@ module AlcesJob
         # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
         def array_question(key, question, flags, pastel, prompt)
-          max_array_size = 1001
-
+          max_array_size = 1001 if max_array_size.is_a?(Hash) && max_array_size.empty?
           puts pastel.bold.bright_magenta("\nArray Job\n")
           puts "A Slurm array job runs the #{pastel.bold.underline('same job many times')} with different task IDs.\n\n"
           puts "This is useful when you want to run the same script for many inputs, files, seeds, or parameters.\n\n"
@@ -957,75 +958,156 @@ module AlcesJob
         def animation(pastel)
           skipped = false
 
-          logo = <<~LOGO
-                  -=++++#{'                                                         '}
-               :+++++++.#{'                                                         '}
-             :++++++++:#{'                                                          '}
-            :++++++++=#{'                                                           '}
-            +++++++++:#{'                                                           '}
-            +++++++++   .+++=#{'                                                    '}
-            +++++++++- -++++:#{'                                                    '}
-            -+++++++++++++++#{'                                                     '}
-            -+++++++++++++++     -#{'                                               '}
-             =++++++++++++++:  =++-#{'                                              '}
-              :++++++++++++++-++++:#{'                                              '}
-                =++++++++++++++++=#{'                                               '}
-                 :++++++++++++++++=                                      -+#{'      '}
-                   -=++++++++++++++-                              .     -+++#{'     '}
-                     :++++++++++++++=                     --     =+-    +++++#{'    '}
-                        -+++++++++++++-                  +++.   ++++   ++++++:#{'   '}
-                           =++++++++++++-             --++++.-=+++++ -+++++++:#{'   '}
-                              -++++++++++++-+++==++++++++++++++++++++++++++++#{'    '}
-                                 =++++++++++++++++++++++++++++++++++++++++++:#{'    '}
-                                   -++++++++++++++++++++++++++++++++++++++-#{'      '}
-                                     +++++++++++++=-+++++++++++++++++++=:#{'        '}
-                                        --+++++++++=        +----:=#{'              '}
-                                             .=+++++#{'                             '}
-                                                 -+-#{'                             '}
-          LOGO
+          # logo = <<~LOGO
+          #         -=++++#{'                                                         '}
+          #      :+++++++.#{'                                                         '}
+          #    :++++++++:#{'                                                          '}
+          #   :++++++++=#{'                                                           '}
+          #   +++++++++:#{'                                                           '}
+          #   +++++++++   .+++=#{'                                                    '}
+          #   +++++++++- -++++:#{'                                                    '}
+          #   -+++++++++++++++#{'                                                     '}
+          #   -+++++++++++++++     -#{'                                               '}
+          #    =++++++++++++++:  =++-#{'                                              '}
+          #     :++++++++++++++-++++:#{'                                              '}
+          #       =++++++++++++++++=#{'                                               '}
+          #        :++++++++++++++++=                                      -+#{'      '}
+          #          -=++++++++++++++-                              .     -+++#{'     '}
+          #            :++++++++++++++=                     --     =+-    +++++#{'    '}
+          #               -+++++++++++++-                  +++.   ++++   ++++++:#{'   '}
+          #                  =++++++++++++-             --++++.-=+++++ -+++++++:#{'   '}
+          #                     -++++++++++++-+++==++++++++++++++++++++++++++++#{'    '}
+          #                        =++++++++++++++++++++++++++++++++++++++++++:#{'    '}
+          #                          -++++++++++++++++++++++++++++++++++++++-#{'      '}
+          #                            +++++++++++++=-+++++++++++++++++++=:#{'        '}
+          #                               --+++++++++=        +----:=#{'              '}
+          #                                    .=+++++#{'                             '}
+          #                                        -+-#{'                             '}
+          # LOGO
 
-          puts
-          logo.each_line do |line|
-            if interrupted?
-              $stdin.getch
-              skipped = true
-              system('clear')
-              break
-            end
+          # puts
+          # logo.each_line do |line|
+          #   if interrupted?
+          #     $stdin.getch
+          #     skipped = true
+          #     system('clear')
+          #     break
+          #   end
 
-            sleep(0.08)
-            puts pastel.bold.cyan(line.rstrip)
-          end
+          #   sleep(0.08)
+          #   puts pastel.bold.cyan(line.rstrip)
+          # end
 
-          return if skipped
+          # return if skipped
 
-          sleep(1)
-          system('clear')
+          # sleep(1)
+          # system('clear')
 
-          banner = <<~BANNER
+          # banner = <<~BANNER
+          #    █████╗ ██╗      ██████╗███████╗███████╗
+          #   ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝
+          #   ███████║██║     ██║     █████╗  ███████╗
+          #   ██╔══██║██║     ██║     ██╔══╝  ╚════██║
+          #   ██║  ██║███████╗╚██████╗███████╗███████║
+          #   ╚═╝  ╚═╝╚══════╝ ╚═════╝╚══════╝╚══════╝
+
+          #        ██╗ ██████╗ ██████╗
+          #        ██║██╔═══██╗██╔══██╗
+          #        ██║██║   ██║██████╔╝
+          #   ██   ██║██║   ██║██╔══██╗
+          #   ╚█████╔╝╚██████╔╝██████╔╝
+          #    ╚════╝  ╚═════╝ ╚═════╝
+
+          #   ██╗███╗   ██╗████████╗███████╗██████╗  █████╗  ██████╗████████╗██╗██╗   ██╗███████╗
+          #   ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝██║██║   ██║██╔════╝
+          #   ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝███████║██║        ██║   ██║██║   ██║█████╗
+          #   ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗██╔══██║██║        ██║   ██║╚██╗ ██╔╝██╔══╝
+          #   ██║██║ ╚████║   ██║   ███████╗██║  ██║██║  ██║╚██████╗   ██║   ██║ ╚████╔╝ ███████╗
+          #   ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝   ╚═╝   ╚═╝  ╚═══╝  ╚══════╝
+          # BANNER
+
+          # puts
+          # banner.each_line do |line|
+          #   if interrupted?
+          #     $stdin.getch
+          #     skipped = true
+          #     system('clear')
+          #     break
+          #   end
+
+          #   sleep(0.08)
+          #   puts pastel.bold.cyan(line.rstrip)
+          # end
+
+          # return if skipped
+
+          # sleep(0.2)
+          # puts
+          #
+          #
+          alces = <<~ALCES.chomp
              █████╗ ██╗      ██████╗███████╗███████╗
             ██╔══██╗██║     ██╔════╝██╔════╝██╔════╝
             ███████║██║     ██║     █████╗  ███████╗
             ██╔══██║██║     ██║     ██╔══╝  ╚════██║
             ██║  ██║███████╗╚██████╗███████╗███████║
             ╚═╝  ╚═╝╚══════╝ ╚═════╝╚══════╝╚══════╝
+          ALCES
 
+          job = <<~JOB.chomp
                  ██╗ ██████╗ ██████╗
                  ██║██╔═══██╗██╔══██╗
                  ██║██║   ██║██████╔╝
             ██   ██║██║   ██║██╔══██╗
             ╚█████╔╝╚██████╔╝██████╔╝
              ╚════╝  ╚═════╝ ╚═════╝
+          JOB
 
+          icon = <<~ICON.chomp
+            'o`
+            'ooo`
+            `oooo`
+             `oooo`         'o`
+               `ooooo`  `ooooo
+                  `oooo:oooo`
+                     `v`
+          ICON
+
+          interactive = <<~INTERACTIVE.chomp
             ██╗███╗   ██╗████████╗███████╗██████╗  █████╗  ██████╗████████╗██╗██╗   ██╗███████╗
             ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝██║██║   ██║██╔════╝
             ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝███████║██║        ██║   ██║██║   ██║█████╗
             ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗██╔══██║██║        ██║   ██║╚██╗ ██╔╝██╔══╝
             ██║██║ ╚████║   ██║   ███████╗██║  ██║██║  ██║╚██████╗   ██║   ██║ ╚████╔╝ ███████╗
             ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝   ╚═╝   ╚═╝  ╚═══╝  ╚══════╝
-          BANNER
+          INTERACTIVE
+
+          job_lines = job.lines.map(&:chomp)
+          icon_lines = icon.lines.map(&:chomp)
+
+          top_height = [job_lines.length, icon_lines.length].max
+          job_width = job_lines.map { |line| visible_length(line) }.max || 0
+
+          job_and_icon = (0...top_height).map do |index|
+            job_line = job_lines[index] || ''
+            icon_line = icon_lines[index] || ''
+
+            padding = job_width - visible_length(job_line) + 29
+
+            job_line + (' ' * padding) + icon_line
+          end.join("\n")
+
+          banner = [
+            '',
+            alces,
+            '',
+            job_and_icon,
+            '',
+            interactive
+          ].join("\n")
 
           puts
+
           banner.each_line do |line|
             if interrupted?
               $stdin.getch
@@ -1035,13 +1117,23 @@ module AlcesJob
             end
 
             sleep(0.08)
-            puts pastel.bold.cyan(line.rstrip)
+
+            # Reapply cyan after any white sections reset the terminal colour.
+            coloured_line = pastel.bold.cyan(line.rstrip)
+            puts coloured_line
           end
 
-          return if skipped
+          if skipped
+            puts
+            puts pastel.bold.cyan(banner)
+          end
 
           sleep(0.2)
           puts
+        end
+
+        def visible_length(text)
+          text.gsub(/\e\[[0-9;]*m/, '').length
         end
 
         def interrupted?
