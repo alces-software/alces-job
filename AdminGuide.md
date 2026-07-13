@@ -67,7 +67,10 @@ flags:
     default: 4G
     warn: true
   modules:
-    default: Bison/3.8.2-GCCcore-15.2.0, GCC/15.2.0, GCCcore/15.2.0
+    default: 
+  - Bison/3.8.2-GCCcore-15.2.0
+  - GCC/15.2.0
+  - GCCcore/15.2.0
     warn: true
 module_blacklist:
   - Bison/3.8.2-GCCcore-15.2.0
