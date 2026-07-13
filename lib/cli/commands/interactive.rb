@@ -249,10 +249,6 @@ module AlcesJob
                     edited_script = script
                   end
 
-                  validator.warnings.each do |warning|
-                    warn pastel.yellow("Warning: #{warning}")
-                  end
-
                   box_width = (script.lines.map { |line| line.chomp.length }.max || 0) + 4
                   puts "\n#{TTY::Box.frame(
                     edited_script,
@@ -263,6 +259,11 @@ module AlcesJob
                     border: :thick,
                     width: box_width
                   )}"
+
+                  puts unless validator.warnings.zero?
+                  validator.warnings.each do |warning|
+                    warn pastel.yellow("Warning: #{warning}")
+                  end
 
                   begin
                     AlcesJob::Services::Editor.show_removed_lines(old_script, script, pastel)
