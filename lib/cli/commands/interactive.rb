@@ -119,6 +119,7 @@ module AlcesJob
           )
 
           spinner.update(title: 'Loading system information')
+          spinner.auto_spin
 
           all_info = Services::SysInfo.load_info
           partition_info = all_info[:partitions]
@@ -1038,10 +1039,12 @@ module AlcesJob
         # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
         def error_file_question(key, question, flags, pastel, prompt)
-          puts pastel.bold.cyan("\Error File\n")
+          return if flags[:prepare]
+
+          puts pastel.bold.red("\Error File\n")
           puts "What you would like to call the error output file which is generated automatically by the slurm scrip\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.cyan(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
+          flags[key] = prompt.ask(pastel.bold.red(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
             q.validate do |input|
               input.to_s.match?(/\A[A-Za-z0-9_-]+\z/)
             end
@@ -1056,10 +1059,12 @@ module AlcesJob
         # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
         def output_file_question(key, question, flags, pastel, prompt)
-          puts pastel.bold.cyan("\nOutput File\n")
-          puts "What you would like to call the output file which is generated automatically by the slurm scrip\n\n"
+          return if flags[:prepare]
 
-          flags[key] = prompt.ask(pastel.bold.cyan(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
+          puts pastel.bold.yellow("\nOutput File\n")
+          puts "What you would like to call the output file which is generated automatically by the slurm script\n\n"
+
+          flags[key] = prompt.ask(pastel.bold.yellow(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
             q.validate do |input|
               input.to_s.match?(/\A[A-Za-z0-9_-]+\z/)
             end
