@@ -1024,12 +1024,12 @@ module AlcesJob
           puts pastel.bold.cyan("\File Name\n")
           puts "What you would like to call the file that is generated this defaults to the job name\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.cyan(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
+          flags[key] = "#{prompt.ask(pastel.bold.cyan(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
             q.validate do |input|
               input.to_s.match?(/\A[A-Za-z0-9_-]+\z/)
             end
             q.messages[:valid?] = 'Please enter a valid file name. Only letters, hyphens (-), and underscores (_) are allowed.'
-          end
+          end}.slurm"
         end
 
         # Prompts the user for the error output file settings for the script
@@ -1038,18 +1038,18 @@ module AlcesJob
         # @param [Hash] flags
         # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
-        def error_file_question(key, question, flags, pastel, prompt)
+        def error_file_question(key, _question, flags, pastel, _prompt)
           return if flags[:prepare]
 
           puts pastel.bold.red("\Error File\n")
           puts "What you would like to call the error output file which is generated automatically by the slurm scrip\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.red(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
+          flags[key] = "#{prompt.ask(pastel.bold.red(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
             q.validate do |input|
               input.to_s.match?(/\A[A-Za-z0-9_-]+\z/)
             end
             q.messages[:valid?] = 'Please enter a valid file name. Only letters, hyphens (-), and underscores (_) are allowed.'
-          end
+          end}.err"
         end
 
         # Prompts the user for the output file settings for the script
@@ -1064,12 +1064,12 @@ module AlcesJob
           puts pastel.bold.yellow("\nOutput File\n")
           puts "What you would like to call the output file which is generated automatically by the slurm script\n\n"
 
-          flags[key] = prompt.ask(pastel.bold.yellow(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
+          flags[key] = "#{prompt.ask(pastel.bold.yellow(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
             q.validate do |input|
               input.to_s.match?(/\A[A-Za-z0-9_-]+\z/)
             end
             q.messages[:valid?] = 'Please enter a valid file name. Only letters, hyphens (-), and underscores (_) are allowed.'
-          end
+          end}.out"
         end
 
         # ------------------------------------------------------------
