@@ -45,7 +45,7 @@ module AlcesJob
             exit "$exit_status"
           }
           alces_setup_local_scratch
-          trap alces_copy_results_back EXIT
+          trap alces_cleanup EXIT
         BASH
       end
     end
