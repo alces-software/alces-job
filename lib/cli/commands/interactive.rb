@@ -1295,7 +1295,8 @@ module AlcesJob
                 name: name,
                 version: version || 'default',
                 description: 'User-provided module',
-                deprecated: false
+                deprecated: false,
+                dependency: []
               }
             end
           }
