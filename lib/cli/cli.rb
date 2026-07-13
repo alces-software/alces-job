@@ -41,9 +41,7 @@ require_relative 'commands/modify'
 require_relative 'commands/completion'
 
 # Load job status commands
-require_relative 'commands/job/status'
-require_relative 'commands/job/history'
-require_relative 'commands/job/tracking_functions'
+require_relative 'commands/job'
 
 # Load module commands
 require_relative 'commands/module'
