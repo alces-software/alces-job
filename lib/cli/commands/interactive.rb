@@ -111,7 +111,8 @@ module AlcesJob
           all_info = Services::SysInfo.load_info
           partition_info = all_info[:partitions]
           package_info = all_info[:packages]
-          @max_array_size = all_info[:max_array_size]
+          max_array_size = all_info[:max_array_size]
+          max_array_size = 1001 if max_array_size.is_a?(Hash) && max_array_size.empty?
 
           if valid_partition_info?(partition_info)
             spinner.success('(Info loaded)')
@@ -197,7 +198,7 @@ module AlcesJob
             when :gres
               gres_question(key, question, flags, pastel, prompt, partition_info)
             when :array
-              array_question(key, question, flags, pastel, prompt)
+              array_question(key, question, flags, pastel, prompt, max_array_size)
             when :track
               track_question(key, question, flags, pastel, prompt)
             end
@@ -413,7 +414,7 @@ module AlcesJob
             when :cpus_per_task
               cpus_per_task_question(field, job_specific_questions[field], flags, pastel, prompt, partition_info)
             when :array
-              array_question(field, job_specific_questions[field], flags, pastel, prompt)
+              array_question(field, job_specific_questions[field], flags, pastel, prompt, max_array_size)
             when :prepare
               prepare_question(field, job_specific_questions[field], flags, pastel, prompt)
             when :job_name
@@ -847,8 +848,7 @@ module AlcesJob
         # @param [Hash] flags
         # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
-        def array_question(key, question, flags, pastel, prompt)
-          max_array_size = 1001 if max_array_size.is_a?(Hash) && max_array_size.empty?
+        def array_question(key, question, flags, pastel, prompt, max_array_size)
           puts pastel.bold.bright_magenta("\nArray Job\n")
           puts "A Slurm array job runs the #{pastel.bold.underline('same job many times')} with different task IDs.\n\n"
           puts "This is useful when you want to run the same script for many inputs, files, seeds, or parameters.\n\n"
