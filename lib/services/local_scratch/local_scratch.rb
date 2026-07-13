@@ -33,6 +33,17 @@ module AlcesJob
             return "$exit_status"
           }
 
+          alces_cleanup() {
+            local exit_status=$?
+
+            alces_copy_results_back
+
+            if command -v alces_end_job >/dev/null 2>&1; then
+              alces_end_job "$exit_status"
+            fi
+
+            exit "$exit_status"
+          }
           alces_setup_local_scratch
           trap alces_copy_results_back EXIT
         BASH
