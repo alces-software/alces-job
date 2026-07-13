@@ -245,13 +245,13 @@ module AlcesJob
                 validator.errors.each do |error|
                   warn pastel.red("Error: #{error}")
                 end
-
-                validator.warnings.each do |warning|
-                  warn pastel.yellow("Warning: #{warning}")
-                end
-
-                exit(1)
               end
+
+              validator.warnings.each do |warning|
+                warn pastel.yellow("Warning: #{warning}")
+              end
+
+              exit(1) unless validator.validate?
             end
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))
