@@ -112,7 +112,7 @@ module AlcesJob
           partition_info = all_info[:partitions]
           package_info = all_info[:packages]
           max_array_size = all_info[:max_array_size]
-          max_array_size = 1001 if max_array_size.is_a?(Hash) && max_array_size.empty?
+          max_array_size = 1001 if max_array_size.nil? || !max_array_size
 
           if valid_partition_info?(partition_info)
             spinner.success('(Info loaded)')
