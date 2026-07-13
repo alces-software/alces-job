@@ -50,7 +50,7 @@ module AlcesJob
                 spinner.error(pastel.red('(Already exists)'))
 
                 warn pastel.red("\nSystem information already exists.")
-                warn pastel.yellow("Remove the existing system information file and try again.\n")
+                warn pastel.yellow('Run alces-job sysinfo update to update the existing file.')
 
                 exit(1)
               end

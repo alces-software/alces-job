@@ -293,7 +293,7 @@ module AlcesJob
 
             local_scratch_lines << line if inside_local_scratch
 
-            if inside_local_scratch && stripped == 'trap alces_copy_results_back EXIT'
+            if inside_local_scratch && stripped.match?(/\Atrap\s+(alces_copy_results_back|alces_cleanup)\s+EXIT\z/)
               inside_local_scratch = false
               break
             end
@@ -359,10 +359,11 @@ module AlcesJob
             edited_script << '' if existing_prepare
           elsif options[:prepare]
             edited_script << ''
-            Services::Prepare.directives.lines(chomp: true).reject do |line|
+            prepare_directives = Services::Prepare.directives.lines(chomp: true).reject do |line|
               (options[:output] && line.start_with?('#SBATCH --output')) ||
                 (options[:error] && line.start_with?('#SBATCH --error'))
-            end.each do |line|
+            end
+            prepare_directives.each do |line|
               edited_sbatch << line
             end
             edited_script << Services::Prepare.helper

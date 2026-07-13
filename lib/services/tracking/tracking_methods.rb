@@ -173,7 +173,7 @@ module AlcesJob
         path = Services::Paths.new.user_job_dir
 
         jobs = Dir.children(path).map do |job|
-          load_job_status(job, true)
+          load_job_status(job, silent: true)
         end
 
         jobs = jobs.select do |job|
