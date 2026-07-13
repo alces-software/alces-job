@@ -270,7 +270,7 @@ module AlcesJob
 
             local_scratch_lines << line if inside_local_scratch
 
-            if inside_local_scratch && stripped == 'trap alces_copy_results_back EXIT'
+            if inside_local_scratch && stripped.match?(/\Atrap\s+(alces_copy_results_back|alces_cleanup)\s+EXIT\z/)
               inside_local_scratch = false
               break
             end
