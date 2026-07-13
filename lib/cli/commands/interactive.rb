@@ -283,6 +283,7 @@ module AlcesJob
                   begin
                     AlcesJob::Services::Editor.show_removed_lines(old_script, script, pastel)
                   rescue StandardError
+                    puts
                     puts pastel.bold.yellow("WARNING: No diff executable found - can't show difference in script. Proceed with caution.")
                   end
                   puts

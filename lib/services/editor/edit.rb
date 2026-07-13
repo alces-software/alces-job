@@ -73,8 +73,6 @@ module AlcesJob
 
           show_removed_lines(old_content, new_content, pastel)
         rescue StandardError
-          puts pastel.bold.yellow("WARNING: No diff executable found - can't show difference in script. Proceed with caution.")
-
           puts TTY::Box.frame(
             new_content,
             title: {
@@ -84,6 +82,10 @@ module AlcesJob
             border: :thick,
             width: box_width
           )
+
+          puts
+
+          puts pastel.bold.yellow("WARNING: No diff executable found - can't show difference in script. Proceed with caution.")
         end
       end
 
