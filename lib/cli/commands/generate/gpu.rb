@@ -113,29 +113,41 @@ module AlcesJob
           if !options[:modules].nil? && !options[:modules].empty?
             packages_info = Services::SysInfo.load_info[:packages]
 
-            deprecated_module = false
-            output = []
+            deprecated_output = []
+            dependency_output = []
             packages_info.to_h.each_value do |package_group|
               package_group.each do |package|
-                next unless options[:modules].include?(package[:full_name]) && package[:deprecated]
-
-                deprecated_module = true
-                output << pastel.yellow("#{package[:full_name]} is deprecated")
+                if options[:modules].include?(package[:full_name])
+                  if package[:deprecated]
+                    deprecated_output << pastel.yellow("#{package[:full_name]} is deprecated")
+                  elsif !package[:dependency].empty?
+                    package[:dependency].each do |dep|
+                      dependency_output << pastel.yellow("Requirement #{dep} will be loaded")
+                    end
+                  end
+                end
               end
             end
 
-            if deprecated_module
-              spinner.error('(Deprecated module)')
+            unless deprecated_output.empty?
+              spinner.error(pastel.yellow('(Deprecated module)'))
 
               puts
-              output.each do |line|
+              deprecated_output.each do |line|
                 puts line
               end
 
-              return unless prompt.yes?("\none or more of your packages is deprecated do you want to continue?")
+              return unless prompt.yes?("\nOne or more of your packages is deprecated do you want to continue?")
             end
 
-            return if deprecated_module && !spinner.auto_spin
+            unless dependency_output.empty?
+              spinner.error(pastel.yellow('(Requirements)'))
+
+              puts
+              dependency_output.each do |line|
+                puts line
+              end
+            end
           end
 
           # ------------------------------------------------------------
@@ -228,6 +240,8 @@ module AlcesJob
             exit(1)
           end
 
+          spinner.success(pastel.green('(Written)'))
+
           # ------------------------------------------------------------
           # Validate before saving
           # ------------------------------------------------------------
@@ -241,7 +255,9 @@ module AlcesJob
 
               validator = Services::SlurmScriptValidator.new(tempfile.path)
 
-              unless validator.validate?
+              if validator.validate?
+                spinner.success(pastel.green('(Validated)'))
+              else
                 spinner.error(pastel.red('(Invalid script)'))
 
                 warn pastel.red("\nThe generated SBATCH script is not valid and was not saved.\n")
