@@ -35,6 +35,7 @@
 <% if @context.prepare -%>
 <%= @prepare.directives %>
 <% end -%>
+
 module purge
 module load openmpi
 <%= line.ljust(50) %># Load OpenMPI so MPI programs can run

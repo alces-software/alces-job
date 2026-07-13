@@ -35,6 +35,7 @@
 <%if @context.prepare -%>
 <%= @prepare.directives %>
 <%end -%>
+
 <% unless Array(@context.modules).empty? -%>
 module purge
 <% end -%>

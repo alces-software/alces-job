@@ -52,6 +52,7 @@
 <% if @context.prepare -%>
 <%= @prepare.directives %>
 <% end -%>
+
 module purge
 module load cuda
 <%= line.ljust(50) %># Load CUDA for GPU support
