@@ -230,6 +230,7 @@ module AlcesJob
               tempfile.flush
 
               validator = Services::SlurmScriptValidator.new(tempfile.path)
+              puts if validator.errors.any? || validator.warnings.any?
 
               unless validator.validate?
                 spinner.error(pastel.red('(Invalid script)'))
