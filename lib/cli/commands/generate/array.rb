@@ -98,7 +98,7 @@ module AlcesJob
           end
 
           # ------------------------------------------------------------
-          # Generate script
+          # Handle array options
           # ------------------------------------------------------------
           puts
           spinner.update(title: 'generating SBATCH script')
@@ -120,6 +120,9 @@ module AlcesJob
 
           options[:template] = 'array'
 
+          # ------------------------------------------------------------
+          # Check modules
+          # ------------------------------------------------------------
           if !options[:modules].nil? && !options[:modules].empty?
             packages_info = Services::SysInfo.load_info[:packages]
 
@@ -148,8 +151,14 @@ module AlcesJob
             return if deprecated_module && !spinner.auto_spin
           end
 
+          # ------------------------------------------------------------
+          # Inject tracking
+          # ------------------------------------------------------------
           Services::Tracking.inject_tracking(options)
 
+          # ------------------------------------------------------------
+          # Generate script
+          # ------------------------------------------------------------
           generator = Services::ScriptGenerator.new(options)
           script = generator.generate
 
