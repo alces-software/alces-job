@@ -778,6 +778,8 @@ module AlcesJob
             package_group.each do |package|
               next unless flags[key].include?(package[:full_name])
 
+              next if package[:dependency].nil?
+
               package[:dependency].each do |dep|
                 has_dependency = true
                 puts pastel.yellow("Requirement #{dep} will be loaded")

@@ -13,6 +13,7 @@ require_relative '../../services/module_extractor/module_extractor'
 require_relative '../../services/prepare/prepare'
 require_relative '../../services/local_scratch/local_scratch'
 require_relative '../../services/editor/edit'
+require_relative '../../services/tracking/tracking_methods'
 
 # Load subcommand
 require_relative 'modify/remove'
@@ -46,12 +47,14 @@ module AlcesJob
         option :workdir, type: :string, desc: 'Run the job from the specified working directory'
         option :output_file, aliases: ['-o'], type: :string, desc: 'Writes the modified script to this output filename'
         option :submit, type: :boolean, default: false, desc: 'Submit the generated job script to Slurm automatically'
-        option :prepare, type: :boolean, default: false, desc: 'Prepare - CHANGE THIS'
-        option :prepare_disable, type: :boolean, default: false, desc: 'Unprepare - CHANGEE THIS'
+        option :prepare, type: :boolean, default: false, desc: 'Enables job preparation for working directory'
+        option :prepare_disable, type: :boolean, default: false, desc: 'Disables job preparation for working directory'
         option :local_scratch, type: :boolean, default: false, desc: 'Enable local scratch setup'
         option :local_scratch_disable, type: :boolean, default: false, desc: 'Disable local scratch setup'
         option :scratch_path, type: :string, desc: 'Set the local scratch base path'
         option :yes, type: :boolean, default: false, desc: 'Skip the confirmation prompt when submitting'
+        option :track, type: :boolean, default: false, desc: 'Injects tracking functions into the script'
+        option :track_disable, type: :boolean, default: false, desc: 'Disables tracking functions from the script'
 
         def initialize
           @sbatch_options = {
@@ -240,6 +243,26 @@ module AlcesJob
           job_name = options[:job_name] || find_existing_job_name(lines) || 'slurm_job'
           edited_script << ''
 
+          # Find existing track lines
+          track_lines = []
+          inside_track = false
+
+          lines.each do |line|
+            stripped = line.strip
+
+            inside_track = true if stripped == '# Tracking Functions:' ||
+                                   stripped.match?(%r{\Asource .*/helper_functions/functions\.bash\z})
+
+            track_lines << line if inside_track
+
+            if inside_track && stripped.start_with?('alces_start_stage')
+              inside_track = false
+              break
+            end
+          end
+
+          existing_track = track_lines.any?
+
           # Find exisitng prepare lines
           prepare_lines = []
           inside_prepare = false
@@ -277,7 +300,8 @@ module AlcesJob
           end
 
           existing_local_scratch = local_scratch_lines.any?
-          managed_setup_lines = prepare_lines + local_scratch_lines
+
+          managed_setup_lines = track_lines + prepare_lines + local_scratch_lines
 
           existing_cd_line = lines.find { |line| line.strip.start_with?('cd ') && !managed_setup_lines.include?(line) }
           existing_modules = lines.select { |line| line.strip.start_with?('module load ') }.map { |line| line.strip.sub(/^module load\s+/, '') }
@@ -308,7 +332,32 @@ module AlcesJob
             used_modules << m
           end
 
-          if options[:prepare]
+          Services::Tracking.inject_tracking(options) if options[:track] && !options[:track_disable]
+
+          if options[:track_disable]
+            edited_script << ''
+
+          elsif options[:track]
+            edited_script << ''
+            edited_script << '# Tracking Functions:'
+            edited_script << "source #{Shellwords.escape(options[:tracking_path])}"
+            edited_script << "export ALCES_HOMEPATH=#{Shellwords.escape(options[:job_path])}"
+            edited_script << 'export ALCES_TOTAL_STAGES=1'
+            edited_script << ''
+            edited_script << 'alces_start_job'
+            edited_script << ''
+            edited_script << 'alces_start_stage'
+
+          elsif existing_track
+            edited_script << ''
+            track_lines.each do |line|
+              edited_script << line
+            end
+          end
+
+          if options[:prepare_disable]
+            edited_script << '' if existing_prepare
+          elsif options[:prepare]
             edited_script << ''
             prepare_directives = Services::Prepare.directives.lines(chomp: true).reject do |line|
               (options[:output] && line.start_with?('#SBATCH --output')) ||
@@ -318,8 +367,6 @@ module AlcesJob
               edited_sbatch << line
             end
             edited_script << Services::Prepare.helper
-          elsif options[:prepare_disable] && existing_prepare
-            edited_script << ''
           elsif existing_prepare
             edited_script << ''
             prepare_lines.each do |line|
@@ -327,13 +374,13 @@ module AlcesJob
             end
           end
 
-          if options[:local_scratch]
+          if options[:local_scratch_disable]
+            edited_script << '' if existing_local_scratch
+          elsif options[:local_scratch]
             edited_script << ''
             Services::LocalScratch.helper(scratch_path: options[:scratch_path]).lines(chomp: true).each do |line|
               edited_script << line
             end
-          elsif options[:local_scratch_disable] && existing_local_scratch
-            edited_script << ''
           elsif existing_local_scratch
             edited_script << ''
             local_scratch_lines.each do |line|
@@ -352,6 +399,7 @@ module AlcesJob
               next unless line.strip.start_with?('#')
               next if line.start_with?('#!', '#SBATCH')
               next if managed_setup_lines.include?(line)
+              next if options[:track_disable] && line.strip == 'alces_end_stage'
 
               edited_script << line
             end
@@ -366,9 +414,16 @@ module AlcesJob
               next if line.strip.start_with?('cd ')
               next if line.strip.match?(/\Aecho\s+["']Running job\b/)
               next if line.empty? && edited_script.last == ''
+              next if options[:track_disable] && line.strip == 'alces_end_stage'
 
               edited_script << line
             end
+          end
+
+          if (options[:track] || existing_track) && !options[:track_disable]
+            edited_script << ''
+            edited_script << 'alces_end_stage'
+
           end
 
           spinner.success(pastel.green('(Successful)'))
