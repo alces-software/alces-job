@@ -263,6 +263,7 @@ module AlcesJob
                   begin
                     AlcesJob::Services::Editor.show_removed_lines(old_script, script, pastel)
                   rescue StandardError
+                    puts
                     puts pastel.bold.yellow("WARNING: No diff executable found - can't show difference in script. Proceed with caution.")
                   end
                   puts
@@ -812,7 +813,7 @@ module AlcesJob
         # @param [Pastel::Delegator] pastel
         # @param [TTY::Prompt] prompt
         def array_question(key, question, flags, pastel, prompt)
-          max_array_size = 1001 if max_array_size.is_a?(Hash) && max_array_size.empty?
+          max_array_size = @max_array_size || 1001
           puts pastel.bold.bright_magenta("\nArray Job\n")
           puts "A Slurm array job runs the #{pastel.bold.underline('same job many times')} with different task IDs.\n\n"
           puts "This is useful when you want to run the same script for many inputs, files, seeds, or parameters.\n\n"
