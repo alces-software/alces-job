@@ -242,14 +242,14 @@ module AlcesJob
 
               unless validator.validate?
                 spinner.error(pastel.red('(Invalid script)'))
-
                 warn pastel.red("\nThe generated SBATCH script is not valid and was not saved.\n")
-
+                puts unless validator.errors.empty?
                 validator.errors.each do |error|
                   warn pastel.red("Error: #{error}")
                 end
               end
 
+              puts unless validator.warnings.empty? && validator.errors.empty?
               validator.warnings.each do |warning|
                 warn pastel.yellow("Warning: #{warning}")
               end
