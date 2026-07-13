@@ -36,7 +36,7 @@
 <%= @prepare.directives %>
 <% end -%>
 module purge
-<%- line = "module load openmpi" -%>
+module load openmpi
 <%= line.ljust(50) %># Load OpenMPI so MPI programs can run
 <% Array(@context.modules).each do |mod| -%>
 <%- line = "module load #{mod}" -%>

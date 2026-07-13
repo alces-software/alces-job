@@ -52,8 +52,8 @@
 <% if @context.prepare -%>
 <%= @prepare.directives %>
 <% end -%>
-<%- line = "module purge" -%>
-<%- line = "module load cuda" -%>
+module purge
+module load cuda
 <%= line.ljust(50) %># Load CUDA for GPU support
 <% Array(@context.modules).each do |mod| -%>
 <%- line = "module load #{mod}" -%>
