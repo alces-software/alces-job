@@ -8,6 +8,7 @@ require 'erb'
 require 'tty-box'
 require 'artii'
 require 'io/console'
+require 'tty-spinner'
 
 require_relative '../../services/sys_info/sys_info'
 require_relative '../../services/paths/paths'
@@ -97,12 +98,25 @@ module AlcesJob
           # ------------------------------------------------------------
           # System information
           # ------------------------------------------------------------
+
+          puts
+          spinner = TTY::Spinner.new(
+            '[:spinner] :title ...',
+            success_mark: pastel.green('✓'),
+            error_mark: pastel.red('✗')
+          )
+
+          spinner.update(title: 'Loading system information')
+
           all_info = Services::SysInfo.load_info
           partition_info = all_info[:partitions]
           package_info = all_info[:packages]
           @max_array_size = all_info[:max_array_size]
 
-          unless valid_partition_info?(partition_info)
+          if valid_partition_info?(partition_info)
+            spinner.success('(Info loaded)')
+          else
+            spinner.error("(Can't gather info)")
             partition_info = prompt_for_partition_info(prompt)
             package_info = prompt_for_packages(prompt)
           end
