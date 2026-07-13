@@ -310,10 +310,11 @@ module AlcesJob
 
           if options[:prepare]
             edited_script << ''
-            Services::Prepare.directives.lines(chomp: true).reject do |line|
+            prepare_directives = Services::Prepare.directives.lines(chomp: true).reject do |line|
               (options[:output] && line.start_with?('#SBATCH --output')) ||
                 (options[:error] && line.start_with?('#SBATCH --error'))
-            end.each do |line|
+            end
+            prepare_directives.each do |line|
               edited_sbatch << line
             end
             edited_script << Services::Prepare.helper

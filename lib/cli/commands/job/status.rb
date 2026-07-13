@@ -36,7 +36,6 @@ module AlcesJob
 
           loop do
             data = Services::Tracking.load_job_status(job_id, silent: true)
-
             table = Services::Tracking.generate_table(data, verbose)
 
             if data['endTime']
