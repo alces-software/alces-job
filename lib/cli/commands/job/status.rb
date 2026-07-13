@@ -8,15 +8,14 @@ require_relative '../../../services/tracking/tracking_methods'
 module AlcesJob
   module CLI
     module Commands
-      class Status < Dry::CLI::Command
-        AlcesJob::CLI.register 'status', self
+      class JobStatus < Dry::CLI::Command
+        AlcesJob::CLI.register 'job status', self
+        desc 'Get the status of jobs'
 
         argument :job_id, required: true, desc: 'The ID of the job'
 
         option :verbose, type: :boolean, aliases: ['-v'], default: false, desc: 'Show detailed stage information'
         option :live, type: :boolean, default: false, desc: 'Show Live info about the status of the job'
-
-        desc 'Get the status of jobs'
 
         def call(job_id:, **options)
           verbose = options[:verbose]
@@ -52,9 +51,9 @@ module AlcesJob
             sleep(0.3)
           end
 
-          # ------------------------------------------------------------
-          # Unexpected errors
-          # ------------------------------------------------------------
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
           warn pastel.red("\nAn unexpected error occurred while running the command.")
           warn pastel.red("#{e.message}\n")

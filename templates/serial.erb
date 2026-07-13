@@ -12,6 +12,14 @@
 <%- line = "#SBATCH --partition=#{@context.partition}" -%>
 <%= line.ljust(50) %># Partition/queue where the job should run
 <% end -%>
+<% if @context.output -%>
+<%- line = "#SBATCH --output=#{@context.output}" -%>
+<%= line.ljust(55) %># Output file of the slurm job
+<% end -%>
+<% if @context.error -%>
+<%- line = "#SBATCH --error=#{@context.error}" -%>
+<%= line.ljust(55) %># Error file of the slurm job
+<% end -%>
 <% if @context.account -%>
 <%- line = "#SBATCH --account=#{@context.account}" -%>
 <%= line.ljust(55) %># Account/project to charge the job to

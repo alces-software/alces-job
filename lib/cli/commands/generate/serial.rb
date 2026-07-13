@@ -219,6 +219,9 @@ module AlcesJob
           # Validate before saving
           # ------------------------------------------------------------
           begin
+            puts
+            spinner.update(title: 'validating SBATCH script')
+            spinner.auto_spin
             Tempfile.create(['generated_script', '.slurm']) do |tempfile|
               tempfile.write(script)
               tempfile.flush
@@ -230,16 +233,20 @@ module AlcesJob
 
                 warn pastel.red("\nThe generated SBATCH script is not valid and was not saved.\n")
 
+                puts unless validator.errors.empty?
+
                 validator.errors.each do |error|
                   warn pastel.red("Error: #{error}")
                 end
-
-                validator.warnings.each do |warning|
-                  warn pastel.yellow("Warning: #{warning}")
-                end
-
-                exit(1)
               end
+
+              puts unless validator.warnings.empty? && validator.errors.empty?
+
+              validator.warnings.each do |warning|
+                warn pastel.yellow("Warning: #{warning}")
+              end
+
+              exit(1) unless validator.validate?
             end
           rescue Errno::ENOSPC
             spinner.error(pastel.red('(Disk full)'))

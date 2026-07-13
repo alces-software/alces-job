@@ -16,8 +16,9 @@ module AlcesJob
 
         desc 'Updates the system information file'
 
-        option :partition, type: :boolean, aliases: ['-p'], default: false, desc: 'Update partition information'
-        option :package, type: :boolean, aliases: ['-k'], default: false, desc: 'Update package information'
+        option :partitions, type: :boolean, aliases: ['-p'], default: false, desc: 'Update partition information'
+        option :packages, type: :boolean, aliases: ['-k'], default: false, desc: 'Update package information'
+        option :max_array_size, type: :boolean, aliases: ['-n'], default: false, desc: 'Updates the max array size'
         option :all, type: :boolean, aliases: ['-a'], default: false, desc: 'Update all system information'
 
         def call(**options)
@@ -96,10 +97,12 @@ module AlcesJob
             else
               filtered_options.each_key do |key|
                 case key
-                when :partition
-                  system_data[:partitions] = Services::SysInfo.partition_info
-                when :package
-                  system_data[:packages] = Services::SysInfo.package_info
+                when :partitions
+                  system_data[key] = Services::SysInfo.partition_info
+                when :packages
+                  system_data[key] = Services::SysInfo.package_info
+                when :max_array_size
+                  system_data[key] = Services::SysInfo.max_array_size
                 end
               end
             end
