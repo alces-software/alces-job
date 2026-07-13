@@ -54,7 +54,7 @@ module AlcesJob
         option :scratch_path, type: :string, desc: 'Set the local scratch base path'
         option :yes, type: :boolean, default: false, desc: 'Skip the confirmation prompt when submitting'
         option :track, type: :boolean, default: false, desc: 'Injects tracking functions into the script'
-        option :track_disable, type: :boolean, default: false, desc: 'Disables tracking functions'
+        option :track_disable, type: :boolean, default: false, desc: 'Disables tracking functions from the script'
 
         def initialize
           @sbatch_options = {
