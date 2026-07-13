@@ -35,7 +35,8 @@ module AlcesJob
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
             track: 'Would you like tracking methods to be injected into the script?',
-            prepare: 'Would you like to prepare this job with a dedicated working directory?'
+            prepare: 'Would you like to prepare this job with a dedicated working directory?',
+            output_file: 'What would you like to call your slurm script file?'
           },
 
           mpi: {
@@ -49,7 +50,8 @@ module AlcesJob
             command: 'What MPI command would you like to run?',
             modules: 'What modules would you like to load?',
             track: 'Would you like tracking methods to be injected into the script?',
-            prepare: 'Would you like to prepare this job with a dedicated working directory?'
+            prepare: 'Would you like to prepare this job with a dedicated working directory?',
+            output_file: 'What would you like to call your slurm script file?'
           },
 
           gpu: {
@@ -62,7 +64,8 @@ module AlcesJob
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
             track: 'Would you like tracking methods to be injected into the script?',
-            prepare: 'Would you like to prepare this job with a dedicated working directory?'
+            prepare: 'Would you like to prepare this job with a dedicated working directory?',
+            output_file: 'What would you like to call your slurm script file?'
           },
 
           array: {
@@ -75,7 +78,8 @@ module AlcesJob
             command: 'What command would you like to run?',
             modules: 'What modules would you like to load?',
             track: 'Would you like tracking methods to be injected into the script?',
-            prepare: 'Would you like to prepare this job with a dedicated working directory?'
+            prepare: 'Would you like to prepare this job with a dedicated working directory?',
+            output_file: 'What would you like to call your slurm script file?'
           }
         }.freeze
 
@@ -201,6 +205,8 @@ module AlcesJob
               array_question(key, question, flags, pastel, prompt, max_array_size)
             when :track
               track_question(key, question, flags, pastel, prompt)
+            when :output_file
+              output_file_question(key, question, flags, pastel, prompt)
             end
           end
 
@@ -426,6 +432,8 @@ module AlcesJob
               command_question(field, job_specific_questions[field], flags, pastel, prompt)
             when :track
               track_question(field, job_specific_questions[field], flags, pastel, prompt)
+            when :output_file
+              output_file_question(field, job_specific_questions[field], flags, pastel, prompt)
             end
 
             next unless valid_manual_editing && final_script
@@ -986,6 +994,24 @@ module AlcesJob
             end
             q.messages[:valid?] = "Please enter a whole number between 1 and #{max_ntasks}"
             q.convert :int
+          end
+        end
+
+        # Prompts the user for the output file settings for the script
+        # @param [Symbol] key
+        # @param [String] question
+        # @param [Hash] flags
+        # @param [Pastel::Delegator] pastel
+        # @param [TTY::Prompt] prompt
+        def output_file_question(key, question, flags, pastel, prompt)
+          puts pastel.bold.cyan("\nOutput File\n")
+          puts "What you would like to call the file that is generated this defaults to the job name\n\n"
+
+          flags[key] = prompt.ask(pastel.bold.cyan(question), default: flags[key] || flags[:job_name] || DEFAULT_VALUES[:job_name]) do |q|
+            q.validate do |input|
+              input.to_s.match?(/\A[A-Za-z0-9_-]+\z/)
+            end
+            q.messages[:valid?] = 'Please enter a valid file name. Only letters, hyphens (-), and underscores (_) are allowed.'
           end
         end
 
