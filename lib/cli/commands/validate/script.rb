@@ -101,10 +101,11 @@ module AlcesJob
           # Return a non-zero exit code when any validator failed
           # ------------------------------------------------------------
           exit(valid ? 0 : 1)
+
+        # ------------------------------------------------------------
+        # Unexpected errors
+        # ------------------------------------------------------------
         rescue StandardError => e
-          # ------------------------------------------------------------
-          # Catch unexpected command-level errors
-          # ------------------------------------------------------------
           spinner&.error(pastel.red('(Unexpected error)'))
           warn pastel.red("\nAn unexpected error occurred while running the command.")
           warn pastel.red("#{e.message}\n")
