@@ -41,7 +41,7 @@ module AlcesJob
           "#{value} #{unit}" if value.positive?
         end
 
-        parts.empty? ? '0 seconds' : parts.join(', ')
+        parts.empty? ? 'infinite' : parts.join(', ')
       end
 
       # Converts a slurm time to seconds
