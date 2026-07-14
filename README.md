@@ -7,8 +7,8 @@
 Download the released gem and install it:
 
 ```sh
-$ wget https://github.com/alces-software/alces-job/releases/download/v2.0.1/alces-job-2.0.1.gem
-$ gem install alces-job-2.0.1.gem
+$ wget https://github.com/alces-software/alces-job/releases/download/v2.0.3/alces-job-2.0.3.gem
+$ gem install alces-job-2.0.3.gem
 ```
 
 Verify installation:
