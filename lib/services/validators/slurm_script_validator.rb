@@ -84,6 +84,7 @@ module AlcesJob
         validate_duplicate_shebang(lines)
         validate_directives_before_commands(lines)
         validate_supported_shebang(lines)
+        validate_cpus_per_task(sbatch_lines)
         errors.empty?
       end
 
@@ -484,6 +485,26 @@ module AlcesJob
         end
 
         nil
+      end
+
+      def validate_cpus_per_task(sbatch_lines)
+        cpu_value = directive_value(sbatch_lines, '--cpus-per-task')
+        return if cpu_value.nil?
+
+        requested_cpus = Integer(cpu_value, exception: false)
+        return if requested_cpus.nil?
+
+        partition_name = directive_value(sbatch_lines, '--partition')
+
+        max_cpus =
+          AlcesJob::Services::SystemLimits.max_cpus(
+            @system_info,
+            partition_name
+          )
+
+        return unless requested_cpus > max_cpus
+
+        errors << "Requested CPUs per task (#{requested_cpus}) exceeds the maximum available on a single node (#{max_cpus}) for partition #{partition_name || 'default'}."
       end
     end
   end
