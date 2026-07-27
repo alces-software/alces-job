@@ -435,20 +435,20 @@ These can be combined with the `--interactive -i` flag, which will let you selec
     - `--package`, `-k` — updates package information.
     - `--all`, `-a` — updates all available information.
 
-- `alces-job status <jobId> [flags]`
-  - Gets the status of a tracked job.
+- `alces-job job status <jobId> [flags]`
+  - Gets the job status of a tracked job.
   - Flags:
     - `--verbose`, `-v` — shows detailed stage information.
     - `--live` — refreshes the status display in real time.
 
-- `alces-job history [flags]`
-  - Shows a history of tracked jobs.
+- `alces-job job history [flags]`
+  - Shows a job history of tracked jobs.
   - Flags:
     - `--status` — filters by job status (`running` or `completed`).
     - `--limit` — limits how many jobs are shown.
     - `--interactive`, `-i` — lets you select a job and view its full details.
 
-- `alces-job tracking [flags]`
+- `alces-job job tracking [flags]`
   - Prints the paths needed to manually source the tracking helper functions.
   - Flags:
     - `--pretty`, `-p` — formats the output in a more readable way.

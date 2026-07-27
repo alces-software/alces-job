@@ -84,6 +84,9 @@ module AlcesJob
         validate_duplicate_shebang(lines)
         validate_directives_before_commands(lines)
         validate_supported_shebang(lines)
+        validate_cpus_per_task(sbatch_lines)
+        validate_nodes(sbatch_lines)
+        validate_partition_exists(sbatch_lines)
         errors.empty?
       end
 
@@ -171,7 +174,7 @@ module AlcesJob
 
           if requested_time_seconds.nil?
             errors << 'Invalid time format. Expected HH:MM:SS or D-HH:MM:SS.'
-          elsif requested_time_seconds > max_time_seconds
+          elsif max_time_seconds.positive? && requested_time_seconds > max_time_seconds
             errors << "Requested time (#{requested_time_seconds} seconds) exceeds the maximum allowed (#{max_time_seconds} seconds) for partition #{partition_name || 'default'}."
           end
         else
@@ -484,6 +487,57 @@ module AlcesJob
         end
 
         nil
+      end
+
+      def validate_cpus_per_task(sbatch_lines)
+        cpu_value = directive_value(sbatch_lines, '--cpus-per-task')
+        return if cpu_value.nil?
+
+        requested_cpus = Integer(cpu_value, exception: false)
+        return if requested_cpus.nil?
+
+        partition_name = directive_value(sbatch_lines, '--partition')
+
+        max_cpus =
+          AlcesJob::Services::SystemLimits.max_cpus(
+            @system_info,
+            partition_name
+          )
+
+        return unless requested_cpus > max_cpus
+
+        errors << "Requested CPUs per task (#{requested_cpus}) exceeds the maximum available on a single node (#{max_cpus})."
+      end
+
+      def validate_nodes(sbatch_lines)
+        node_value = directive_value(sbatch_lines, '--nodes')
+        return if node_value.nil?
+
+        requested_nodes = Integer(node_value, exception: false)
+        return if requested_nodes.nil?
+
+        partition_name = directive_value(sbatch_lines, '--partition')
+
+        max_nodes =
+          AlcesJob::Services::SystemLimits.node_count(
+            @system_info,
+            partition_name
+          )
+        return unless requested_nodes > max_nodes
+
+        errors << "Requested nodes (#{requested_nodes}) exceeds the maximum available (#{max_nodes})."
+      end
+
+      def validate_partition_exists(sbatch_lines)
+        partition_name = directive_value(sbatch_lines, '--partition')
+        return if partition_name.nil?
+
+        valid_partitions =
+          AlcesJob::Services::SystemLimits.valid_partitions(@system_info)
+
+        return if valid_partitions.include?(partition_name)
+
+        errors << "Partition '#{partition_name}' does not exist"
       end
     end
   end
