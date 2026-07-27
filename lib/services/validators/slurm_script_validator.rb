@@ -528,7 +528,7 @@ module AlcesJob
         errors << "Requested nodes (#{requested_nodes}) exceeds the maximum available (#{max_nodes})."
       end
 
-      def validate_partition_exists
+      def validate_partition_exists(sbatch_lines)
         partition_name = directive_value(sbatch_lines, '--partition')
         return if partition_name.nil?
 
