@@ -62,6 +62,27 @@ Arch typically provides the latest stable Ruby version available at the time of 
 ```sh
 $ sudo apk add ruby
 ```
+
+### Ruby Version Manager
+
+If you cannot install ruby 4 via your native package manager, install it via a version manager such as [mise](https://mise.jdx.dev/getting-started.html).
+
+#### No Sudo Ruby install with mise.
+
+This is specifically for bash terminals on alma linux, for downloading when sudo is not avalible, first to download run:
+
+```sh
+$ curl https://mise.run/bash | sh 
+$ source ~/.bashrc
+```
+
+Then install ruby using mise without recompilation, run:
+
+```sh
+$ mise settings set ruby.compile false #Needed if ruby is to go on without sudo apt install
+$ mise use -g ruby@latest #Should give you a version of 4.x at time of writing, else change to 4.x
+```
+
 ### Verify installation
 ```sh
 ruby --version
@@ -70,16 +91,12 @@ gem --version
 
 Confirm that the output shows Ruby 4.x.
 
-### Ruby Version Manager
-
-If you cannot install ruby 4 via your native package manager, install it via a version manager such as [mise](https://mise.jdx.dev/getting-started.html).
-
 ### Installing alces-job
 
 Go to the [releases](https://github.com/alces-software/alces-job/releases) page and download the gem file, or download it directly with
 
 ```sh
-$ wget https://github.com/alces-software/alces-job/releases/download/v2.0.3/alces-job-2.0.3.gem
+$ wget https://github.com/alces-software/alces-job/releases/download/v.2.0.3/alces-job-2.0.3.gem
 ```
 
 Run:
@@ -93,6 +110,16 @@ Verify installation with
 ```sh
 $ alces-job version
 ```
+
+### Installing syinfo(optional)
+
+On first setup, run:
+
+```sh
+$ alces-job sysinfo init
+```
+
+This downloads the configuation locally to reduce processing overhead.
 
 ## Features
 
@@ -108,10 +135,12 @@ $ alces-job generate universal \
   --time 01:00:00 \
   --partition short \
   --mem 8G \
-  --command "python run.py" \
+  --command echo "test" \
   --output output_%j.log \
   --submit
 ```
+
+You should now see the job has run by using sacct.
 
 ### Interactive Wizard
 The cli tool comes with an interactive wizard that will take you through the steps of creating an sbatch job script. This is recommended for new users or anyone not experienced with SLURM.
@@ -124,14 +153,19 @@ $ alces-job -i
 `alces-job modify` will let you change the directives for an existing sbatch file if you need to modify something on the fly
 
 ```sh
-$ alces-job modify myjob.sbatch --job_name myjob --nodes 2 --time 01:00:00 --command "python main.py" --submit
+$ alces-job modify job-my_job.slurm --job_name myjob --nodes 2 --time 01:00:00 --command "python run.py" --submit
 ```
 
+Optional: If you are running this as a first time setup, create this test file to allow for the sbatch to deploy properly
+```sh
+$ touch run.py
+$ echo -e 'import time\nprint("test")\ntime.sleep(10)\nprint("test_complete")' > run.py
+```
 ### Validating an Existing Script
 `alces-job validate` will tell you if the given sbatch file has valid values
 
 ```sh
-$ alces-job validate script myjob.sbatch
+$ alces-job validate script job-my_job.slurm
 ```
 ### Templates
 Templates are how the tool generates the sbatch scripts. They use embedded Ruby (ERB-style placeholders like <%= @context... %>) to dynamically fill in job settings such as job name, array range, partition, memory, modules, working directory, and the command to run.
@@ -157,12 +191,12 @@ $ alces-job generate universal \
   --time 01:00:00 \
   --mem 4G \
   --command "python run.py" \
-  --template my_slurm_template
+  --template my_slurm_template 
 ```
 
 The tool will:
 
-Read your template from ~/.config/alces-job/templates/my_slurm_template.erb
+Read the template from ~/.config/alces-job/templates/my_slurm_template.erb
 
 Replace all <%= @context.* %> placeholders with your provided values
 
@@ -179,8 +213,7 @@ When you run a job with a profile, its stored values are applied automatically, 
 You define a reusable set of defaults:
 
 ```sh
-$ alces-job profile create \
-  --profile_name fast \
+$ alces-job profile create fast \
   --job_name fastjob \
   --nodes 1 \
   --ntasks 4 \
@@ -194,7 +227,7 @@ This saves a profile called fast containing those job settings.
 To view what a profile contains:
 
 ```sh
-$ alces-job profile show --profile fast
+$ alces-job profile show fast
 ```
 
 This prints the stored configuration so you can verify or reuse it.
@@ -203,8 +236,7 @@ This prints the stored configuration so you can verify or reuse it.
 You can modify existing values:
 
 ```sh
-$ alces-job profile edit change \
-  --profile_name fast \
+$ alces-job profile edit change fast \
   --mem 8G \
   --time 02:00:00
 ```
@@ -216,8 +248,7 @@ This updates only the specified fields, leaving everything else unchanged.
 To unset specific values entirely:
 
 ```sh
-$ alces-job profile edit remove \
-  --profile_name fast \
+$ alces-job profile edit remove fast \
   --mem \
   --time
 ```
@@ -229,9 +260,9 @@ Those flags are deleted from the profile, so future jobs won’t inherit them.
 If you no longer need it:
 
 ```sh
-$ alces-job profile delete --profile fast
+$ alces-job profile delete fast
 ```
-
+<!-- Reimplement when inspecting a job is added
 ### Inspecting a job
 
 Creating a job with the `--track` flag will allow the tool to be able to track the progress of the job script. It will automatically inject the `alces_start_job` helper function that tells the tool when the script has started.
@@ -266,7 +297,7 @@ $ alces-job history
 ```
 This will show a list of recent jobs. The amount of jobs it shows can be capped with the `--limit` flag, and the results can be filtered with the `--status` flag.
 These can be combined with the `--interactive -i` flag, which will let you select one of the options and view the full details about it.
-
+-->
 ## All Commands
 
 - `alces-job completion`
@@ -434,7 +465,7 @@ These can be combined with the `--interactive -i` flag, which will let you selec
     - `--partition`, `-p` — updates partition information.
     - `--package`, `-k` — updates package information.
     - `--all`, `-a` — updates all available information.
-
+<!-- Reimplement once added to next verison
 - `alces-job status <jobId> [flags]`
   - Gets the status of a tracked job.
   - Flags:
@@ -452,3 +483,4 @@ These can be combined with the `--interactive -i` flag, which will let you selec
   - Prints the paths needed to manually source the tracking helper functions.
   - Flags:
     - `--pretty`, `-p` — formats the output in a more readable way.
+    -->
