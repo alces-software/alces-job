@@ -36,22 +36,19 @@ module AlcesJob
         # @param [String, nil] partition_name
         # @return [Integer]
         def max_cpus(system_info, partition_name = nil)
-          nodes = nodes_from(system_info)
-          return DEFAULT_CPUS_PER_NODE if nodes.empty?
-
           partition = safe_partition(system_info, partition_name)
-          to_int(partition[:max_cpu_cores] || partition['max_cpu_cores'], DEFAULT_CPUS_PER_NODE)
+
+          to_int(
+            partition[:max_cpu_cores] || partition['max_cpu_cores'],
+            DEFAULT_CPUS_PER_NODE
+          )
         end
 
         # List all valid partition names
         # @param [Hash] system_info
         # @return [Array<String>]
         def valid_partitions(system_info)
-          partitions = partitions_from(system_info)
-
-          partitions.filter_map do |partition|
-            partition[:partition] || partition['partition']
-          end
+          partitions_from(system_info).keys.map(&:to_s)
         end
 
         # Get time limit (seconds) for a partition
@@ -99,16 +96,12 @@ module AlcesJob
         # @param [String, nil] partition_name
         # @return [Hash]
         def find_partition(partitions, partition_name)
-          return {} unless partitions.is_a?(Array)
+          return {} unless partitions.is_a?(Hash)
+          return partitions.values.first || {} if partition_name.nil?
 
-          return partitions.first if partition_name.nil?
-
-          partitions.find do |partition|
-            next false unless partition.is_a?(Hash)
-
-            name = partition[:name] || partition['name']
-            name == partition_name
-          end || {}
+          partitions[partition_name] ||
+            partitions[partition_name.to_sym] ||
+            {}
         end
 
         # Safe wrapper around find_partition
