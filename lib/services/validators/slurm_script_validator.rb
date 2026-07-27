@@ -86,6 +86,7 @@ module AlcesJob
         validate_supported_shebang(lines)
         validate_cpus_per_task(sbatch_lines)
         validate_nodes(sbatch_lines)
+        validate_partition_exists(sbatch_lines)
         errors.empty?
       end
 
@@ -505,7 +506,7 @@ module AlcesJob
 
         return unless requested_cpus > max_cpus
 
-        errors << "Requested CPUs per task (#{requested_cpus}) exceeds the maximum available on a single node (#{max_cpus}) for partition #{partition_name || 'default'}."
+        errors << "Requested CPUs per task (#{requested_cpus}) exceeds the maximum available on a single node (#{max_cpus})."
       end
 
       def validate_nodes(sbatch_lines)
@@ -524,7 +525,19 @@ module AlcesJob
           )
         return unless requested_nodes > max_nodes
 
-        errors << "Requested nodes (#{requested_nodes}) exceeds the maximuim available (#{max_nodes}) for partition #{partition_name || 'default'}."
+        errors << "Requested nodes (#{requested_nodes}) exceeds the maximum available (#{max_nodes})."
+      end
+
+      def validate_partition_exists
+        partition_name = directive_value(sbatch_lines, '--partition')
+        return if partition_name.nil?
+
+        valid_partitions =
+          AlcesJob::Services::SystemLimits.valid_partitions(@system_info)
+
+        return if valid_partitions.include?(partition_name)
+
+        errors << "Partition '#{partition_name}' does not exist"
       end
     end
   end
