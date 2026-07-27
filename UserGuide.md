@@ -182,10 +182,6 @@ You would typically save your custom template as a file on disk, for example:
 
 ~/.config/alces-job/templates/my_slurm_template.erb
 
-or
-
-alces-job-2.0.3/templates/my_slurm_template.erb
-
 Then pass it to the command using the --template flag:
 
 ```sh
@@ -195,12 +191,12 @@ $ alces-job generate universal \
   --time 01:00:00 \
   --mem 4G \
   --command "python run.py" \
-  --template universal #only built in templates work
+  --template my_slurm_template 
 ```
 
 The tool will:
 
-Read the template from ~/.config/alces-job/templates/universal.erb
+Read the template from ~/.config/alces-job/templates/my_slurm_template.erb
 
 Replace all <%= @context.* %> placeholders with your provided values
 
