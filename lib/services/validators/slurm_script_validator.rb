@@ -171,7 +171,7 @@ module AlcesJob
 
           if requested_time_seconds.nil?
             errors << 'Invalid time format. Expected HH:MM:SS or D-HH:MM:SS.'
-          elsif requested_time_seconds > max_time_seconds
+          elsif max_time_seconds.positive? && requested_time_seconds > max_time_seconds
             errors << "Requested time (#{requested_time_seconds} seconds) exceeds the maximum allowed (#{max_time_seconds} seconds) for partition #{partition_name || 'default'}."
           end
         else

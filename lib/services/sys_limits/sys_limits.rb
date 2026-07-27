@@ -63,6 +63,8 @@ module AlcesJob
           partition = safe_partition(system_info, partition_name)
           time_limit = partition[:time_limit] || partition['time_limit']
 
+          return 0 if time_limit.to_s == '0-00:00:00'
+
           seconds = TimeConverter.to_seconds(time_limit.to_s)
           to_int(seconds, DEFAULT_TIME_SECONDS)
         end
