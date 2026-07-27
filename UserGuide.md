@@ -156,6 +156,11 @@ $ alces-job -i
 $ alces-job modify job-my_job.slurm --job_name myjob --nodes 2 --time 01:00:00 --command "python run.py" --submit
 ```
 
+Optional: If you are running this as a first time setup, create this test file to allow for the sbatch to deploy properly
+```sh
+$ touch run.py
+$ echo -e 'import time\nprint("test")\ntime.sleep(10)\nprint("test_complete")' > run.py
+```
 ### Validating an Existing Script
 `alces-job validate` will tell you if the given sbatch file has valid values
 
