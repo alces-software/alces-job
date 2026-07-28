@@ -114,7 +114,7 @@ $ alces-job template list
 To show a template's contents:
 
 ```sh
-$ alces-job template show --name TEMPLATE_NAME
+$ alces-job template show TEMPLATE_NAME
 ```
 
 To generate a script from a specific template:
