@@ -69,7 +69,7 @@ If you cannot install ruby 4 via your native package manager, install it via a v
 
 #### No Sudo Ruby install with mise.
 
-This is specifically for bash terminals on alma linux, for downloading when sudo is not avalible, first to download run:
+This is specifically for bash terminals on alma linux, for downloading when sudo is not available, first to download run:
 
 ```sh
 $ curl https://mise.run/bash | sh
@@ -119,7 +119,7 @@ On first setup, run:
 $ alces-job sysinfo init
 ```
 
-This downloads the configuation locally to reduce processing overhead.
+This downloads the configuration locally to reduce processing overhead.
 
 ## Features
 
@@ -486,4 +486,3 @@ These can be combined with the `--interactive -i` flag, which will let you selec
   - Prints the paths needed to manually source the tracking helper functions.
   - Flags:
     - `--pretty`, `-p` — formats the output in a more readable way.
-    -->
