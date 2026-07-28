@@ -18,7 +18,7 @@ module AlcesJob
 
         option :partitions, type: :boolean, aliases: ['-p'], default: false, desc: 'Update partition information'
         option :packages, type: :boolean, aliases: ['-k'], default: false, desc: 'Update package information'
-        option :max_array_size, type: :boolean, aliases: ['-n'], default: false, desc: 'Updates the max array size'
+        option :max_array_size, type: :boolean, aliases: ['-m'], default: false, desc: 'Updates the max array size'
         option :all, type: :boolean, aliases: ['-a'], default: false, desc: 'Update all system information'
 
         def call(**options)

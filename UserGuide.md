@@ -475,6 +475,7 @@ These can be combined with the `--interactive -i` flag, which will let you selec
   - Flags:
     - `--partition`, `-p` — updates partition information.
     - `--package`, `-k` — updates package information.
+    - `--max_array_size`, `-m` — updates the maximum array size for Slurm.
     - `--all`, `-a` — updates all available information.
 
 - `alces-job job status <jobId> [flags]`
