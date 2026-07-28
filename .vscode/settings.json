@@ -3,6 +3,7 @@
         "cpus",
         "getch",
         "gres",
+        "ntasks",
         "openmpi",
         "scriptall"
     ]
