@@ -110,16 +110,18 @@ module AlcesJob
       end
 
       def validate_duplicate_directives(sbatch_lines)
-        directive_names = sbatch_lines.map do |line|
-          line.split[1]&.split('=')&.first
+        directive_names = sbatch_lines.filter_map do |line|
+          raw_directive = line.split[1]&.split('=')&.first
+          next if raw_directive.nil?
+
+          AlcesJob::Services::SbatchDirectiveValidator
+            .convert_alias_to_full_name(raw_directive)
         end
 
-        duplicates = directive_names
-          .compact
-          .select { |name| directive_names.count(name) > 1 }
-          .uniq
-        duplicates.each do |duplicate|
-          errors << "Duplicate directive found: #{duplicate}."
+        directive_names.tally.each do |directive, count|
+          next unless count > 1
+
+          errors << "Duplicate directive found: #{directive}."
         end
       end
 
