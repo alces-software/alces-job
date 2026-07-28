@@ -86,6 +86,7 @@ module AlcesJob
             error_mark: pastel.red('✗')
           )
 
+          puts pastel.yellow("TIP: This loading can be sped up by running 'alces-job sysinfo init'")
           spinner.update(title: 'Loading system information')
           spinner.auto_spin
 
