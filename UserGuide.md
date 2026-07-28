@@ -111,7 +111,8 @@ Verify installation with
 $ alces-job version
 ```
 
-### Installing syinfo(optional)
+### Installing syinfo (optional)
+> This is optional, but recommended for performance as it'll speed up command execution.
 
 On first setup, run:
 
@@ -119,7 +120,14 @@ On first setup, run:
 $ alces-job sysinfo init
 ```
 
-This downloads the configuration locally to reduce processing overhead.
+This reads your system information and creates a file in which its all stored so that it can be reused later instead of reading it each time. If you make any changes to your system, you can update the information with:
+
+```sh
+$ alces-job sysinfo update
+```
+
+By default this command will update all the information but does have flags to update only certain parts of the information. Use `alces-job sysinfo update --help` to see the available flags.
+
 
 ## Features
 
