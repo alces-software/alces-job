@@ -409,7 +409,7 @@ These can be combined with the `--interactive -i` flag, which will let you selec
 - `alces-job template list`
   - Lists templates from built-in, admin, and user locations.
 
-- `alces-job template show --name <template>`
+- `alces-job template show <name>`
   - Displays the contents of a named template so you can review or reuse it.
 
 - `alces-job validate script <path>`
@@ -424,6 +424,7 @@ These can be combined with the `--interactive -i` flag, which will let you selec
     - `--show_description`, `-d` — displays each module description.
     - `--show_full_name`, `-f` — shows the full module name used for loading.
     - `--hide_categories`, `-h` — hides category headings in the output.
+    - `--show_config_blocked`, `-b` — shows configuration blocked modules.
 
 - `alces-job module search`
   - Searches available modules by name, version, or category.
@@ -434,6 +435,8 @@ These can be combined with the `--interactive -i` flag, which will let you selec
     - `--show_description`, `-d` — displays each module description.
     - `--show_full_name`, `-f` — shows the full module name used for loading.
     - `--hide_categories`, `-h` — hides category headings in the output.
+    - `--show_config_blocked`, `-b` — shows configuration blocked modules.
+    - `--strict_search`, `-s` — performs a strict search making it so everything must match exactly.
 
 - `alces-job profile list`
   - Lists saved user profiles.
