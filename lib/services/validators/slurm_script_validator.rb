@@ -92,39 +92,6 @@ module AlcesJob
 
       private
 
-      def validate_shebang(lines)
-        if lines.empty?
-          errors << 'Script is empty.'
-          return
-        end
-        shebang_check = lines[0].sub(/\A#!\s*/, '#!').strip
-        return if SUPPORTED_SHEBANGS.include?(shebang_check)
-
-        errors << "Missing shebang, spelt incorrectly, or unsupported. Expected one of: #{SUPPORTED_SHEBANGS.join(',')}."
-      end
-
-      def validate_sbatch_lines_exist(sbatch_lines)
-        return unless sbatch_lines.empty?
-
-        errors << 'No #SBATCH directives found.'
-      end
-
-      def validate_duplicate_directives(sbatch_lines)
-        directive_names = sbatch_lines.filter_map do |line|
-          raw_directive = line.split[1]&.split('=')&.first
-          next if raw_directive.nil?
-
-          AlcesJob::Services::SbatchDirectiveValidator
-            .convert_alias_to_full_name(raw_directive)
-        end
-
-        directive_names.tally.each do |directive, count|
-          next unless count > 1
-
-          errors << "Duplicate directive found: #{directive}."
-        end
-      end
-
       def validate_memory(sbatch_lines)
         mem_value = directive_value(sbatch_lines, '--mem')
 

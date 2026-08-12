@@ -2,6 +2,7 @@
 
 require_relative 'slurm_script_validator'
 require_relative '../plugins/validator_plugin_loader'
+require_relative 'validator_plugin_api'
 
 module AlcesJob
   module Services
@@ -46,11 +47,17 @@ module AlcesJob
         end
 
         # ------------------------------------------------------------
+        # Prepare some information to be passed into the validators
+        # ------------------------------------------------------------
+        file_lines = File.readlines(@file_path, chomp: true)
+        sbatch_lines = file_lines.map(&:strip).select { |line| line.start_with?('#SBATCH') }
+
+        # ------------------------------------------------------------
         # Run every built-in and user plugin validator
         # ------------------------------------------------------------
         validators.each do |validator_details|
           validator = validator_details[:validator]
-          passed = validator.validate?
+          passed = validator.validate?(lines: file_lines.dup, sbatch_lines: sbatch_lines.dup, api: AlcesJon::Services::Plugins::ValidatorPluginAPI)
 
           result = {
             name: validator_details[:name],

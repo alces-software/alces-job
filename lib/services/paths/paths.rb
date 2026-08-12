@@ -75,18 +75,6 @@ module AlcesJob
         @xdg.config_home.join('alces-job', "#{@user_config_file_name}.yaml").to_s
       end
 
-      # Gets the path to the user's validators plugin directory
-      # @return [String]
-      def user_validator_plugin_dir
-        @xdg.config_home.join('alces-job', 'plugins', 'validators').to_s
-      end
-
-      # Gets the path to the admin validators plugin directory
-      # @return [String]
-      def admin_validator_plugin_dir
-        File.join(@system_root, 'plugins', 'validators').to_s
-      end
-
       # Gets the path to the admin config file
       # @return [String]
       def admin_config_path
@@ -137,6 +125,25 @@ module AlcesJob
       # @return [String]
       def system_bash_completion_path
         File.join('/etc', '.bash_completion.d', 'alces-job').to_s
+      end
+
+      # Plugin
+
+      # Gets the path to the user's validators plugin directory
+      # @return [String]
+      def user_validator_plugin_dir
+        @xdg.config_home.join('alces-job', 'plugins', 'validators').to_s
+      end
+
+      # Gets the path to the admin validators plugin directory
+      # @return [String]
+      def admin_validator_plugin_dir
+        File.join(@system_root, 'plugins', 'validators').to_s
+      end
+
+      def built_in_validator_plugin_dir
+        spec = Gem.loaded_specs['alces-job']
+        File.join(spec.full_gem_path, 'lib/services/validators/plugins').to_s
       end
     end
   end
